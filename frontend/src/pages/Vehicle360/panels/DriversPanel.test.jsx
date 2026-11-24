@@ -31,6 +31,13 @@ const renderPanel = (props = {}) =>
   );
 const countFor = (label) => screen.getByText(label).parentElement.querySelector('strong');
 
+it('opens the working assignment screen from the truck', () => {
+  renderPanel();
+  const links = screen.getAllByRole('link').filter((link) => /assign/i.test(link.textContent));
+  expect(links.length).toBeGreaterThan(0);
+  links.forEach((link) => expect(link).toHaveAttribute('href', '/khata-ledger?tab=assignments'));
+});
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(now));

@@ -1,8 +1,9 @@
-import { Navigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import RedirectWithState from './RedirectWithState';
 
 function TripsRedirect() {
   const { id } = useParams();
-  return <Navigate to={id ? `/auto-trips/${id}` : '/auto-trips'} replace />;
+  return <RedirectWithState to={id ? `/auto-trips/${encodeURIComponent(id)}` : '/auto-trips'} />;
 }
 
 export default TripsRedirect;

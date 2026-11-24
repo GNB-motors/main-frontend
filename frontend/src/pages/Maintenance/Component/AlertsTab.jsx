@@ -5,6 +5,7 @@ import { AlertTriangle, Bell, Check, FileWarning, RefreshCw, Wrench } from 'luci
 import { MaintenanceService } from '../MaintenanceService.js';
 import NewButton from '../../../components/ui/NewButton';
 import KpiCard from '../../../components/ui/KpiCard';
+import { loadServiceAlerts } from '../serviceForecasts';
 
 // Sub-tab keys map to backend alert.type, except 'ALL' / 'CRITICAL' / 'RESOLVED'
 // which are filters over the same alert set.
@@ -60,7 +61,8 @@ const AlertSkeleton = () => (
 const AlertsTab = ({ search = '', refreshKey = 0 }) => {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [subTab, setSubTab] = useState('ALL');
   const [resolvingId, setResolvingId] = useState(null);
   const requestIdRef = useRef(0);
@@ -68,13 +70,15 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
   const load = useCallback(async () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
+    setError(null);
     try {
-      const data = await MaintenanceService.getAlerts();
+      const data = await loadServiceAlerts();
       if (myId !== requestIdRef.current) return;
       setAlerts(data);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
       toast.error(err?.message || 'Failed to load alerts');
+      setError(err.message || 'Could not load alerts.');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }
@@ -82,6 +86,9 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
 
   useEffect(() => {
     load();
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [load, refreshKey]);
 
   const handleResolve = async (alert) => {
@@ -137,6 +144,14 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
     if (tabKey === 'RESOLVED') return counts.resolved;
     return counts[tabKey] || 0;
   };
+
+  if (error)
+    return (
+      <div role="alert">
+        <p>Could not load alerts. Retry to check service and fleet alerts.</p>
+        <NewButton text="Retry" onClick={load} />
+      </div>
+    );
 
   return (
     <div className="si-alerts-wrapper" style={{ width: '100%', gap: 12 }}>
@@ -254,12 +269,12 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
           </div>
         ) : null}
 
-        {!loading && filtered.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <div style={emptyBox}>
             {subTab === 'RESOLVED'
               ? 'No resolved alerts yet.'
               : alerts.length === 0
-                ? 'No alerts right now. Everything looks healthy.'
+                ? 'No alerts in the checks returned for this fleet.'
                 : 'No alerts in this category.'}
           </div>
         )}
@@ -271,7 +286,11 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
               alert={a}
               resolving={resolvingId === a.id}
               onResolve={() => handleResolve(a)}
-              onGoToVehicle={() => navigate('/vehicles/dashboard')}
+              onGoToVehicle={() =>
+                navigate(
+                  `/vehicles/${encodeURIComponent(a.vehicleReg)}${a.prediction ? '?tab=service' : ''}`,
+                )
+              }
             />
           ))}
         </div>
@@ -340,17 +359,21 @@ const AlertCard = ({ alert, resolving, onResolve, onGoToVehicle }) => {
         </div>
       </div>
 
-      {!alert.resolved && (
-        <button
-          type="button"
-          className="si-action-resolve-btn"
-          onClick={onResolve}
-          disabled={resolving}
-          style={{ alignSelf: 'center', padding: '6px 14px', fontSize: 12.5 }}
-        >
-          <Check size={14} />
-          <span>{resolving ? 'Resolving…' : 'Resolve'}</span>
-        </button>
+      {alert.prediction ? (
+        <NewButton text="View service" onClick={onGoToVehicle} />
+      ) : (
+        !alert.resolved && (
+          <button
+            type="button"
+            className="si-action-resolve-btn"
+            onClick={onResolve}
+            disabled={resolving}
+            style={{ alignSelf: 'center', padding: '6px 14px', fontSize: 12.5 }}
+          >
+            <Check size={14} />
+            <span>{resolving ? 'Resolving…' : 'Resolve'}</span>
+          </button>
+        )
       )}
     </div>
   );

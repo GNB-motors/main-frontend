@@ -74,7 +74,7 @@ const ReceiptToolbar = ({
         >
           <option value="ALL">All odometers</option>
           <option value="TELEMATICS">📡 FleetEdge Auto</option>
-          <option value="PHOTO">📸 Dash Photo OCR</option>
+          <option value="PHOTO">Dashboard photo</option>
           <option value="MISSING">⚠️ Missing odometer</option>
         </SearchableSelect>
       </div>

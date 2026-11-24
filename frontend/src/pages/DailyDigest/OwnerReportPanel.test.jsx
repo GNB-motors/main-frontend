@@ -92,6 +92,19 @@ const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttent
   );
 
 describe('OwnerReportPanel', () => {
+  it('keeps a zero cost unknown when calculations are incomplete', async () => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 0,
+      partial: true,
+      sections: [],
+      coverageNote: '2 items could not be calculated',
+    });
+    const { container } = renderPanel();
+    expect(await screen.findByText(/Not counted yet. Fuel calculations/)).toBeInTheDocument();
+    expect(container.querySelector('.db-leak-total strong')).toHaveTextContent('—');
+    expect(container.querySelector('.db-leak-total')).toHaveClass('db-leak-total--quiet');
+    expect(screen.queryByText('₹0')).not.toBeInTheDocument();
+  });
   it('explains the server overlap deduction without showing additive category percentages', async () => {
     fleetViewService.getMorningBrief.mockResolvedValue({
       totalRupees: 20675,
@@ -341,11 +354,47 @@ describe('OwnerReportPanel', () => {
     expect(screen.getByText('estimated extra fuel cost for this period')).toBeTruthy();
     expect(screen.getByText('₹2,207')).toBeTruthy();
     expect(screen.getByText('Check the receipts')).toBeTruthy();
-    // each truck is a chip that opens its own page
+    // Fuel loss opens the selected truck and day in Fuel checks.
     const chip = screen.getByText('MH12AB1234').closest('a');
-    expect(chip.getAttribute('href')).toBe('/vehicles/MH12AB1234');
+    const destination = new URL(chip.getAttribute('href'), 'https://fleet.invalid');
+    expect(destination.pathname).toBe('/intelligence');
+    expect(Object.fromEntries(destination.searchParams)).toMatchObject({
+      tab: 'fuel',
+      fuelView: 'drain',
+      vehicle: 'MH12AB1234',
+      from: TODAY_IST,
+      to: TODAY_IST,
+    });
     expect(chip.textContent).toContain('₹270');
     expect(screen.queryByText('17,635.8')).toBeNull();
+  });
+
+  it.each([
+    ['excessIdling', 'idling', { idleSubview: 'instances' }],
+    ['fuelOverModel', 'mileage', {}],
+  ])('keeps truck and day on %s chips', async (key, tab, extra) => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 100,
+      sections: [
+        {
+          key,
+          status: 'ok',
+          rupees: 100,
+          vehicles: [{ registrationNumber: 'WB11S6162', rupees: 100 }],
+        },
+      ],
+    });
+    renderPanel('2026-11-03');
+    const chip = await screen.findByRole('link', { name: /WB11S6162/ });
+    const destination = new URL(chip.getAttribute('href'), 'https://fleet.invalid');
+    expect(destination.pathname).toBe('/intelligence');
+    expect(Object.fromEntries(destination.searchParams)).toMatchObject({
+      tab,
+      vehicle: 'WB11S6162',
+      from: '2026-11-03',
+      to: '2026-11-03',
+      ...extra,
+    });
   });
 
   it('calls the day "Today so far" and leaves a live day\'s percentages open', async () => {
@@ -380,12 +429,13 @@ describe('OwnerReportPanel', () => {
     expect(screen.queryByText('-100.0%')).toBeNull();
   });
 
-  it('keeps both driver cards visible when no driver scores are available', async () => {
+  it('hides driver-score cards until at least one driver score is available', async () => {
     renderPanel();
 
-    await screen.findByRole('heading', { name: 'Who drove well' });
-    expect(screen.getByRole('heading', { name: 'Who needs a word' })).toBeInTheDocument();
-    expect(screen.getAllByText('No one this time')).toHaveLength(2);
+    await screen.findByText('estimated extra fuel cost for this period');
+    expect(screen.queryByRole('heading', { name: 'Who drove well' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Who needs a word' })).not.toBeInTheDocument();
+    expect(screen.queryByText('No one this time')).not.toBeInTheDocument();
   });
 
   it('names the drivers who drove well when there are any', async () => {
@@ -396,7 +446,7 @@ describe('OwnerReportPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Ramesh Yadav')).toBeTruthy());
     expect(screen.getByText('92')).toBeTruthy();
-    expect(screen.getAllByText('No one this time')).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: 'Who needs a word' })).not.toBeInTheDocument();
   });
 
   it('on a past day names the day card by its date and marks the live cards', async () => {
@@ -405,5 +455,18 @@ describe('OwnerReportPanel', () => {
     // Fleet now is read live: on a past day it carries the "Live" tag.
     expect((await screen.findAllByText('Live')).length).toBeGreaterThan(0);
     expect(screen.queryByText(/^Fleet at /)).toBeNull();
+  });
+
+  it('keeps current fleet counts outside the selected past day', async () => {
+    renderPanel('2026-10-28');
+    await screen.findByText('Fleet now');
+    const day = within(screen.getByRole('region', { name: 'Key numbers for the day' }));
+    expect(day.queryByText('Moving now')).not.toBeInTheDocument();
+    expect(day.queryByText('Dark now')).not.toBeInTheDocument();
+    expect(day.getByText('Trips started')).toBeInTheDocument();
+    const live = within(screen.getByRole('region', { name: 'Right now' }));
+    expect(live.getByText('Moving now')).toBeInTheDocument();
+    expect(live.getByText('Dark now')).toBeInTheDocument();
+    expect(live.queryByText('Trips started')).not.toBeInTheDocument();
   });
 });

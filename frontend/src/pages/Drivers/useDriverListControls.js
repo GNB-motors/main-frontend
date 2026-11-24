@@ -24,6 +24,8 @@ export function useDriverListControls({
   setIsFilterDropdownOpen,
   businessRefId,
   totalPages,
+  currentPage = 1,
+  itemsPerPage = 10,
   setCurrentPage,
 }) {
   const handleSearchChange = (event) => {
@@ -39,11 +41,13 @@ export function useDriverListControls({
   };
 
   const handleApplyFilters = () => {
+    setCurrentPage(1);
     setFilters(tempFilters);
     setIsFilterDropdownOpen(false);
   };
 
   const handleClearFilters = () => {
+    setCurrentPage(1);
     const clearedFilters = {
       role: '',
       vehicleAssignment: '',
@@ -79,18 +83,13 @@ export function useDriverListControls({
   // page — pull all pages from the API (capped at the backend's max `limit`
   // of 1000 per request) before applying the same client-side filter as the table.
   const fetchAllEmployeesForExport = async () => {
-    const EXPORT_PAGE_LIMIT = 1000;
-    const baseParams = { limit: EXPORT_PAGE_LIMIT };
+    const baseParams = {};
     if (searchTerm) baseParams.search = searchTerm;
     if (filters.role) baseParams.role = filters.role;
 
-    const first = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page: 1 });
-    const all = (first.data || []).map(normalizeDriver);
-    const exportTotalPages = first.meta?.totalPages || 1;
-    for (let page = 2; page <= exportTotalPages; page += 1) {
-      const next = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page });
-      all.push(...(next.data || []).map(normalizeDriver));
-    }
+    const all = (await DriverService.getAllDriverPages(businessRefId, baseParams)).map(
+      normalizeDriver,
+    );
     const withVehicles = await DriverService.withAssignedVehicles(all);
     return filterAndSortDrivers(withVehicles, filters.vehicleAssignment).map(mapDriverForExport);
   };
@@ -100,7 +99,9 @@ export function useDriverListControls({
     setCurrentPage(1);
   }, [searchTerm, filters, setCurrentPage]);
 
-  const paginatedDrivers = filteredDrivers;
+  const paginatedDrivers = filters.vehicleAssignment
+    ? filteredDrivers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : filteredDrivers;
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -114,7 +115,10 @@ export function useDriverListControls({
       if (!event.target || typeof event.target.closest !== 'function') return;
 
       // Check if the click is outside the filter dropdown
-      if (isFilterDropdownOpen && !event.target.closest('.drivers-filter-container')) {
+      if (
+        isFilterDropdownOpen &&
+        !event.target.closest('.drivers-filter-container, .drivers-filter-options')
+      ) {
         setIsFilterDropdownOpen(false);
       }
     };

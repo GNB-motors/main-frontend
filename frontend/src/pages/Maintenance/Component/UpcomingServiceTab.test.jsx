@@ -3,12 +3,25 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import UpcomingServiceTab from './UpcomingServiceTab';
 import { FleetDataService } from '../../../services/FleetDataService';
+import { getVehicleList } from '../../../services/vehicleListService';
 
 vi.mock('../../../services/FleetDataService', () => ({
   FleetDataService: { getMaintenancePredictions: vi.fn() },
 }));
+vi.mock('../../../services/vehicleListService', () => ({ getVehicleList: vi.fn() }));
 
 it('shows whole service days and preserves overdue status for a fraction of a day', async () => {
+  getVehicleList.mockResolvedValue(
+    [
+      'WB25V8040',
+      'WB25W1040',
+      'WB25R9540',
+      'WB01NEXT',
+      'WB01RECENT',
+      'WB01TODAY',
+      'WB01UNKNOWN',
+    ].map((registrationNumber) => ({ registrationNumber })),
+  );
   FleetDataService.getMaintenancePredictions.mockResolvedValue({
     records: [
       { registrationNumber: 'WB25V8040', daysUntilDue: -82.42, risk: 'OVERDUE' },
@@ -33,4 +46,45 @@ it('shows whole service days and preserves overdue status for a fraction of a da
   expect(screen.getByText('Due today')).toBeInTheDocument();
   expect(screen.getByText('Due date not projected')).toBeInTheDocument();
   expect(screen.queryByText(/82\.42|80\.3|69\.71/)).not.toBeInTheDocument();
+});
+
+it('does not show a telemetry start as a completed service and excludes retired trucks', async () => {
+  getVehicleList.mockResolvedValue([
+    { registrationNumber: 'ACTIVE', status: 'AVAILABLE' },
+    { registrationNumber: 'RETIRED', status: 'DEACTIVATED' },
+  ]);
+  FleetDataService.getMaintenancePredictions.mockResolvedValue({
+    records: [
+      {
+        registrationNumber: 'ACTIVE',
+        risk: 'OVERDUE',
+        basis: 'TELEMETRY_START',
+        lastServiceAt: '2026-09-15',
+      },
+      { registrationNumber: 'RETIRED', risk: 'OVERDUE' },
+      { registrationNumber: 'REMOVED', risk: 'OVERDUE' },
+    ],
+  });
+  render(
+    <MemoryRouter>
+      <UpcomingServiceTab />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('link', { name: 'ACTIVE' })).toBeInTheDocument();
+  expect(screen.getByText('Not recorded')).toBeInTheDocument();
+  expect(screen.queryByText(/15 Sep|RETIRED|REMOVED/)).not.toBeInTheDocument();
+  expect(screen.getByText('Showing 1 of 1 active vehicles.')).toBeInTheDocument();
+});
+
+it('shows a retry after failure instead of zero service counts', async () => {
+  getVehicleList.mockResolvedValue([]);
+  FleetDataService.getMaintenancePredictions.mockRejectedValue(new Error('Forecast unavailable'));
+  render(
+    <MemoryRouter>
+      <UpcomingServiceTab />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent('Forecast unavailable');
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  expect(screen.queryByText('No active vehicles found.')).not.toBeInTheDocument();
 });

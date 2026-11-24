@@ -63,9 +63,7 @@ const DrawerDetailsPane = ({
   const [timeEdit, setTimeEdit] = useState({ editing: false, typed: '' });
 
   // The words the server wrote for the person: why this row is in the inbox.
-  const reasons = Array.isArray(draft.pipelineReasons)
-    ? draft.pipelineReasons.filter(Boolean)
-    : [];
+  const reasons = Array.isArray(draft.pipelineReasons) ? draft.pipelineReasons.filter(Boolean) : [];
   const reason = draft.pipelineReason || '';
   const caption = draft.caption || '';
 
@@ -80,8 +78,7 @@ const DrawerDetailsPane = ({
 
   // The caption belongs to the sender of a chat, and to the driver of a
   // guided receipt — but only when we know who that driver is.
-  const captionHeading =
-    isChat || !driver ? 'Message from the sender' : 'Message from the driver';
+  const captionHeading = isChat || !driver ? 'Message from the sender' : 'Message from the driver';
 
   // The station facts the draft really carries.
   const stationName =
@@ -108,7 +105,7 @@ const DrawerDetailsPane = ({
   const odoBadgeText =
     sourceWord(odoSource) &&
     (odoMeta.badgeText === 'Source not recorded' ||
-      (odoMeta.badgeText === 'Dash Photo OCR' && !isPhotoSource(odoSource)))
+      (odoMeta.badgeText === 'Dashboard photo' && !isPhotoSource(odoSource)))
       ? sourceText(odoSource)
       : odoMeta.badgeText;
 
@@ -209,7 +206,11 @@ const DrawerDetailsPane = ({
       </CollapsibleSection>
 
       {/* What we think the truck and the time are, and what a person can do. */}
-      <CollapsibleSection title="Predictions" summary={predictionsSummary}>
+      <CollapsibleSection
+        title="Suggestions"
+        summary={predictionsSummary}
+        defaultOpen={candidates.length > 0}
+      >
         <div className="ra-grid-props">
           <div className="ra-prop ra-prop--full">
             <span className="ra-prop__label">Truck suggestions</span>
@@ -255,7 +256,11 @@ const DrawerDetailsPane = ({
           <div className="ra-prop">
             <span className="ra-prop__label">Geofence</span>
             <span className="ra-prop__val">
-              {geofence === true ? 'Matched' : geofence === false ? 'Not matched' : 'Location match not checked.'}
+              {geofence === true
+                ? 'Matched'
+                : geofence === false
+                  ? 'Not matched'
+                  : 'Location match not checked.'}
             </span>
           </div>
           <div className="ra-prop">
@@ -318,7 +323,7 @@ const DrawerDetailsPane = ({
             <span className="ra-prop__val">{fmtDate(draft.billDatetime)}</span>
           </div>
           <div className="ra-prop">
-            <span className="ra-prop__label">Plate (OCR Detected)</span>
+            <span className="ra-prop__label">Plate read from the photo</span>
             <span className="ra-prop__val font-mono">{draft.plateText || 'Not Detected'}</span>
           </div>
           <div className="ra-prop">

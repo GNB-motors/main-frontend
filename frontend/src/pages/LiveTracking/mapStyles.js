@@ -1,5 +1,4 @@
-/* Muted map styles shared by the internal live map and the public share page,
-   so both render the same understated cartography (light + dark variants). */
+/* Shared fleet map styles keep roads and place names readable in both themes. */
 import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 
 export const LIGHT_MAP_STYLE = [
@@ -52,13 +51,15 @@ export const LIGHT_MAP_STYLE = [
     elementType: 'geometry.stroke',
     stylers: [{ color: '#e2e8f0' }, { weight: 1 }],
   },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#edf2f7' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#fed7aa' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#fb923c' }] },
   {
     featureType: 'road.highway',
     elementType: 'geometry.stroke',
-    stylers: [{ color: '#cbd5e1' }, { weight: 1 }],
+    stylers: [{ color: '#c2410c' }, { weight: 1 }],
   },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#334155' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#d8dee4' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
 ];
@@ -109,9 +110,11 @@ export const DARK_MAP_STYLE = [
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#161b2e' }] },
   { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#101524' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#242c4b' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1a2038' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#995522' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#ea580c' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#fdba74' }] },
+  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#e2e8f0' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#070a12' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#475569' }] },
 ];

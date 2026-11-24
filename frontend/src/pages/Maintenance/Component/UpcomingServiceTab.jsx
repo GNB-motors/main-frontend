@@ -1,295 +1,183 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { CalendarClock, Wrench, AlertTriangle, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
-import { FleetDataService } from '../../../services/FleetDataService';
+import { Link } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { CalendarClock, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import NewButton from '../../../components/ui/NewButton';
 import KpiCard from '../../../components/ui/KpiCard';
 import { formatKm } from '../../../utils/formatters';
+import { formatIstDate } from '../../../utils/redesign/format';
+import { loadServiceForecasts, serviceDaysText } from '../serviceForecasts';
 
-// Predicted next-service position per vehicle (MaintenancePrediction), projected
-// from telemetry odometer/engine-hours. This is a different data domain from the
-// logged Service/Repair records and the on-the-fly Fleet Alerts — it is the same
-// source the Daily Digest calendar uses, surfaced here so the "service due"
-// vehicles are visible on the Service Intelligence page too.
-
-const SUB_TABS = [
-  { key: 'ALL', label: 'All' },
-  { key: 'OVERDUE', label: 'Overdue' },
-  { key: 'DUE_SOON', label: 'Due soon' },
-  { key: 'OK', label: 'On track' },
-];
-
-const RISK_META = {
-  OVERDUE: { label: 'Overdue', indicator: 'critical', color: '#dc2626' },
-  DUE_SOON: { label: 'Due soon', indicator: 'warning', color: '#ea580c' },
-  OK: { label: 'On track', indicator: 'resolved', color: '#16a34a' },
+const LABELS = {
+  OVERDUE: 'Overdue',
+  DUE_SOON: 'Due soon',
+  OK: 'On track',
+  UNKNOWN: 'Not assessed',
 };
+const TABS = [['ALL', 'All'], ...Object.entries(LABELS)];
 
-const formatDate = (d) => {
-  if (!d) return null;
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-const daysText = (days) => {
-  if (days == null || days === '' || !Number.isFinite(Number(days)))
-    return 'Due date not projected';
-  const value = Number(days);
-  if (value === 0) return 'Due today';
-  const magnitude = Math.abs(value);
-  const duration =
-    magnitude < 1
-      ? 'less than 1 day'
-      : `${Math.round(magnitude)} day${Math.round(magnitude) === 1 ? '' : 's'}`;
-  return value < 0 ? `Overdue by ${duration}` : `Due in ${duration}`;
-};
-
-const PredictionSkeleton = () => (
-  <div className="si-alert-skel-card">
-    <div className="si-alert-skel-icon" />
-    <div className="si-alert-skel-body">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span className="si-skel-bar" style={{ width: 90, height: 16 }} />
-        <span className="si-skel-bar" style={{ width: 70, height: 16, borderRadius: 12 }} />
-        <span className="si-skel-bar" style={{ width: 110, height: 16 }} />
-      </div>
-      <span className="si-skel-bar" style={{ width: '75%', height: 13 }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-        <span className="si-skel-bar" style={{ width: 90, height: 12 }} />
-        <span className="si-skel-bar" style={{ width: 120, height: 12 }} />
-      </div>
-    </div>
-  </div>
-);
-
-const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
-  const navigate = useNavigate();
+export default function UpcomingServiceTab({ search = '', refreshKey = 0 }) {
   const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [subTab, setSubTab] = useState('ALL');
-  const requestIdRef = useRef(0);
-
+  const requestId = useRef(0);
   const load = useCallback(async () => {
-    const myId = ++requestIdRef.current;
+    const id = ++requestId.current;
     setLoading(true);
+    setError(null);
     try {
-      const data = await FleetDataService.getMaintenancePredictions();
-      if (myId !== requestIdRef.current) return;
-      setRecords(Array.isArray(data?.records) ? data.records : []);
+      const rows = await loadServiceForecasts();
+      if (id === requestId.current) setRecords(rows);
     } catch (err) {
-      if (myId !== requestIdRef.current) return;
-      toast.error(err?.message || 'Failed to load service predictions');
+      if (id === requestId.current) setError(err.message || 'Could not load service forecasts.');
     } finally {
-      if (myId === requestIdRef.current) setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     load();
+    return () => {
+      requestId.current += 1;
+    };
   }, [load, refreshKey]);
-
   const counts = useMemo(() => {
-    const c = { total: records.length, OVERDUE: 0, DUE_SOON: 0, OK: 0 };
-    records.forEach((r) => {
-      c[r.risk] = (c[r.risk] || 0) + 1;
-    });
-    return c;
+    const result = { ALL: records.length };
+    for (const row of records) result[row.risk] = (result[row.risk] || 0) + 1;
+    return result;
   }, [records]);
-
-  const filtered = useMemo(() => {
-    let list = subTab === 'ALL' ? records : records.filter((r) => r.risk === subTab);
-    if (search && search.trim()) {
-      const q = search.trim().toLowerCase();
-      list = list.filter((r) => (r.registrationNumber || '').toLowerCase().includes(q));
-    }
-    return list;
-  }, [records, subTab, search]);
-
-  const countForTab = (key) => (key === 'ALL' ? counts.total : counts[key] || 0);
-
+  const filtered = records.filter(
+    (row) =>
+      (subTab === 'ALL' || row.risk === subTab) &&
+      row.registrationNumber.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const overdue = records
+    .filter((row) => row.risk === 'OVERDUE' && row.kmUntilDue < 0)
+    .slice(0, 10)
+    .map((row) => ({ truck: row.registrationNumber, km: Math.abs(row.kmUntilDue) }));
+  const count = (key) => (error || loading ? '—' : counts[key] || 0);
   return (
-    <div className="si-alerts-wrapper" style={{ width: '100%', gap: 12 }}>
-      <div className="si-kpis-strip" style={{ margin: '0 0 12px 0' }}>
+    <div className="si-alerts-wrapper">
+      <div className="si-kpis-strip">
         <KpiCard
           title="Tracked vehicles"
-          value={
-            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total
-          }
+          value={count('ALL')}
           accent="#3b82f6"
           icon={<CalendarClock size={18} />}
         />
         <KpiCard
           title="Overdue"
-          value={
-            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OVERDUE
-          }
+          value={count('OVERDUE')}
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Due soon"
-          value={
-            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DUE_SOON
-          }
+          value={count('DUE_SOON')}
           accent="#ea580c"
           icon={<Clock size={18} />}
         />
         <KpiCard
           title="On track"
-          value={loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OK}
+          value={count('OK')}
           accent="#16a34a"
           icon={<CheckCircle2 size={18} />}
         />
       </div>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          margin: '0 0 12px 0',
-          gap: 12,
-          flexWrap: 'nowrap',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}
-      >
-        <div
-          className="si-filter-pills-row"
-          style={{ padding: 0, width: 'auto', flex: 1, minWidth: 0, margin: 0 }}
-        >
-          {SUB_TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setSubTab(t.key)}
-              className={`si-filter-pill ${t.key === subTab ? 'si-filter-pill--active' : ''}`}
-            >
-              <span>{t.label}</span>
-              <span className="si-filter-pill-count">{countForTab(t.key)}</span>
-            </button>
-          ))}
-        </div>
-
-        <div style={{ flexShrink: 0, marginLeft: 'auto' }}>
-          <NewButton
-            variant="secondary"
-            size="sm"
-            type="button"
-            text="Refresh"
-            prependIcon={<RefreshCw size={14} className={loading ? 'spin-anim' : ''} />}
-            onClick={load}
-            disabled={loading}
-          />
-        </div>
-      </div>
-
-      <div style={{ padding: 0 }}>
-        {loading && records.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <PredictionSkeleton />
-            <PredictionSkeleton />
-            <PredictionSkeleton />
-            <PredictionSkeleton />
-          </div>
-        ) : null}
-
-        {!loading && filtered.length === 0 && (
-          <div style={emptyBox}>
-            {records.length === 0
-              ? 'No service predictions yet. They appear as telemetry builds each vehicle’s odometer and service history.'
-              : 'No vehicles in this category.'}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.map((r) => (
-            <PredictionCard
-              key={r.registrationNumber}
-              row={r}
-              onOpen={() => navigate(`/vehicles/${encodeURIComponent(r.registrationNumber)}`)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <style>
-        {`@keyframes spin-anim { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          .spin-anim { animation: spin-anim 0.8s linear infinite; }`}
-      </style>
-    </div>
-  );
-};
-
-const PredictionCard = ({ row, onOpen }) => {
-  const meta = RISK_META[row.risk] || RISK_META.OK;
-  const dueDate = formatDate(row.projectedServiceDueDate);
-  const lastService = formatDate(row.lastServiceAt);
-
-  const kmText =
-    row.kmUntilDue == null
-      ? null
-      : row.kmUntilDue < 0
-        ? `${formatKm(Math.abs(row.kmUntilDue))} over`
-        : `${formatKm(row.kmUntilDue)} remaining`;
-
-  return (
-    <div className="si-alert-card">
-      <div className={`si-alert-indicator si-alert-indicator--${meta.indicator}`} />
-      <div
-        className="si-alert-icon-box"
-        style={{ background: `${meta.color}18`, color: meta.color }}
-      >
-        <Wrench size={18} />
-      </div>
-
-      <div className="si-alert-content">
-        <div className="si-alert-headline-row">
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>Service due</span>
-          <span
-            className="si-up-risk-badge"
-            style={{ background: `${meta.color}18`, color: meta.color }}
-          >
-            {meta.label}
-          </span>
+      <div className="si-filter-pills-row">
+        {TABS.map(([key, label]) => (
           <button
             type="button"
-            onClick={onOpen}
-            className="si-veh-reg-btn"
-            title={`Open ${row.registrationNumber} details`}
+            key={key}
+            aria-pressed={subTab === key}
+            onClick={() => setSubTab(key)}
+            className="si-filter-pill"
           >
-            <span className="si-veh-reg-ind">IND</span>
-            <span className="si-veh-reg-num">{row.registrationNumber}</span>
+            {label} <span>{count(key)}</span>
           </button>
-        </div>
-        <div className="si-alert-desc">
-          {daysText(row.daysUntilDue)}
-          {kmText ? ` · ${kmText}` : ''}
-          {dueDate ? ` · projected ${dueDate}` : ''}
-        </div>
-        <div className="si-alert-footer" style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {row.projectedServiceDueOdometer != null && (
-            <span>Due at {formatKm(row.projectedServiceDueOdometer)}</span>
-          )}
-          {row.currentOdometer != null && <span>Now {formatKm(row.currentOdometer)}</span>}
-          {row.avgKmPerDay != null && <span>{Math.round(row.avgKmPerDay)} km/day avg</span>}
-          {lastService && <span>Last service {lastService}</span>}
-        </div>
+        ))}
+        <NewButton text="Refresh" onClick={load} disabled={loading} />
       </div>
+      {error ? (
+        <p role="alert">
+          {error}{' '}
+          <button type="button" onClick={load}>
+            Retry
+          </button>
+        </p>
+      ) : loading ? (
+        <p role="status">Loading service forecasts…</p>
+      ) : (
+        <>
+          {overdue.length > 0 && (
+            <section aria-label="Top overdue trucks in kilometres">
+              <h3>Top {overdue.length} overdue trucks · km</h3>
+              <div style={{ width: '100%', height: Math.max(180, overdue.length * 32) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={overdue} layout="vertical" margin={{ left: 20, right: 30 }}>
+                    <XAxis type="number" unit=" km" />
+                    <YAxis type="category" dataKey="truck" width={110} />
+                    <Tooltip
+                      formatter={(value) => [`${value.toLocaleString('en-IN')} km`, 'Overdue']}
+                    />
+                    <Bar dataKey="km" fill="#ea580c" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          )}
+          <div style={{ overflowX: 'auto' }}>
+            <table className="ov-table">
+              <caption>Active fleet · sorted by service urgency, then km remaining</caption>
+              <thead>
+                <tr>
+                  <th>Truck</th>
+                  <th>Status</th>
+                  <th>Distance to service</th>
+                  <th>Expected date</th>
+                  <th>Last recorded service</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row) => (
+                  <tr key={row.registrationNumber}>
+                    <td>
+                      <Link to={`/vehicles/${encodeURIComponent(row.registrationNumber)}`}>
+                        {row.registrationNumber}
+                      </Link>
+                    </td>
+                    <td>
+                      {LABELS[row.risk] || 'Not assessed'}
+                      <small style={{ display: 'block' }}>
+                        {serviceDaysText(row.daysUntilDue)}
+                      </small>
+                    </td>
+                    <td>
+                      {row.kmUntilDue == null
+                        ? '—'
+                        : row.kmUntilDue < 0
+                          ? `${formatKm(Math.abs(row.kmUntilDue))} overdue`
+                          : `${formatKm(row.kmUntilDue)} remaining`}
+                    </td>
+                    <td>
+                      {row.projectedServiceDueDate
+                        ? formatIstDate(row.projectedServiceDueDate)
+                        : 'Not projected'}
+                    </td>
+                    <td>{row.lastServiceAt ? formatIstDate(row.lastServiceAt) : 'Not recorded'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!filtered.length && (
+            <p>{records.length ? 'No vehicles match this filter.' : 'No active vehicles found.'}</p>
+          )}
+          <p>
+            Showing {filtered.length} of {records.length} active vehicles.
+          </p>
+        </>
+      )}
     </div>
   );
-};
-
-const emptyBox = {
-  padding: '32px 16px',
-  textAlign: 'center',
-  color: '#64748b',
-  fontSize: 13.5,
-  background: '#f8fafc',
-  border: '1px dashed #e2e8f0',
-  borderRadius: 12,
-};
-
-export default UpcomingServiceTab;
+}

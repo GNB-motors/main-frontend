@@ -90,6 +90,10 @@ export const FleetDataService = {
     get(`/api/vehicle-profile/${encodeURIComponent(reg)}/telemetry`, {}, signal),
 
   getTyreStatus: (params = {}, signal) => get('/api/tyres/status', params, signal),
+  fitTyreSet: async (body) => {
+    const response = await apiClient.post('/api/tyres/sets', body);
+    return response.data?.data || response.data;
+  },
 
   /** Service centres near a position, costed by our road engine (lat/lng required). */
   getServiceCentres: (params = {}, signal) => get('/api/service-centres/recommend', params, signal),

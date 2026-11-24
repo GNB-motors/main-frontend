@@ -25,4 +25,19 @@ describe('map styles', () => {
     expect(types).toContain('poi.school');
     expect(types).toContain('poi.government');
   });
+
+  it.each(styles)(
+    '%s gives highways a visible orange road surface and road labels',
+    (_name, style) => {
+      const highway = style.find(
+        (rule) => rule.featureType === 'road.highway' && rule.elementType === 'geometry',
+      );
+      expect(highway.stylers[0].color).toMatch(/^#(?:fb923c|ea580c)$/);
+      expect(style).toContainEqual({
+        featureType: 'road',
+        elementType: 'labels',
+        stylers: [{ visibility: 'on' }],
+      });
+    },
+  );
 });

@@ -5,6 +5,8 @@ import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import focusedMapVehicles from './focusedMapVehicles.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
+import VectorGoogleMap from './VectorGoogleMap.jsx';
+import { LIGHT_MAP_STYLE } from './mapStyles.js';
 
 const { map, overlays } = vi.hoisted(() => ({ map: {}, overlays: [] }));
 vi.mock('@react-google-maps/api', () => ({
@@ -16,7 +18,9 @@ vi.mock('@react-google-maps/api', () => ({
 }));
 vi.mock('../PlaceHub/map/RouteLayer.jsx', () => ({ default: vi.fn(() => null) }));
 vi.mock('./AnimatedVehicleMarkers.jsx', () => ({ default: vi.fn(() => null) }));
-vi.mock('./VectorGoogleMap.jsx', () => ({ default: ({ children }) => <div>{children}</div> }));
+vi.mock('./VectorGoogleMap.jsx', () => ({
+  default: vi.fn(({ children }) => <div>{children}</div>),
+}));
 vi.mock('../../components/map/CongestionLayer', () => ({ default: () => null }));
 
 let pane;
@@ -105,6 +109,30 @@ const props = {
   replaySpeed: 40,
   habitualHalts: [],
 };
+
+it('uses the original grey map normally and reserves vector zoom for the 3D toggle', () => {
+  const mapOptions = { styles: LIGHT_MAP_STYLE };
+  const view = render(<LiveMapCanvas {...props} mapOptions={mapOptions} />);
+  expect(VectorGoogleMap.mock.lastCall[0]).toMatchObject({
+    renderingType: 'RASTER',
+    zoom: 12,
+    options: { styles: LIGHT_MAP_STYLE, isFractionalZoomEnabled: false },
+  });
+  view.rerender(
+    <LiveMapCanvas {...props} mapOptions={mapOptions} mapZoom={15} followCameraEnabled />,
+  );
+  expect(VectorGoogleMap.mock.lastCall[0]).toMatchObject({
+    renderingType: 'VECTOR',
+    zoom: 12,
+    options: { isFractionalZoomEnabled: true },
+  });
+  view.rerender(<LiveMapCanvas {...props} mapOptions={mapOptions} mapZoom={16} />);
+  expect(VectorGoogleMap.mock.lastCall[0]).toMatchObject({
+    renderingType: 'RASTER',
+    zoom: 12,
+    options: { styles: LIGHT_MAP_STYLE, isFractionalZoomEnabled: false },
+  });
+});
 
 describe('habitual stop hover tooltips', () => {
   const haltProps = {
@@ -210,6 +238,22 @@ const track = {
 };
 
 describe('Track mode', () => {
+  it('keeps roads and road names visible behind a tracked journey', () => {
+    render(<LiveMapCanvas {...props} track={track} mapOptions={{ styles: LIGHT_MAP_STYLE }} />);
+    const styles = VectorGoogleMap.mock.lastCall[0].options.styles;
+    expect(
+      styles.some(
+        (rule) =>
+          rule.featureType === 'road' &&
+          rule.stylers?.some((styler) => styler.visibility === 'off'),
+      ),
+    ).toBe(false);
+    expect(styles).toContainEqual({
+      featureType: 'road',
+      elementType: 'labels',
+      stylers: [{ visibility: 'on' }],
+    });
+  });
   it('follows the replay truck in 3D without fitting or edge-panning the whole route', () => {
     map.getZoom = () => 12;
     map.getRenderingType = () => 'VECTOR';

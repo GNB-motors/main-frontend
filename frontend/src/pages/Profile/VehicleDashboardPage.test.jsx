@@ -10,6 +10,7 @@ vi.mock('./VehicleService.js', () => ({
   VehicleService: {
     getFleetDashboard: vi.fn(),
     getVehicleDocuments: vi.fn(),
+    uploadVehicleDocument: vi.fn(),
   },
 }));
 
@@ -198,5 +199,18 @@ describe('VehicleDashboardPage — Document Dropdown Filter', () => {
       ).not.toBeInTheDocument(),
     );
     expect(screen.getByText('No vehicle selected')).toBeInTheDocument();
+  });
+  it('opens upload for the selected missing document without opening the vehicle edit form', async () => {
+    render(
+      <MemoryRouter>
+        <VehicleDashboardPage />
+      </MemoryRouter>,
+    );
+    const truck = await screen.findByText('UP14BT1001');
+    const row = truck.closest('tr');
+    fireEvent.click(within(row).getAllByText('Missing')[0]);
+    const dialog = await screen.findByRole('dialog', { name: 'Upload Insurance' });
+    expect(dialog).toHaveTextContent('UP14BT1001');
+    expect(within(dialog).getByLabelText('Insurance single')).toBeInTheDocument();
   });
 });

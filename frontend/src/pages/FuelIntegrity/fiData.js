@@ -2,21 +2,35 @@ import { formatINR, formatLitres } from '../../utils/formatters';
 import { formatInIST } from '../../utils/dateUtils';
 import { isReviewLoss, reviewLossL, lossLabelFor } from './fuelVerdicts';
 
-export const RISK_RANK = { Critical: 4, High: 3, Medium: 2, Low: 1, Healthy: 0 };
+export const RISK_RANK = {
+  'Data check needed': 5,
+  Critical: 4,
+  High: 3,
+  Medium: 2,
+  Low: 1,
+  'Not assessed': 0,
+  Healthy: 0,
+};
 export const RISK_TONE = {
   Critical: 'critical',
   High: 'critical',
   Medium: 'caution',
   Low: 'caution',
   Healthy: 'ok',
+  'Data check needed': 'caution',
+  'Not assessed': 'caution',
 };
 
 export function computeRisk(v) {
-  if ((v.siphonSuspectedLossL || 0) > 0) return 'Critical';
+  const loss = Math.abs(v.siphonSuspectedLossL ?? 0);
+  if (loss > 0 && (!(v.fillsLitres > 0) || loss > v.fillsLitres * 0.3)) return 'Data check needed';
+  if (loss > 0) return 'Critical';
   if ((v.defFlagCount || 0) >= 15 || (v.billFlagCount || 0) >= 3) return 'High';
   if ((v.defFlagCount || 0) >= 5 || (v.billFlagCount || 0) >= 1) return 'Medium';
   if ((v.defFlagCount || 0) >= 1) return 'Low';
-  return 'Healthy';
+  return v.siphonSuspectedLossL == null || v.defFlagCount == null || v.billFlagCount == null
+    ? 'Not assessed'
+    : 'Healthy';
 }
 
 // Merged events feed: fills + reviewed loss windows + DEF-flag windows,
@@ -67,6 +81,7 @@ export function buildEvents(fills, windows, pricePerL) {
       windowFrom: w.windowFrom,
       windowTo: w.windowTo,
       defPct: w.defToFuelRatioPct,
+      defBand: w.defBand ?? null,
       defFlag: w.defRatioFlag,
       window: w,
     }));
@@ -176,14 +191,31 @@ export function buildDrillChartData(fills, windows, vehicle) {
 }
 
 // Anomaly breakdown — most affected vehicles.
-export function buildAffected(vehicles) {
-  const list = (vehicles || [])
-    .map((v) => ({
-      reg: v.registrationNumber,
-      anomalies: (v.defFlagCount || 0) + (v.billFlagCount || 0),
-      def: v.defFlagCount || 0,
-      bill: v.billFlagCount || 0,
-    }))
+export function buildAffected(vehicles, events = null) {
+  const counts = new Map();
+  const seen = new Set();
+  for (const event of events || []) {
+    if (!event.id || seen.has(event.id)) continue;
+    seen.add(event.id);
+    if (event.kind !== 'loss' && event.kind !== 'def' && !event.billFlag) continue;
+    const key = String(event.vehicle || '')
+      .replace(/\s/g, '')
+      .toUpperCase();
+    const row = counts.get(key) || { reg: event.vehicle, anomalies: 0, def: 0, bill: 0 };
+    row.anomalies += 1;
+    if (event.kind === 'def') row.def += 1;
+    if (event.billFlag) row.bill += 1;
+    if (key) counts.set(key, row);
+  }
+  const rows = events
+    ? [...counts.values()]
+    : (vehicles || []).map((v) => ({
+        reg: v.registrationNumber,
+        anomalies: (v.defFlagCount || 0) + (v.billFlagCount || 0),
+        def: v.defFlagCount || 0,
+        bill: v.billFlagCount || 0,
+      }));
+  const list = rows
     .filter((v) => v.anomalies > 0)
     .sort((a, z) => z.anomalies - a.anomalies)
     .slice(0, 5);

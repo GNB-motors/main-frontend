@@ -189,7 +189,11 @@ export default function FuelPanel({
           <section className="vdo-card vfuel-refuels">
             <div className="vfuel-between">
               <h3>Refuels</h3>
-              <Link to="/fuel-ledger">All fuel entries →</Link>
+              <Link
+                to={`/mileage?vehicle=${encodeURIComponent(registrationNumber)}&search=${encodeURIComponent(registrationNumber)}`}
+              >
+                All fuel entries →
+              </Link>
             </div>
             {!logs.length ? (
               <div className="vfuel-empty">
@@ -198,7 +202,10 @@ export default function FuelPanel({
                 </span>
                 <h3>No recent refuels on record</h3>
                 <p>Fuel receipts submitted by drivers or entered in the fuel ledger appear here.</p>
-                <Link className="vfuel-button" to="/fuel-ledger">
+                <Link
+                  className="vfuel-button"
+                  to={`/mileage?vehicle=${encodeURIComponent(registrationNumber)}&search=${encodeURIComponent(registrationNumber)}`}
+                >
                   Open fuel ledger →
                 </Link>
               </div>

@@ -18,7 +18,12 @@ const draftWith = (time) => ({
 const props = {
   ocrEval: { math: { isValid: true, diff: 0 } },
   veh: 'WB11AB1234',
-  odoMeta: { displayReading: '1200 km', badgeClass: '', badgeText: 'ok', detailHint: 'from the photo' },
+  odoMeta: {
+    displayReading: '1200 km',
+    badgeClass: '',
+    badgeText: 'ok',
+    detailHint: 'from the photo',
+  },
   stationInfo: {
     stationName: 'Jhargram Pump',
     coordinates: null,
@@ -40,7 +45,8 @@ const PREDICTED = {
 
 /** Open one of the folding sections of the drawer. */
 const openSection = (name) => {
-  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
+  const button = screen.getByRole('button', { name: new RegExp(`^${name}`) });
+  if (button.getAttribute('aria-expanded') !== 'true') fireEvent.click(button);
 };
 
 describe('DrawerDetailsPane — the key facts', () => {
@@ -52,11 +58,19 @@ describe('DrawerDetailsPane — the key facts', () => {
       />,
     );
 
-    ['Truck', 'Litres', 'Amount', 'Rate', 'Fill time', 'Odometer', 'Pump', 'Driver', 'Mileage'].forEach(
-      (label) => {
-        expect(screen.getByText(label)).toBeTruthy();
-      },
-    );
+    [
+      'Truck',
+      'Litres',
+      'Amount',
+      'Rate',
+      'Fill time',
+      'Odometer',
+      'Pump',
+      'Driver',
+      'Mileage',
+    ].forEach((label) => {
+      expect(screen.getByText(label)).toBeTruthy();
+    });
   });
 
   it('shows the driver assigned to the truck, and since when', () => {
@@ -120,18 +134,13 @@ describe('DrawerDetailsPane — the key facts', () => {
       />,
     );
 
-    expect(
-      screen.getByText("3.4 km/L · 12% below this truck's usual 3.9 (8 fills)"),
-    ).toBeTruthy();
+    expect(screen.getByText("3.4 km/L · 12% below this truck's usual 3.9 (8 fills)")).toBeTruthy();
     expect(screen.getByText('Source: tracker')).toBeTruthy();
   });
 
   it('never invents a comparison that was not measured', () => {
     render(
-      <DrawerDetailsPane
-        {...props}
-        draft={{ ...draftWith({}), mileage: { computed: 3.4 } }}
-      />,
+      <DrawerDetailsPane {...props} draft={{ ...draftWith({}), mileage: { computed: 3.4 } }} />,
     );
 
     expect(screen.getByText('3.4 km/L · Comparison not available')).toBeTruthy();
@@ -146,7 +155,7 @@ describe('DrawerDetailsPane — the folding sections', () => {
     expect(checks.tagName).toBe('BUTTON');
     expect(checks.getAttribute('aria-expanded')).toBe('false');
     expect(screen.getByRole('button', { name: 'Checks · Not checked' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Predictions · No suggestions' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Suggestions · No suggestions' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Station details · Jhargram Pump' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Audit · Uploader unknown' })).toBeTruthy();
   });
@@ -176,7 +185,7 @@ describe('DrawerDetailsPane — the folding sections', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Predictions · 2 truck suggestions' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Suggestions · 2 truck suggestions' })).toBeTruthy();
   });
 
   it('says that a check needs a look', () => {
@@ -185,7 +194,9 @@ describe('DrawerDetailsPane — the folding sections', () => {
         {...props}
         draft={{
           ...draftWith({}),
-          checks: { MATH: { status: 'FAIL', detail: 'The amount is not the litres times the rate.' } },
+          checks: {
+            MATH: { status: 'FAIL', detail: 'The amount is not the litres times the rate.' },
+          },
         }}
       />,
     );
@@ -197,7 +208,7 @@ describe('DrawerDetailsPane — the folding sections', () => {
 describe('DrawerDetailsPane — the predicted fill time', () => {
   it('shows the predicted time in plain words, never as a read time', () => {
     render(<DrawerDetailsPane {...props} draft={draftWith({ predicted: PREDICTED })} />);
-    openSection('Predictions');
+    openSection('Suggestions');
 
     expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue)')).toBeTruthy();
     // The read time of the photo is still unknown.
@@ -215,7 +226,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
         onSetTime={onSetTime}
       />,
     );
-    openSection('Predictions');
+    openSection('Suggestions');
 
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     expect(onSetTime).toHaveBeenCalledWith('accept');
@@ -233,7 +244,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
         onSetTime={onSetTime}
       />,
     );
-    openSection('Predictions');
+    openSection('Suggestions');
 
     fireEvent.click(screen.getByRole('button', { name: 'Set time' }));
     fireEvent.change(screen.getByLabelText('Time of the fill'), {
@@ -273,7 +284,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
       },
     });
     render(<DrawerDetailsPane {...props} draft={draft} />);
-    openSection('Predictions');
+    openSection('Suggestions');
 
     expect(screen.getByText('Tank rise at Jhargram Pump of 100 L at 6:40 pm.')).toBeTruthy();
     expect(
@@ -282,7 +293,9 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
     expect(
       screen.getByText('The truck itself is only likely, so a person has to pick it.'),
     ).toBeTruthy();
-    expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue, likely truck)')).toBeTruthy();
+    expect(
+      screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue, likely truck)'),
+    ).toBeTruthy();
   });
 
   it('names the source of every prediction', () => {

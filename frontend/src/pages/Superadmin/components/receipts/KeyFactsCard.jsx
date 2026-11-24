@@ -34,17 +34,12 @@ const KeyFactsCard = ({
   // A time from the truck's own tank is a suggestion until a person takes it.
   const fill = fillTimeFromDraft(draft);
   const fillIsSuggestion = fill.sourceKey === 'predicted';
-  const yearNote =
-    fill.value && !fill.yearConfirmed ? 'year not confirmed — check the bill' : '';
+  const yearNote = fill.value && !fill.yearConfirmed ? 'year not confirmed — check the bill' : '';
   const missing = new Set(missingKeyFields(draft, edits).map((field) => field.key));
   const litres =
-    edits && Object.prototype.hasOwnProperty.call(edits, 'litres')
-      ? edits.litres
-      : draft.litres;
+    edits && Object.prototype.hasOwnProperty.call(edits, 'litres') ? edits.litres : draft.litres;
   const amount =
-    edits && Object.prototype.hasOwnProperty.call(edits, 'amount')
-      ? edits.amount
-      : draft.amount;
+    edits && Object.prototype.hasOwnProperty.call(edits, 'amount') ? edits.amount : draft.amount;
   const fillValue =
     edits?.time?.action === 'set'
       ? fmtDate(edits.time.at)
@@ -65,9 +60,7 @@ const KeyFactsCard = ({
       </div>
       <div className="ra-grid-props">
         <div className={`ra-prop${missing.has('TRUCK') ? ' ra-prop--missing' : ''}`}>
-          <span className="ra-prop__label">
-            Truck <span className="ra-key-field-label">Key field</span>
-          </span>
+          <span className="ra-prop__label">Truck</span>
           <span className="ra-prop__val font-mono" aria-required="true">
             {truckValue}
           </span>
@@ -77,31 +70,21 @@ const KeyFactsCard = ({
               {chip.note ? <span className="ra-chip__note">{chip.note}</span> : null}
             </span>
           )}
-          {missing.has('TRUCK') && (
-            <span className="ra-key-needed">Needed before approving</span>
-          )}
+          {missing.has('TRUCK') && <span className="ra-key-needed">Needed before approving</span>}
         </div>
         <div className={`ra-prop${missing.has('LITRES') ? ' ra-prop--missing' : ''}`}>
-          <span className="ra-prop__label">
-            Litres <span className="ra-key-field-label">Key field</span>
-          </span>
+          <span className="ra-prop__label">Litres</span>
           <span className="ra-prop__val" aria-required="true">
             {litres === '' ? '—' : fmtLitres(litres)}
           </span>
-          {missing.has('LITRES') && (
-            <span className="ra-key-needed">Needed before approving</span>
-          )}
+          {missing.has('LITRES') && <span className="ra-key-needed">Needed before approving</span>}
         </div>
         <div className={`ra-prop${missing.has('AMOUNT') ? ' ra-prop--missing' : ''}`}>
-          <span className="ra-prop__label">
-            Amount <span className="ra-key-field-label">Key field</span>
-          </span>
+          <span className="ra-prop__label">Amount</span>
           <span className="ra-prop__val" aria-required="true">
             {amount === '' ? '—' : fmtMoney(amount)}
           </span>
-          {missing.has('AMOUNT') && (
-            <span className="ra-key-needed">Needed before approving</span>
-          )}
+          {missing.has('AMOUNT') && <span className="ra-key-needed">Needed before approving</span>}
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Rate</span>
@@ -110,9 +93,7 @@ const KeyFactsCard = ({
           </span>
         </div>
         <div className={`ra-prop${missing.has('FILL_TIME') ? ' ra-prop--missing' : ''}`}>
-          <span className="ra-prop__label">
-            Fill time <span className="ra-key-field-label">Key field</span>
-          </span>
+          <span className="ra-prop__label">Fill time</span>
           <span className="ra-prop__val" aria-required="true">
             {fillValue}
           </span>
@@ -123,9 +104,7 @@ const KeyFactsCard = ({
           ) : (
             <span className="ra-prop__val ra-prop__val--muted">{sourceText(fill.sourceKey)}</span>
           )}
-          {fillIsSuggestion && (
-            <span className="ra-prop__val ra-prop__val--muted">suggestion</span>
-          )}
+          {fillIsSuggestion && <span className="ra-prop__val ra-prop__val--muted">suggestion</span>}
           {yearNote && <span className="ra-prop__val ra-prop__val--muted">{yearNote}</span>}
           {missing.has('FILL_TIME') && (
             <span className="ra-key-needed">Needed before approving</span>
@@ -164,9 +143,7 @@ const KeyFactsCard = ({
           {mileage ? (
             <>
               <span className={`${chipClass(mileage.kind)} ra-chip--wrap`}>{mileage.text}</span>
-              <span className="ra-prop__val ra-prop__val--muted">
-                {sourceText(mileage.source)}
-              </span>
+              <span className="ra-prop__val ra-prop__val--muted">{sourceText(mileage.source)}</span>
             </>
           ) : (
             <span className="ra-prop__val">—</span>

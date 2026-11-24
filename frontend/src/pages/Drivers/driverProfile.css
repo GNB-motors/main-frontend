@@ -1,0 +1,43 @@
+.driver-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.driver-profile-card {
+  padding: 20px;
+  background: var(--ds-surface, #fff);
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  min-width: 0;
+  overflow-x: auto;
+}
+.driver-profile-card h2,
+.driver-profile-card h3 {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.driver-profile-card table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+}
+.driver-profile-card td,
+.driver-profile-card th {
+  padding: 10px;
+  border-bottom: 1px solid var(--ds-line);
+}
+.driver-profile-card dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+.driver-profile-card dt,
+.driver-profile-card p,
+.driver-profile-card figcaption {
+  color: var(--ds-ink3);
+}
+.driver-profile-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}

@@ -28,27 +28,27 @@ describe('side nav hints', () => {
 
   it('orders the requested Fleet items with trips and alerts first', () => {
     const requested = [
-      'Trip',
+      'Trips',
       'Alert Inbox',
       'Intelligence',
-      'Fuel Management',
+      'Fuel',
       'Route Hub',
-      'Places & Routes',
+      'Place Hub',
       'Approvals',
     ];
     const order = fleetItems.map((item) => item.label);
     expect(order.filter((label) => requested.includes(label))).toEqual(requested);
-    expect(order.indexOf('Track')).toBeLessThan(order.indexOf('Trip'));
+    expect(order.indexOf('Live tracking')).toBeLessThan(order.indexOf('Trips'));
   });
 
-  it('takes Place Hub out of the sidebar but keeps the route', () => {
-    expect(fleetItems.map((item) => item.label)).not.toContain('Place Hub');
+  it('names Place Hub consistently with the destination', () => {
+    expect(fleetItems.map((item) => item.label)).toContain('Place Hub');
   });
 
   it('offers Places & Routes, pointing at Place Hub', () => {
     const item = fleetItems.find((i) => i.to === '/place-hub');
     expect(item).toBeTruthy();
-    expect(item.label).toBe('Places & Routes');
+    expect(item.label).toBe('Place Hub');
     expect(item.access).toBe('fleet');
   });
 

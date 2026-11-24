@@ -36,7 +36,9 @@ describe('vehicle identity form', () => {
     fillIdentity();
     act(() => form.current.requestSubmit());
     expect(submit).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('radio', { name: 'Tata' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
+      target: { value: 'TATA' },
+    });
     act(() => form.current.requestSubmit());
     expect(submit).toHaveBeenCalledWith({
       registration_no: 'WB11F1234',
@@ -53,11 +55,13 @@ describe('vehicle identity form', () => {
         onSubmit={() => {}}
       />,
     );
-    expect(screen.getByRole('radio', { name: 'Ashok Leyland' })).toBeChecked();
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveValue('ASHOK LEYLAND');
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' }).options).toHaveLength(3);
     expect(screen.queryByLabelText('More manufacturers')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: 'Tata' }));
-    expect(screen.getByRole('radio', { name: 'Ashok Leyland' })).not.toBeChecked();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
+      target: { value: 'TATA' },
+    });
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' })).not.toHaveValue('ASHOK LEYLAND');
     expect(screen.getByLabelText('Model')).toHaveValue('AVTR');
   });
   it('has no hardcoded choices before backend metadata loads', () => {
@@ -92,4 +96,25 @@ describe('vehicle identity form', () => {
     act(() => form.current.requestSubmit());
     expect(submit).toHaveBeenCalledWith(expect.objectContaining({ manufacturer: 'VOLVO' }));
   });
+});
+
+it('offers additional catalog makes and Other through one dropdown', () => {
+  render(
+    <VehicleBasicInformationForm
+      initialData={{ manufacturer: 'UNKNOWN' }}
+      manufacturers={[
+        ...manufacturers,
+        { value: 'EICHER', label: 'Eicher' },
+        { value: 'VOLVO', label: 'Volvo' },
+        { value: 'UNKNOWN', label: 'Other' },
+      ]}
+      onSubmit={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveValue('UNKNOWN');
+  fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
+    target: { value: 'EICHER' },
+  });
+  expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveValue('EICHER');
+  expect(screen.getByRole('option', { name: 'Volvo' })).toBeInTheDocument();
 });

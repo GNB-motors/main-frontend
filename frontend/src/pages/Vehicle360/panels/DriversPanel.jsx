@@ -10,7 +10,7 @@ import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
 import './overview/referenceOverview.css';
 import './vehicleDrivers.css';
 
-const ASSIGNMENTS = '/vehicle-assignments';
+const ASSIGNMENTS = '/khata-ledger?tab=assignments';
 const stamp = (value) =>
   value && Number.isFinite(new Date(value).getTime()) ? new Date(value).getTime() : null;
 const date = (value) => (stamp(value) != null ? formatDateIST(value) : 'Not recorded');

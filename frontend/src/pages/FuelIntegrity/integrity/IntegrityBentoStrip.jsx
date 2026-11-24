@@ -26,16 +26,20 @@ const IntegrityBentoStrip = ({
       <div className="fi-bento-body">
         <div className="fi-bento-val-row">
           <span className="fi-bento-val">
-            {totalFillsLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })}
+            {totalFillsLitres == null
+              ? '—'
+              : totalFillsLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })}
           </span>
           <span className="fi-bento-unit">L</span>
         </div>
       </div>
       <div className="fi-bento-foot">
         <span className="fi-bento-sub">
-          {windowDays ? `${windowDays} days` : 'Over 7 days'} · ~
-          {windowDays && totalFillsLitres > 0 ? (totalFillsLitres / windowDays).toFixed(0) : '0'}{' '}
-          L/day
+          {totalFillsLitres == null
+            ? 'Not measured yet'
+            : windowDays > 0
+              ? `${windowDays} days · ~${(totalFillsLitres / windowDays).toFixed(0)} L/day`
+              : 'Daily average not measured'}
         </span>
         <span className="fi-bento-pill fi-bento-pill--ok">Tank sensor</span>
       </div>
@@ -43,16 +47,22 @@ const IntegrityBentoStrip = ({
 
     {/* Card 2: the fuel that went down while parked */}
     <div
-      className={`fi-bento-card ${lossL > 0 ? 'fi-bento-card--rose' : 'fi-bento-card--emerald'}`}
+      className={`fi-bento-card ${lossL == null ? 'fi-bento-card--blue' : lossL > 0 ? 'fi-bento-card--rose' : 'fi-bento-card--emerald'}`}
     >
       <div className="fi-bento-head">
         {/* "Needs review", never an accusation: fuel can go down while parked for
             reasons other than a person taking it (audit FI-03/04). */}
         <span className="fi-bento-label">{lossLabel}</span>
         <div
-          className={`fi-bento-icon ${lossL > 0 ? 'fi-bento-icon--rose' : 'fi-bento-icon--emerald'}`}
+          className={`fi-bento-icon ${lossL == null ? 'fi-bento-icon--blue' : lossL > 0 ? 'fi-bento-icon--rose' : 'fi-bento-icon--emerald'}`}
         >
-          {lossL > 0 ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
+          {lossL == null ? (
+            <Fuel size={16} />
+          ) : lossL > 0 ? (
+            <ShieldAlert size={16} />
+          ) : (
+            <ShieldCheck size={16} />
+          )}
         </div>
       </div>
       <div className="fi-bento-body">
@@ -67,7 +77,7 @@ const IntegrityBentoStrip = ({
           {lossSigmaL != null && lossL > 0 ? (
             <span className="fi-bento-secondary-val">± {lossSigmaL.toFixed(1)} L</span>
           ) : null}
-          {lossL == null ? null : (
+          {lossL == null || pricePerL == null ? null : (
             <span
               className="fi-bento-secondary-val"
               title={
@@ -107,7 +117,7 @@ const IntegrityBentoStrip = ({
       </div>
       <div className="fi-bento-body">
         <div className="fi-bento-val-row">
-          <span className="fi-bento-val">{billCount}</span>
+          <span className="fi-bento-val">{billCount ?? '—'}</span>
           <span className="fi-bento-unit">Flags</span>
         </div>
       </div>
@@ -116,7 +126,11 @@ const IntegrityBentoStrip = ({
         <span
           className={`fi-bento-pill ${billCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
         >
-          {billCount === 0 ? 'None flagged' : `${billCount} Flagged`}
+          {billCount == null
+            ? 'Not measured'
+            : billCount === 0
+              ? 'None flagged'
+              : `${billCount} Flagged`}
         </span>
       </div>
     </div>
@@ -140,7 +154,7 @@ const IntegrityBentoStrip = ({
       <div className="fi-bento-body">
         <div className="fi-bento-val-row">
           <span className="fi-bento-val" style={{ color: '#d97706' }}>
-            {defCount}
+            {defCount ?? '—'}
           </span>
           <span className="fi-bento-unit">{defCount === 0 ? 'flags' : 'under review'}</span>
         </div>
@@ -150,7 +164,7 @@ const IntegrityBentoStrip = ({
         <span
           className={`fi-bento-pill ${defCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
         >
-          {defCount === 0 ? 'None flagged' : 'Needs a look'}
+          {defCount == null ? 'Not measured' : defCount === 0 ? 'None flagged' : 'Needs a look'}
         </span>
       </div>
     </div>

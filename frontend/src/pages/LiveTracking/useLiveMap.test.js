@@ -32,6 +32,74 @@ afterEach(() => {
 });
 
 describe('Track map actions', () => {
+  it('does not refit the fleet when 3D recreates the map with the preserved camera', () => {
+    vi.stubGlobal('google', {
+      maps: {
+        LatLngBounds: class {
+          extend() {}
+        },
+        event: { addListenerOnce: vi.fn() },
+      },
+    });
+    const makeMap = () => ({
+      getZoom: () => 14,
+      addListener: vi.fn(() => ({ remove: vi.fn() })),
+      fitBounds: vi.fn(),
+    });
+    const first = makeMap();
+    const replacement = makeMap();
+    const { result } = renderHook(() =>
+      useLiveMap({
+        theme: 'light',
+        mapMode: 'map',
+        vehicles: [vehicle],
+      }),
+    );
+    act(() => result.current.onMapLoad(first));
+    expect(first.fitBounds).toHaveBeenCalledOnce();
+    act(() => result.current.onMapLoad(replacement));
+    expect(replacement.fitBounds).not.toHaveBeenCalled();
+    expect(result.current.mapRef.current).toBe(replacement);
+  });
+
+  it('updates layer zoom only at integer thresholds and removes the zoom listener', () => {
+    vi.stubGlobal('google', { maps: {} });
+    let zoom = 12;
+    const handlers = {};
+    const zoomRemoved = vi.fn();
+    const map = {
+      getZoom: () => zoom,
+      addListener: vi.fn((event, handler) => {
+        handlers[event] = handler;
+        return { remove: event === 'zoom_changed' ? zoomRemoved : vi.fn() };
+      }),
+    };
+    const { result, unmount } = renderHook(() =>
+      useLiveMap({ theme: 'light', mapMode: 'map', vehicles: [] }),
+    );
+    act(() => result.current.onMapLoad(map));
+    expect(result.current.mapOptions.isFractionalZoomEnabled).toBe(false);
+    for (const value of [12.1, 12.3, 12.9]) {
+      act(() => {
+        zoom = value;
+        handlers.zoom_changed();
+      });
+      expect(result.current.mapZoom).toBe(12);
+    }
+    act(() => {
+      zoom = 13;
+      handlers.zoom_changed();
+    });
+    expect(result.current.mapZoom).toBe(13);
+    act(() => {
+      zoom = 12.8;
+      handlers.zoom_changed();
+    });
+    expect(result.current.mapZoom).toBe(12);
+    unmount();
+    expect(zoomRemoved).toHaveBeenCalledOnce();
+  });
+
   it('fits a new fleet filter after selection clears, includes offline positions and preserves the camera on stream updates', () => {
     vi.stubGlobal('google', {
       maps: {
@@ -90,6 +158,7 @@ describe('Track map actions', () => {
     expect(result.current.mapOptions).not.toHaveProperty('restriction');
     expect(result.current.mapOptions).not.toHaveProperty('minZoom');
     rerender({ theme: 'dark', mapMode: 'sat' });
+    expect(result.current.mapOptions.mapTypeId).toBe('hybrid');
     expect(result.current.mapOptions).not.toHaveProperty('restriction');
     expect(result.current.mapOptions).not.toHaveProperty('minZoom');
   });

@@ -51,10 +51,7 @@ const VehicleBasicInformationForm = forwardRef(
         registration_no: initialData.registration_no || '',
         chassis_number: initialData.chassis_number || '',
         model: initialData.model || '',
-        manufacturer:
-          initialData.manufacturer === 'UNKNOWN'
-            ? ''
-            : canonicalManufacturer(initialData.manufacturer),
+        manufacturer: canonicalManufacturer(initialData.manufacturer),
         expected_mileage: initialData.expected_mileage ?? '',
       };
       setFormData(next);
@@ -105,25 +102,28 @@ const VehicleBasicInformationForm = forwardRef(
                 <legend className="basic-info-label">
                   Manufacturer <span aria-hidden="true">*</span>
                 </legend>
-                <div className="vehicle-manufacturer-options">
+                <label htmlFor="vehicle-manufacturer-select" className="sr-only">
+                  Manufacturer
+                </label>
+                <select
+                  id="vehicle-manufacturer-select"
+                  aria-label="Manufacturer"
+                  className="basic-info-input"
+                  value={formData.manufacturer || ''}
+                  required={!isEdit || !legacyMake}
+                  disabled={metadataLoading || metadataError || isSubmitting}
+                  onChange={(event) => change('manufacturer', event.target.value)}
+                >
+                  <option value="">Choose manufacturer</option>
+                  {legacyMake ? (
+                    <option value={formData.manufacturer}>{formData.manufacturer} (current)</option>
+                  ) : null}
                   {manufacturers.map((item) => (
-                    <label
-                      key={item.value}
-                      className={`vehicle-make-choice ${formData.manufacturer === item.value ? 'is-selected' : ''}`}
-                    >
-                      <input
-                        type="radio"
-                        required={!isEdit || !legacyMake}
-                        name="vehicle-manufacturer"
-                        aria-label={item.label}
-                        value={item.value}
-                        checked={formData.manufacturer === item.value}
-                        onChange={() => change('manufacturer', item.value)}
-                      />
+                    <option key={item.value} value={item.value}>
                       {item.label}
-                    </label>
+                    </option>
                   ))}
-                </div>
+                </select>
                 {metadataLoading && (
                   <p className="vehicle-inline-message" role="status">
                     Loading manufacturers…

@@ -29,9 +29,9 @@ describe('The KPI cards', () => {
       }),
     });
 
-    expect(screen.getAllByText('₹90,000').length).toBeGreaterThan(0);
+    expect(screen.getByText('Oldest waiting')).toBeInTheDocument();
+    expect(screen.queryByText('Total fuel billed')).not.toBeInTheDocument();
     expect(screen.getAllByText('1,000 L').length).toBeGreaterThan(0);
-    expect(screen.getByText(/8 of 10 bills have an amount/)).toBeTruthy();
     expect(screen.getByText(/9 of 10 bills have litres/)).toBeTruthy();
   });
 
@@ -71,4 +71,16 @@ describe('The KPI cards', () => {
     fireEvent.click(screen.getByText('Missing odometer'));
     expect(setOdoFilter).toHaveBeenCalledWith('MISSING');
   });
+});
+
+it('shows measured page litres with explicit scope and an oldest waiting age', () => {
+  renderGrid({
+    kpis: computeReceiptKpis([
+      { status: 'READY', litres: 120, amount: 10800, createdAt: '2026-11-09T00:00:00Z' },
+    ]),
+  });
+  expect(screen.getAllByText('120 L').length).toBeGreaterThan(0);
+  expect(screen.getByText(/Current page:/)).toBeInTheDocument();
+  expect(screen.getByText('Oldest pending receipt on the current page.')).toBeInTheDocument();
+  expect(screen.queryByText('Total fuel billed')).not.toBeInTheDocument();
 });

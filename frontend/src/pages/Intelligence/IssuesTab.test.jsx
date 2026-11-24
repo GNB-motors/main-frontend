@@ -45,6 +45,37 @@ const issues = {
 };
 
 describe('IssuesTab', () => {
+  it('shows the latest issue once per truck and kind across daily snapshots', async () => {
+    IntelligenceService.getIssues.mockResolvedValue({
+      items: [
+        {
+          id: 'older',
+          kind: 'NO_DATA',
+          severity: 'watch',
+          registrationNumber: 'wb11m2162',
+          lastSeenAt: '2026-11-23T10:00:00Z',
+          detail: 'Older daily snapshot',
+        },
+        {
+          id: 'latest',
+          kind: 'NO_DATA',
+          severity: 'act',
+          registrationNumber: 'WB11M2162',
+          lastSeenAt: '2026-11-24T10:00:00Z',
+          detail: 'Newest daily snapshot',
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <IssuesTab />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('WB11M2162')).toBeInTheDocument();
+    expect(screen.queryByText('wb11m2162')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All 1', exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Needs you 1', exact: true })).toBeInTheDocument();
+  });
   it('keeps an empty linked Needs you filter visible instead of falling back to All', async () => {
     IntelligenceService.getIssues.mockResolvedValue({ items: [], total: 0 });
     render(

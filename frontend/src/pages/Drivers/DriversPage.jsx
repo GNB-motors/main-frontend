@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, Upload } from 'lucide-react';
 import './DriversPage.css';
 import { DriverService } from './DriverService.js';
@@ -27,6 +27,7 @@ import BulkAssignVehiclesPanel from './BulkAssignVehiclesPanel.jsx';
 import {
   normalizeDriver,
   normalizeVehicleOption,
+  filterAndSortDrivers,
   countActiveFilters,
   EMPLOYEE_EXPORT_COLUMNS,
   employeeExportMeta,
@@ -76,6 +77,11 @@ const DriversPage = () => {
   });
 
   const [totalPages, setTotalPages] = useState(1);
+  const [totalEmployees, setTotalEmployees] = useState(null);
+  const listRequest = useRef(0);
+  // Vehicle assignments live outside the employee API: load its matching pages
+  // once, then filter and paginate locally. Other queries stay server-paginated.
+  const listPage = filters.vehicleAssignment ? 1 : currentPage;
 
   // Profile context removed - drivers page should render independently
   // Read businessRefId from session storage as a fallback
@@ -83,6 +89,7 @@ const DriversPage = () => {
 
   // --- Data Fetching ---
   const fetchDrivers = async () => {
+    const request = ++listRequest.current;
     // Try to fetch drivers even if businessRefId is not present locally. Some backends may scope by token.
     setIsLoading(true); // Start loading drivers
     setError(null); // Clear general error on fetch
@@ -95,10 +102,12 @@ const DriversPage = () => {
     }
 
     try {
-      const params = { page: currentPage, limit: itemsPerPage };
+      const params = { page: listPage, limit: itemsPerPage };
       if (searchTerm) params.search = searchTerm;
       if (filters.role) params.role = filters.role;
-      const result = await DriverService.getAllDrivers(businessRefId, params);
+      const result = filters.vehicleAssignment
+        ? { data: await DriverService.getAllDriverPages(businessRefId, params) }
+        : await DriverService.getAllDrivers(businessRefId, params);
 
       const { data: items, meta } = result;
 
@@ -106,18 +115,32 @@ const DriversPage = () => {
       const normalizedDrivers = await DriverService.withAssignedVehicles(
         (items || []).map(normalizeDriver),
       );
+      if (request !== listRequest.current) return;
       setDrivers(normalizedDrivers);
-      if (meta) {
+      if (filters.vehicleAssignment) {
+        const matching = filterAndSortDrivers(normalizedDrivers, filters.vehicleAssignment);
+        setTotalEmployees(matching.length);
+        setTotalPages(Math.max(1, Math.ceil(matching.length / itemsPerPage)));
+      } else if (meta) {
+        setTotalEmployees(
+          meta.total ??
+            meta.totalResults ??
+            (meta.totalPages <= 1 ? normalizedDrivers.length : null),
+        );
         setTotalPages(meta.totalPages);
       } else {
+        setTotalEmployees(normalizedDrivers.length);
         setTotalPages(Math.ceil(normalizedDrivers.length / itemsPerPage));
       }
     } catch (apiError) {
+      if (request !== listRequest.current) return;
       logger.warn('DriversPage', 'Failed to fetch drivers', apiError);
       setError(apiError?.message || 'Could not load drivers list.');
     } finally {
-      setIsLoading(false); // Finish loading drivers
-      setHasLoadedOnce(true);
+      if (request === listRequest.current) {
+        setIsLoading(false); // Finish loading drivers
+        setHasLoadedOnce(true);
+      }
     }
   };
 
@@ -143,8 +166,11 @@ const DriversPage = () => {
     // is not available locally. If token is missing, fetchDrivers will surface an auth error.
     fetchDrivers();
     fetchVehicles();
+    return () => {
+      listRequest.current += 1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [businessRefId, currentPage, searchTerm, filters.role]);
+  }, [businessRefId, listPage, searchTerm, filters.role, filters.vehicleAssignment]);
 
   // Debounce the search box into `searchTerm` so we fire one request after typing
   // settles instead of one per keystroke (each of which would re-render the table).
@@ -190,7 +216,10 @@ const DriversPage = () => {
     setActionError,
   });
 
+  const openProfile = (driver) =>
+    navigate(`/drivers/${encodeURIComponent(driver.id || driver._id)}`);
   const columns = useDriverColumns({
+    onView: openProfile,
     onEdit: handleOpenEditModal,
     onDelete: handleOpenDeleteModal,
     onActivateHere: handleActivateHere,
@@ -223,6 +252,8 @@ const DriversPage = () => {
     setIsFilterDropdownOpen,
     businessRefId,
     totalPages,
+    currentPage,
+    itemsPerPage,
     setCurrentPage,
   });
 
@@ -237,7 +268,7 @@ const DriversPage = () => {
     <div className="drivers-container" style={themeColors}>
       <PageShell
         title="Employees"
-        count={activeCount}
+        count={totalEmployees}
         actions={
           <>
             <NewButton
@@ -275,7 +306,7 @@ const DriversPage = () => {
           error={error}
           onRetry={fetchDrivers}
           showing={paginatedDrivers.length}
-          total={activeCount}
+          total={totalEmployees}
           activeFilters={activeFilterCount}
           toolbarExtra={
             <>
@@ -340,7 +371,7 @@ const DriversPage = () => {
           }
           onRowClick={(driver) => {
             if (driver.branchStatus === 'DEACTIVATED') return;
-            handleOpenEditModal(driver);
+            openProfile(driver);
           }}
         />
       </PageShell>

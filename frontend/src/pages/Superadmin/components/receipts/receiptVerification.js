@@ -160,7 +160,7 @@ export const getOdometerMeta = (draft) => {
   if (hasPhoto || source === 'OCR') {
     return {
       isMissing: false,
-      badgeText: 'Dash Photo OCR',
+      badgeText: 'Dashboard photo',
       badgeClass: 'ra-odo-badge--ocr',
       icon: 'camera',
       displayReading: `${Number(reading).toLocaleString('en-IN')} km`,

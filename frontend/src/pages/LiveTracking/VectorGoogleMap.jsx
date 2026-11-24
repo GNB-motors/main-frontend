@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContext } from '@react-google-maps/api';
 
-/** Keep constructor-only options out of setOptions while sharing the map with existing layers. */
+/** Set the renderer only at construction; replace the map when 3D is toggled. */
 export default function VectorGoogleMap({
   children,
   options,
+  renderingType = 'RASTER',
   center,
   zoom,
   mapContainerStyle,
@@ -15,15 +16,21 @@ export default function VectorGoogleMap({
   onClick,
 }) {
   const container = useRef(null);
-  const [map, setMap] = useState(null);
+  const [loaded, setLoaded] = useState(null);
+  // Detach layers from the previous renderer before attaching to its replacement.
+  const map = loaded?.renderingType === renderingType ? loaded.instance : null;
+  const lastView = useRef(null);
   const mutableOptions = useMemo(() => {
     const next = { ...options };
     delete next.renderingType;
+    // Embedded colour styles work on the normal raster map only.
+    if (renderingType === 'VECTOR') delete next.styles;
     return next;
-  }, [options]);
+  }, [options, renderingType]);
   const current = useRef(null);
   current.current = {
     options: mutableOptions,
+    renderingType,
     center,
     zoom,
     onLoad,
@@ -36,25 +43,42 @@ export default function VectorGoogleMap({
 
   useEffect(() => {
     const initial = current.current;
-    const instance = new window.google.maps.Map(container.current, {
+    const mapsApi = window.google.maps;
+    const instance = new mapsApi.Map(container.current, {
       ...initial.options,
       center: initial.center,
       zoom: initial.zoom,
-      renderingType: 'VECTOR',
+      ...lastView.current,
+      heading: 0,
+      tilt: 0,
+      renderingType: initial.renderingType,
     });
-    applied.current = { options: initial.options, center: initial.center, zoom: initial.zoom };
+    applied.current = {
+      options: initial.options,
+      renderingType: initial.renderingType,
+      center: initial.center,
+      zoom: initial.zoom,
+    };
     const listeners = [
       instance.addListener('idle', () => current.current.onIdle?.()),
       instance.addListener('zoom_changed', () => current.current.onZoomChanged?.()),
       instance.addListener('click', (event) => current.current.onClick?.(event)),
     ];
-    setMap(instance);
+    setLoaded({ instance, renderingType: initial.renderingType });
     initial.onLoad?.(instance);
     return () => {
+      const cameraCenter = instance.getCenter?.();
+      const cameraZoom = instance.getZoom?.();
+      lastView.current = {
+        ...(cameraCenter ? { center: { lat: cameraCenter.lat(), lng: cameraCenter.lng() } } : {}),
+        ...(Number.isFinite(cameraZoom) ? { zoom: cameraZoom } : {}),
+      };
+      instance.__cameraAnim = null;
       listeners.forEach((listener) => listener.remove());
       current.current.onUnmount?.(instance);
+      mapsApi.event?.clearInstanceListeners?.(instance);
     };
-  }, []);
+  }, [renderingType]);
 
   useEffect(() => {
     if (!map) return;
@@ -67,10 +91,10 @@ export default function VectorGoogleMap({
       applied.current.center = center;
     }
     if (applied.current.zoom !== zoom) {
-      if (typeof zoom === 'number') map.setZoom(zoom);
+      if (typeof zoom === 'number' && map.getZoom?.() !== zoom) map.setZoom(zoom);
       applied.current.zoom = zoom;
     }
-  }, [map, mutableOptions, center, zoom]);
+  }, [map, mutableOptions, renderingType, center, zoom]);
 
   return (
     <div ref={container} style={mapContainerStyle}>

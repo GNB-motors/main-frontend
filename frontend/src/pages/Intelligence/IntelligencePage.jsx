@@ -16,7 +16,13 @@ import {
   sectionOfTab,
   tabById,
 } from './intelligenceTabs';
-import { periodDates, periodRangeLabel, resolvePeriod } from './intelligenceModel';
+import {
+  issueCounts,
+  selectIssueRows,
+  periodDates,
+  periodRangeLabel,
+  resolvePeriod,
+} from './intelligenceModel';
 import './IntelligencePage.css';
 import './IntelligenceDesign.css';
 import '../Performance/performancePanels.css';
@@ -33,8 +39,7 @@ const FuelRiskTab = lazy(() => import('./FuelRiskTab'));
 const OverspeedTab = lazy(() => import('./OverspeedTab'));
 const DetoursTab = lazy(() => import('./DetoursTab'));
 // Performance tabs folded in from the old Performance page (Wave 5). They
-// self-fetch the whole fleet over a fixed server window, so they take no
-// period/vehicle/driver props.
+// self-fetch fleet tables; the driver table uses the selected page period.
 const PerfVehiclesTab = lazy(() => import('../Performance/VehiclesTab'));
 const PerfDriversTab = lazy(() => import('../Performance/DriversTab'));
 const LeaderboardsTab = lazy(() => import('../Performance/LeaderboardsTab'));
@@ -48,12 +53,13 @@ const FLEET_ONLY_TABS = ['runs', 'places'];
 /** The performance tables; they cover the whole fleet and own their window. */
 const PERFORMANCE_TABS = ['perfVehicles', 'perfDrivers', 'leaderboards'];
 
-function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) {
+function TabContent({ active, from, to, vehicle, driver, kind, headerControl, issuesRead }) {
   if (active === 'issues') {
     return (
       <Suspense fallback={<IntelligenceSkeleton />}>
         <IssuesTab
           key={`${from}:${to}:${vehicle}:${kind}`}
+          read={issuesRead}
           from={from}
           to={to}
           vehicle={vehicle}
@@ -161,7 +167,7 @@ function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) 
   if (active === 'perfDrivers') {
     return (
       <Suspense fallback={TAB_FALLBACK}>
-        <PerfDriversTab />
+        <PerfDriversTab from={from} to={to} />
       </Suspense>
     );
   }
@@ -223,12 +229,17 @@ export default function IntelligencePage() {
     [from, to],
   );
 
-  const { data: issues, loading: issuesLoading } = useApi(
-    (signal) => IntelligenceService.getIssues({ from, to, signal }),
-    [from, to],
+  const issuesRead = useApi(
+    (signal) => IntelligenceService.getIssues({ from, to, vehicle, signal }),
+    [from, to, vehicle],
+    { scopeKey: `${from}:${to}:${vehicle}` },
   );
+  const { data: issues, loading: issuesLoading, error: issuesError } = issuesRead;
 
-  const actCount = issues?.counts?.act ?? null;
+  const actCount =
+    !issuesLoading && !issuesError && issues && !issues.held
+      ? issueCounts(selectIssueRows(issues.items, { vehicle, kind })).act
+      : null;
   const active = resolveIntelligenceTab(requested, actCount);
   const section = sectionOfTab(active);
   const activeTab = tabById(active);
@@ -270,8 +281,9 @@ export default function IntelligencePage() {
 
       <IntelligenceOverview
         summary={summary?.held ? null : summary}
-        issues={issues}
+        issues={issuesError ? null : issues}
         issuesLoading={issuesLoading}
+        kind={kind}
         from={from}
         to={to}
         vehicle={vehicle}
@@ -341,6 +353,7 @@ export default function IntelligencePage() {
       <div role="tabpanel" aria-label={activeTab?.label} className="intel-panel">
         <TabContent
           active={active}
+          issuesRead={issuesRead}
           from={from}
           to={to}
           vehicle={vehicle}

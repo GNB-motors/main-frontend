@@ -251,18 +251,14 @@ const useReceiptInbox = ({ onCounts }) => {
     [fetchData, setRowError],
   );
 
-  // The same approval, tried again from the row itself.
+  // A refused row returns to review before another approval attempt.
   const handleRetryRow = useCallback(
-    (draftId, e) => {
-      e?.stopPropagation?.();
-      const draft = items.find((d) => d._id === draftId);
-      return handleSingleApprove(
-        draftId,
-        draft?.vehicleId?.registrationNumber || draft?.vehicleReg || 'the vehicle',
-        e,
-      );
+    (draftId, event) => {
+      event?.stopPropagation?.();
+      setRowError(draftId, '');
+      setActiveDrawerId(draftId);
     },
-    [items, handleSingleApprove],
+    [setRowError],
   );
 
   // Bulk Approve

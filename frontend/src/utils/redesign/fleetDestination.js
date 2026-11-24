@@ -101,10 +101,6 @@ export function fleetDestination(to) {
     if (!url.searchParams.has('tab') && url.searchParams.has('kind'))
       url.searchParams.set('tab', 'issues');
   }
-  if (url.pathname === '/mileage' && url.searchParams.get('tab') === 'mileage') {
-    url.searchParams.set('tab', 'live');
-    url.searchParams.set('subtab', 'completed');
-  }
   if (!FLEET_ROUTES.some((pattern) => matchPath({ path: pattern, end: true }, url.pathname)))
     return null;
   // Preserve the API's original query encoding on destinations needing no repair.

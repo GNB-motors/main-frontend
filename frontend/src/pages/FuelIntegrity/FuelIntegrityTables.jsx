@@ -10,19 +10,19 @@ import AnomalyBreakdownPanel from './AnomalyBreakdownPanel.jsx';
 const TABS = [
   {
     key: 'events',
-    label: 'Incident & Security Feed',
+    label: 'Fuel events',
     icon: AlertTriangle,
     question: 'Live telematics security events and dispensing audit',
   },
   {
     key: 'risk',
-    label: 'Vehicle Threat Matrix',
+    label: 'Trucks',
     icon: Truck,
     question: 'Which fleet vehicles carry the highest loss risk?',
   },
   {
     key: 'pumps',
-    label: 'Pump Honesty Watchlist',
+    label: 'Pumps',
     icon: Fuel,
     question: 'Which pumps have chronic dispensing shortfalls?',
   },

@@ -1,12 +1,4 @@
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Panel } from '../../components/overview.primitives.jsx';
 
 const METRICS = [
@@ -68,13 +60,7 @@ export default function FuelActivityPanel({
       ) : (
         <div className="h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="fiGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={metric.color} stopOpacity={0.25} />
-                  <stop offset="100%" stopColor={metric.color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 18 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--hairline)" />
               <XAxis
                 dataKey="day"
@@ -84,6 +70,11 @@ export default function FuelActivityPanel({
                 stroke="var(--cluster-text-dim)"
               />
               <YAxis
+                label={{
+                  value: metric.unit.trim() || 'events',
+                  angle: -90,
+                  position: 'insideLeft',
+                }}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -102,16 +93,8 @@ export default function FuelActivityPanel({
                 }}
                 formatter={(v) => [`${v}${metric.unit}`, metric.label]}
               />
-              <Area
-                type="monotone"
-                dataKey={metric.key}
-                stroke={metric.color}
-                strokeWidth={2}
-                fill="url(#fiGrad)"
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            </AreaChart>
+              <Bar dataKey={metric.key} fill={metric.color} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       )}

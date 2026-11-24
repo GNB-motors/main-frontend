@@ -10,12 +10,12 @@ import { Eye, Pencil, Trash2, ToggleRight } from 'lucide-react';
  *   👁  View profile/edit  |  ✏️  Edit  |  🗑  Delete
  * For deactivated employees, the edit/delete pair is replaced with "Mark as active".
  */
-function DriverInlineActions({ driver, isSubmitting, onEdit, onDelete, onActivateHere }) {
+function DriverInlineActions({ driver, isSubmitting, onView, onEdit, onDelete, onActivateHere }) {
   const isDeactivatedHere = driver?.branchStatus === 'DEACTIVATED';
 
   const handleView = (e) => {
     e.stopPropagation();
-    onEdit(driver);
+    onView(driver);
   };
 
   const handleEdit = (e) => {
@@ -84,6 +84,7 @@ function DriverInlineActions({ driver, isSubmitting, onEdit, onDelete, onActivat
 }
 
 export function useDriverColumns({
+  onView,
   onEdit,
   onDelete,
   onActivateHere,
@@ -275,6 +276,7 @@ export function useDriverColumns({
         <DriverInlineActions
           driver={driver}
           isSubmitting={isSubmitting}
+          onView={onView}
           onEdit={onEdit}
           onDelete={onDelete}
           onActivateHere={onActivateHere}

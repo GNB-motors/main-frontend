@@ -8,13 +8,13 @@ import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { formatKm, formatPct } from '@/utils/redesign/format';
 import { trackLink } from '@/utils/redesign/links';
+import { DEF_COMPARISON_COPY, defComparisonLabel } from '../../utils/defComparison';
 
 // links.js has no helper for the Mileage page yet, so the path is written once,
 // here, instead of being repeated across the app.
 const MILEAGE_PATH = '/mileage?tab=live&subtab=completed';
 
-const DEF_TIP =
-  'BS-VI trucks use about 3–6 litres of DEF per 100 litres of diesel. Much lower can mean DEF isn’t being dosed; much higher can mean a leak or wrong reading.';
+const DEF_TIP = DEF_COMPARISON_COPY;
 
 const kmPerL = (value) =>
   value === null || value === undefined || Number.isNaN(Number(value))
@@ -187,11 +187,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                       <td>
                         <ToneBadge tone="watch">{`${formatPct(item.defPctOfDiesel)} of diesel`}</ToneBadge>
                       </td>
-                      <td className="intel-when">
-                        {item.defBand
-                          ? `normal ${formatPct(item.defBand.min)}–${formatPct(item.defBand.max)}`
-                          : '—'}
-                      </td>
+                      <td className="intel-when">{defComparisonLabel(item.defBand)}</td>
                       <td className="intel-num intel-when">
                         {item.km != null ? formatKm(item.km) : '—'}
                       </td>

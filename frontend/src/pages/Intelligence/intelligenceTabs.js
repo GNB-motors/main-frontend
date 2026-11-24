@@ -30,13 +30,13 @@ export const INTELLIGENCE_TABS = [
   },
   {
     id: 'vehicles',
-    label: 'Trucks',
+    label: 'Truck scores',
     hint: 'Which trucks are doing well or slipping, and why.',
     icon: Truck,
   },
   {
     id: 'drivers',
-    label: 'Drivers',
+    label: 'Driver scores',
     hint: 'Which drivers are doing well or slipping, and why.',
     icon: Users,
   },
@@ -93,13 +93,13 @@ export const INTELLIGENCE_TABS = [
   // cannot be compared says so instead of showing a zero.
   {
     id: 'perfVehicles',
-    label: 'Vehicles',
+    label: 'Truck measurements',
     hint: 'Per-truck km/L, idling and gear use, each number with its source.',
     icon: Gauge,
   },
   {
     id: 'perfDrivers',
-    label: 'Drivers',
+    label: 'Driver measurements',
     hint: 'Driver DNA and road pace, each number with its source.',
     icon: Users,
   },

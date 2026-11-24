@@ -3,7 +3,7 @@
 // Extracted from VehiclesPage.jsx (WS0.7) to keep the page under the file-size rule;
 // cell markup preserved byte-identically.
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, Pencil, Plug, Trash2, ToggleRight, Unplug } from 'lucide-react';
+import { Eye, MoreHorizontal, Pencil, Plug, Trash2, ToggleRight, Unplug } from 'lucide-react';
 import { describeFleetEdgeAccount } from './vehicleList.js';
 import '../../components/FleetLink.css';
 import { manufacturerLabel } from './vehicleManufacturerOptions.js';
@@ -73,15 +73,18 @@ function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActiv
           >
             <Pencil size={16} />
           </button>
-          <button
-            className="vehicle-inline-btn vehicle-inline-btn--delete"
-            onClick={handleDelete}
-            disabled={isSubmitting}
-            title="Delete vehicle"
-            type="button"
-          >
-            <Trash2 size={16} />
-          </button>
+          <details className="vehicle-action-menu">
+            <summary
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+              aria-label={`More actions for ${vehicle.registration_no}`}
+            >
+              <MoreHorizontal size={16} />
+            </summary>
+            <button type="button" onClick={handleDelete} disabled={isSubmitting}>
+              Delete vehicle…
+            </button>
+          </details>
         </>
       )}
     </div>

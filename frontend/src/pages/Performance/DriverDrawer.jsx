@@ -12,6 +12,7 @@ import ErrorCard from '@/components/redesign/ErrorCard';
 import { formatIstDate } from '@/utils/redesign/format';
 import useApi from '../../hooks/useApi';
 import PerformanceApi from '../../api/performance';
+import { windowLabel } from './performanceGaps';
 import SourceCell from './SourceCell';
 import PaceCell from './PaceCell';
 import { DrawerSection } from './PerformanceParts';
@@ -104,15 +105,20 @@ function DriverDna({ dna, reason }) {
 }
 
 /** One driver: their four numbers and the Driving DNA behind the score. */
-export default function DriverDrawer({ driver, window, onClose }) {
+export default function DriverDrawer({ driver, window, from, to, onClose }) {
   const id = driver?.driverId ?? null;
-  const detail = useApi((signal) => PerformanceApi.driver(id, {}, signal), [id], {
-    enabled: Boolean(id),
-    scopeKey: id,
-  });
+  const detail = useApi(
+    (signal) => PerformanceApi.driver(id, { from, to }, signal),
+    [id, from, to],
+    {
+      enabled: Boolean(id),
+      scopeKey: `${id}:${from || 'default'}:${to || 'default'}`,
+    },
+  );
 
   if (!driver) return null;
-  const days = window?.days ?? 30;
+  const range =
+    windowLabel(from && to ? { from, to } : window) || `last ${window?.days ?? 30} days`;
 
   return (
     <Sheet open onOpenChange={(next) => (next ? null : onClose())}>
@@ -123,7 +129,7 @@ export default function DriverDrawer({ driver, window, onClose }) {
               {driver.name || 'Name not on record'}
             </SheetTitle>
             <SheetDescription className="mt-1 text-[13px] text-[var(--ui-ink-3)]">
-              {`${driverTrucks(driver)} · last ${days} days`}
+              {`${driverTrucks(driver)} · ${range}`}
             </SheetDescription>
           </div>
           <button type="button" onClick={onClose} aria-label="Close the driver">

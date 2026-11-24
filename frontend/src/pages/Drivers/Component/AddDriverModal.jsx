@@ -80,7 +80,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             &times;
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="drivers-modal-form">
+        <form onSubmit={handleSubmit} className="drivers-modal-form" autoComplete="off">
           <div className="drivers-form-row">
             <div className="drivers-form-group">
               <label htmlFor="driverFirstName">First Name *</label>
@@ -115,6 +115,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
                 aria-label="Email"
                 id="driverEmail"
                 type="email"
+                autoComplete="off"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
@@ -153,6 +154,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
                 aria-label="Password"
                 id="driverPassword"
                 type="password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Temporary password"

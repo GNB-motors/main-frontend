@@ -30,7 +30,8 @@ export const countsOf = (result) =>
 const answered = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 
 /** A count nobody answered: null, so the page can show it as unknown. */
-const exact = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
+const exact = (value) =>
+  value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 
 /**
  * The counts the page shows.

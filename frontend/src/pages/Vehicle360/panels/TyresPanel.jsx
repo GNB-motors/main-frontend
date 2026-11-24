@@ -1,3 +1,5 @@
+import TyreSetForm from './TyreSetForm';
+import { getUserRole } from '@/utils/session';
 import { vehicleAxles } from '../vehicleAxles';
 import { useState } from 'react';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
@@ -39,7 +41,7 @@ const date = (value) =>
   value && Number.isFinite(new Date(value).getTime()) ? formatDateIST(value) : '—';
 
 export default function TyresPanel({ fleetMaster, fleetEdge, health, ialert }) {
-  const vehicleId = fleetMaster?.id;
+  const vehicleId = fleetMaster?.id || fleetMaster?._id;
   const registrationNumber =
     fleetMaster?.registrationNumber || fleetEdge?.registrationNumber || ialert?.registrationNumber;
   const tyres$ = useApi(
@@ -80,6 +82,33 @@ export default function TyresPanel({ fleetMaster, fleetEdge, health, ialert }) {
   ];
   const model = ialert?.vehicleModel || fleetEdge?.vehicleModel || fleetMaster?.model;
   const size = fleetMaster?.tyreSize || null;
+  if (tyres$.loading && !tyres$.data) return <OverviewCardSkeleton />;
+  if (tyres$.error)
+    return (
+      <section className="vdo-card" aria-label="Tyre details">
+        <h3>Couldn’t load tyre details</h3>
+        <p>Please try loading the recorded tyre set again.</p>
+        <button type="button" className="vtyres-link" onClick={tyres$.refetch}>
+          Retry
+        </button>
+      </section>
+    );
+  if (!set)
+    return (
+      <section className="vdo-card" aria-label="Tyre details">
+        <h3>Add tyre details</h3>
+        <p>No tyre set has been recorded for this truck.</p>
+        {['OWNER', 'MANAGER'].includes(getUserRole()) && (vehicleId || registrationNumber) ? (
+          <TyreSetForm
+            vehicleId={vehicleId}
+            registrationNumber={registrationNumber}
+            onSaved={tyres$.refetch}
+          />
+        ) : (
+          <p>Ask an owner or manager to record the fitted tyres.</p>
+        )}
+      </section>
+    );
   return (
     <PanelErrorBoundary name="vehicle-tyres">
       <div className="vdo-overview vtyres">
@@ -190,8 +219,8 @@ export default function TyresPanel({ fleetMaster, fleetEdge, health, ialert }) {
             <div className="vtyres-empty">
               <h3>No individual fitment returned</h3>
               <p>
-                The tyre API records a vehicle-level set. It does not identify which tyre is fitted
-                at this position.
+                The recorded set covers the truck. No individual tyre has been recorded at this
+                position.
               </p>
               <div className="vtyres-chips">
                 {['Brand & pattern', 'Fitment odometer', 'Tread depth', 'Purchase price'].map(

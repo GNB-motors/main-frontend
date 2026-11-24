@@ -17,7 +17,7 @@ export default function DriverCard({ assignedDriver, fleetMaster, fleetEdge }) {
       <CardHead
         title="Assigned Driver"
         action={
-          <Link to="/vehicle-assignments" className="v360-link">
+          <Link to="/khata-ledger?tab=assignments" className="v360-link">
             {assignedDriver ? 'Change assignment →' : 'Assign driver →'}
           </Link>
         }
@@ -26,11 +26,11 @@ export default function DriverCard({ assignedDriver, fleetMaster, fleetEdge }) {
         <div className="v360-empty">
           <span className="v360-empty-title">No driver currently assigned</span>
           <span className="v360-empty-hint">
-            Assign a driver from Driver ↔ Vehicle Assignments to track shift performance and driver
+            Assign a driver from Khata Ledger → Assignments to track shift performance and driver
             accountability.
           </span>
           <div style={{ marginTop: 12 }}>
-            <Link to="/vehicle-assignments" className="v360-btn v360-btn--primary">
+            <Link to="/khata-ledger?tab=assignments" className="v360-btn v360-btn--primary">
               Assign driver
             </Link>
           </div>

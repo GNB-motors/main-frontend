@@ -305,3 +305,22 @@
     padding: 0;
   }
 }
+
+.vtyres-set-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.vtyres-set-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtyres-set-fields input {
+  padding: 8px;
+  border: 1px solid var(--ui-line);
+  border-radius: 6px;
+  background: var(--ui-card);
+  color: var(--ui-ink);
+}

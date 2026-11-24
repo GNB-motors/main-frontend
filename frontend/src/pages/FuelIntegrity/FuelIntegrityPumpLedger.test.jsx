@@ -44,7 +44,7 @@ it('shares a single scoped ledger between the pump card and tab and aborts it on
   const [params, { signal }] = FuelIntegrityService.getPumpLedger.mock.calls[0];
   expect(params).toEqual({ manufacturer: 'TATA' });
   expect(signal).toBeInstanceOf(AbortSignal);
-  fireEvent.click(screen.getByRole('tab', { name: 'Pump Honesty Watchlist' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Pumps' }));
   expect(await screen.findByText('Chronic Shortage')).toBeInTheDocument();
   expect(screen.getAllByText('Fleet pumps · 1 Oct 2026 – 31 Oct 2026 IST')).toHaveLength(2);
   expect(FuelIntegrityService.getPumpLedger).toHaveBeenCalledTimes(1);

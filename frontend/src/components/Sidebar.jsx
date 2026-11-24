@@ -24,7 +24,6 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   // Accordion: at most one group open at a time, keyed by getNavGroupId().
   const [openGroupId, setOpenGroupId] = useState(null);
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   // A broken/expired logo URL must not leave an empty header, so a load error
   // falls back to the default mark exactly like "no logo uploaded" does.
   const [logoFailed, setLogoFailed] = useState(false);
@@ -34,10 +33,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const { canAccess, isEnabled, failed, retry } = useFeatureFlags();
   const { organization } = useOrganization();
   const role = getUserRole();
-  // On desktop the rail collapses to icons until the pointer comes near it.
-  // The hover help then repeats the label, because the label itself is hidden.
+  // The user controls desktop expansion with the navbar toggle.
   const isDesktop = useMediaQuery('(min-width: 993px)');
-  const isRailCollapsed = isDesktop && !isSidebarHovered;
+  const isRailCollapsed = isDesktop && !isSidebarOpen;
 
   const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
   const logoAlt = organization?.companyName || 'Company logo';
@@ -87,24 +85,19 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // cross-fades to blue on ERP & CRM routes (and back on leaving).
   const isErpRoute = location.pathname === '/erp' || location.pathname.startsWith('/erp/');
 
-  // Auto-expand the group whose child route is active. Navigating to a route
-  // outside every group leaves the user's manual selection alone.
+  // Close the menu after navigation, including browser Back/Forward.
   useEffect(() => {
-    if (activeGroupId) setOpenGroupId(activeGroupId);
-  }, [activeGroupId]);
-
-  // Auto-close the dropdown when sidebar is not hovered on desktop, unless the
-  // group's own route is active.
-  useEffect(() => {
-    if (!isSidebarHovered && window.innerWidth > 992) {
-      const timer = setTimeout(() => setOpenGroupId(activeGroupId), 200);
-      return () => clearTimeout(timer);
-    }
-  }, [isSidebarHovered, activeGroupId]);
+    setOpenGroupId(null);
+  }, [location.pathname, location.search]);
 
   // Opening a group collapses whichever one was open — the CSS grid-rows
   // transition animates both at once, so they cross-fade smoothly.
   const toggleGroup = (groupId) => {
+    if (isRailCollapsed) {
+      setSidebarOpen(true);
+      setOpenGroupId(groupId);
+      return;
+    }
     setOpenGroupId((prev) => (prev === groupId ? null : groupId));
   };
 
@@ -117,7 +110,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
   // When a nav link is clicked on mobile, close the sidebar.
   const closeSidebarOnMobile = () => {
-    if (window.innerWidth <= 992) {
+    setOpenGroupId(null);
+    if (!isDesktop) {
       setSidebarOpen(false);
     }
   };
@@ -138,7 +132,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     if (item.type === 'link') {
       return (
         <NavHint key={item.to} hint={item.hint} label={item.label} collapsed={isRailCollapsed}>
-          <NavLink to={item.to} end={item.end} className="nav-link" onClick={closeSidebarOnMobile}>
+          <NavLink
+            to={item.to}
+            end={item.end}
+            className="nav-link"
+            aria-label={item.label}
+            onClick={closeSidebarOnMobile}
+          >
             <Icon size={20} />
             <span>{item.label}</span>
             {item.badgeKey === 'approvalsCount' && approvalsCount > 0 && (
@@ -171,8 +171,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
       <div className="nav-section" key={groupId}>
         <NavHint hint={item.hint} label={item.label} collapsed={isRailCollapsed}>
           <button
-            className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
+            className={`nav-link nav-parent ${isOpen || activeGroupId === groupId ? 'active-parent' : ''}`}
             onClick={() => toggleGroup(groupId)}
+            aria-label={item.label}
             aria-expanded={isOpen}
           >
             <div className="nav-parent-left">
@@ -190,7 +191,11 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             <ChevronIcon size={16} className={`chevron-icon ${isOpen ? 'rotated' : ''}`} />
           </button>
         </NavHint>
-        <div className={`nav-children ${isOpen ? 'open' : ''}`}>
+        <div
+          className={`nav-children ${isOpen ? 'open' : ''}`}
+          inert={!isOpen || isRailCollapsed}
+          aria-hidden={!isOpen || isRailCollapsed}
+        >
           <div className="nav-children-inner">
             {visibleChildren.map((child) => (
               <NavHint
@@ -216,14 +221,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   };
 
   return (
-    // Hover only tracks whether the pointer is over the rail, so groups the
-    // pointer left can collapse; it activates nothing and has no keyboard analogue.
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- see above
-    <aside
-      className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}
-      onMouseEnter={() => setIsSidebarHovered(true)}
-      onMouseLeave={() => setIsSidebarHovered(false)}
-    >
+    <aside className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}>
       <div className="sidebar-content">
         <div className="sidebar-header">
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- onError swaps in the fallback logo; it is not a user interaction */}

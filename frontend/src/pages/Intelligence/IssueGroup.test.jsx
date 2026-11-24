@@ -37,6 +37,27 @@ function renderGroup(items) {
 }
 
 describe('IssueGroup', () => {
+  it('summarises distinct dated evidence inside the fourteen-day window', () => {
+    const [group] = groupIssuesByKind([
+      {
+        ...issue,
+        evidence: [
+          { at: '2026-11-01T09:30:00Z' },
+          { at: '2026-11-01T10:30:00Z' },
+          { at: '2026-10-30T10:30:00Z' },
+          { at: '2026-10-01T10:30:00Z' },
+          { at: '2026-11-03T10:30:00Z' },
+        ],
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <IssueGroup group={group} to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Recorded on 2 of the last 14 days · last 1 Nov')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Recorded evidence over 14 days')).not.toBeInTheDocument();
+  });
   it('hides repeated templated details but retains them when the row opens', () => {
     renderGroup([
       issue,

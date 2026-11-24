@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   attentionGroups,
   buildKpis,
+  extraFuelTotal,
   feedReason,
   formatSilence,
   leakRows,
@@ -10,6 +11,18 @@ import {
 
 const NOW = new Date('2026-11-04T12:00:00Z').getTime();
 const H = 3600 * 1000;
+
+describe('extraFuelTotal', () => {
+  it('does not turn missing calculations into zero cost', () => {
+    expect(extraFuelTotal({ totalRupees: 0, sections: [] })).toBeNull();
+    expect(
+      extraFuelTotal({ totalRupees: 0, partial: true, sections: [{ rupees: null }] }),
+    ).toBeNull();
+    expect(extraFuelTotal({ totalRupees: null })).toBeNull();
+    expect(extraFuelTotal({ totalRupees: 0, sections: [{ rupees: 0, status: 'ok' }] })).toBe(0);
+    expect(extraFuelTotal({ totalRupees: 100, partial: true })).toBe(100);
+  });
+});
 
 const sections = sectionsById([
   { id: 'fleetNow', numbers: { moving: 27, dark: 49 } },
@@ -111,7 +124,7 @@ describe('buildKpis', () => {
     expect(by.km.context).toBe('Not counted yet · usually 7,953 km');
   });
 
-  it('falls back to the report snapshot, with deltas, on a past day', () => {
+  it('uses current live counts separately from past-day work and deltas', () => {
     const past = sectionsById([
       ...Object.values(sections).filter((s) => s.id !== 'yesterdaysWork'),
       { id: 'yesterdaysWork', numbers: { trips: 36, km: 7600 } },
@@ -127,15 +140,18 @@ describe('buildKpis', () => {
     const by = Object.fromEntries(tiles.map((t) => [t.key, t]));
     // Moving and dark are read now, whatever day is picked: they say so.
     expect(by.moving.label).toBe('Moving now');
-    expect(by.moving.value).toBe(27);
-    expect(by.moving.context).toBe('Live · not for 1 Nov');
+    expect(by.moving.value).toBe(9);
+    expect(by.moving.context).toBe('of 124 trucks · live');
+    expect(by.moving.period).toBe('live');
+    expect(by.dark.period).toBe('live');
+    expect(by.trips.period).not.toBe('live');
     expect(by.dark.label).toBe('Dark now');
-    expect(by.dark.context).toMatch(/live, not for 1 Nov$/);
+    expect(by.dark.context).toBe('of 124 trucks · live');
     expect(by.trips.value).toBe(36);
     expect(by.trips.delta).toBe(12.5);
     expect(by.km.delta).toBe(-4);
     expect(by.lost.value).toBeNull();
-    expect(by.dark.value).toBe(49);
+    expect(by.dark.value).toBe(47);
   });
 });
 

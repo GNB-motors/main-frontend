@@ -91,6 +91,15 @@ it('asks the backend for the counts with the list and reads the tab counts from 
   expect(reads.every(([p]) => p.withCounts === 1)).toBe(true);
 });
 
+it('shows unknown status counts when the trip reads fail', async () => {
+  AutoTripService.list.mockRejectedValue(new Error('Trips unavailable'));
+  open();
+  await screen.findByText(/Could not load this list/);
+  expect(screen.getByRole('tab', { name: 'Delivered —' })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Needs your answer —' })).toBeInTheDocument();
+  expect(screen.queryByText('nothing waiting')).not.toBeInTheDocument();
+});
+
 it('falls back to the plain read when the backend does not know the flag', async () => {
   AutoTripService.list.mockImplementation(async (params) => {
     if (params.withCounts) {

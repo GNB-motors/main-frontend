@@ -47,6 +47,7 @@ export const kpisFromSummary = (summary) => {
     totalCount,
     totalLitres,
     totalAmount,
+    oldestPendingAt: s.oldestPendingAt || null,
     pendingCount: numOrNull(s.pendingCount),
     pendingAmount: numOrNull(s.pendingAmount),
     missingOdoCount: numOrNull(s.missingOdoCount),
@@ -104,14 +105,20 @@ export const computeReceiptKpis = (items = []) => {
     }
   });
 
+  const oldestPendingAt =
+    items
+      .filter((row) => row.status === 'READY' && Number.isFinite(Date.parse(row.createdAt)))
+      .map((row) => row.createdAt)
+      .sort((a, b) => Date.parse(a) - Date.parse(b))[0] || null;
   const avgRate = totalLitres > 0 ? (totalAmount / totalLitres).toFixed(2) : '—';
 
   return {
     // These numbers cover the page on screen, never the whole tab.
     scope: 'page',
+    oldestPendingAt,
     totalCount: items.length,
-    totalLitres,
-    totalAmount,
+    totalLitres: items.length && !litresBills ? null : totalLitres,
+    totalAmount: items.length && !amountBills ? null : totalAmount,
     pendingCount,
     pendingAmount: pendingAmountsKnown ? pendingAmount : null,
     missingOdoCount,

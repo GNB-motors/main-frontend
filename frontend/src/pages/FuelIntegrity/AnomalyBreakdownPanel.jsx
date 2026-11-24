@@ -14,7 +14,7 @@ export default function AnomalyBreakdownPanel({ defCount, billCount, lossL, affe
             className="num text-xl font-bold"
             style={{ color: defCount > 0 ? 'var(--caution)' : 'var(--cluster-text)' }}
           >
-            {defCount}
+            {defCount ?? '—'}
           </span>
           <span className="text-dim text-[10px] uppercase tracking-wide">DEF flags</span>
         </div>
@@ -23,7 +23,7 @@ export default function AnomalyBreakdownPanel({ defCount, billCount, lossL, affe
             className="num text-xl font-bold"
             style={{ color: billCount > 0 ? 'var(--caution)' : 'var(--cluster-text)' }}
           >
-            {billCount}
+            {billCount ?? '—'}
           </span>
           <span className="text-dim text-[10px] uppercase tracking-wide">Bill mism.</span>
         </div>
@@ -39,7 +39,7 @@ export default function AnomalyBreakdownPanel({ defCount, billCount, lossL, affe
       </div>
       <div className="mt-4">
         <div className="text-dim mb-1 text-[11px] font-semibold uppercase tracking-wide">
-          Most affected vehicles
+          Most affected vehicles · flagged events loaded
         </div>
         {affected.list.length === 0 ? (
           <div className="text-dim py-4 text-center text-xs">
@@ -51,7 +51,7 @@ export default function AnomalyBreakdownPanel({ defCount, billCount, lossL, affe
               key={v.reg}
               className="fi-affected w-full text-left"
               onClick={() => onDrill(v.reg)}
-              title={`${v.def} DEF · ${v.bill} bill`}
+              title={`${v.anomalies} flagged events · ${v.def} DEF · ${v.bill} bill`}
             >
               <span className="reg-plate">{v.reg}</span>
               <span className="fi-affected-track">

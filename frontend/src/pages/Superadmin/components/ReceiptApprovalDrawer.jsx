@@ -12,6 +12,7 @@ import { ReceiptApprovalService } from './ReceiptApprovalService';
 import DrawerViewerPane from './receipts/DrawerViewerPane';
 import DrawerDetailsPane from './receipts/DrawerDetailsPane';
 import ChatDraftEditor from './receipts/ChatDraftEditor';
+import { receiptReviewWarnings } from './receipts/receiptReview';
 import ReceiptApprovalActions from './receipts/ReceiptApprovalActions';
 import { useReceiptApprovalActions } from './receipts/useReceiptApprovalActions';
 import { initialChatEdits, isChatRow } from './receipts/chatDraft';
@@ -192,15 +193,25 @@ const ReceiptApprovalDrawer = ({
               {veh}
             </span>
             {draft && (
-              <span className={`ra-badge ${STATUS_BADGE[draft.status] || 'ra-badge--cleared'}`}>
+              <span
+                className={`ra-badge ${draft.status === 'READY' && receiptReviewWarnings(draft).length ? 'ra-badge--review' : STATUS_BADGE[draft.status] || 'ra-badge--cleared'}`}
+              >
                 <span className="ra-badge__dot" />
-                {draft.status}
+                {draft.status === 'READY'
+                  ? receiptReviewWarnings(draft).length
+                    ? 'Needs review'
+                    : 'Ready for review'
+                  : draft.status.toLowerCase()}
               </span>
             )}
             {draft && (
               <span className={`ra-ocr-tag ra-ocr-tag--${ocrEval.level}`}>
                 <ShieldCheck size={13} />
-                {ocrEval.score}% {ocrEval.label}
+                {ocrEval.level === 'low'
+                  ? 'Check bill details'
+                  : ocrEval.level === 'medium'
+                    ? 'Some details to check'
+                    : 'Bill details read'}
               </span>
             )}
           </div>
@@ -257,13 +268,13 @@ const ReceiptApprovalDrawer = ({
             <div className="ra-state" style={{ minHeight: '400px' }}>
               <div className="ra-spinner" />
               <div className="ra-state__title" style={{ marginTop: 12 }}>
-                Loading receipt data & high-res slip…
+                Loading the receipt and bill photo…
               </div>
             </div>
           ) : !draft ? (
             <div className="ra-state" style={{ minHeight: '300px' }}>
               <AlertTriangle size={28} color="var(--amber-500, #F59E0B)" />
-              <div className="ra-state__title">Draft not found</div>
+              <div className="ra-state__title">Receipt not found</div>
             </div>
           ) : (
             <div className="ra-drawer__split">
@@ -324,6 +335,7 @@ const ReceiptApprovalDrawer = ({
         )}
 
         <ReceiptApprovalActions
+          edits={edits}
           draft={draft}
           isReady={isReady}
           isChat={isChat}

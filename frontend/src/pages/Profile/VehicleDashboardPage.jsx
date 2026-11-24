@@ -16,6 +16,7 @@ import VehicleDashboardDocFilter from './VehicleDashboardDocFilter.jsx';
 import VehicleDashboardKpis from './VehicleDashboardKpis.jsx';
 import { buildVehicleDashboardColumns } from './vehicleDashboardColumns';
 import VehicleDashboardPanel from './VehicleDashboardPanel';
+import VehicleDocumentUploadDialog from './VehicleDocumentUploadDialog';
 import ChallanModal from './ChallanModal';
 import './VehiclesPage.css';
 import './VehicleDashboardPage.css';
@@ -39,6 +40,7 @@ const VehicleDashboardPage = () => {
   };
   const expiryFrom = params.get('from');
   const expiryTo = params.get('to');
+  const [uploadTarget, setUploadTarget] = useState(null);
   const [challanModalOpen, setChallanModalOpen] = useState(false);
 
   useEffect(() => {
@@ -216,6 +218,10 @@ const VehicleDashboardPage = () => {
   };
 
   const handleSelectDoc = (row, docKey) => {
+    if (bucketFor(row.documents?.[docKey]) === 'missing') {
+      setUploadTarget({ vehicle: row, docKey });
+      return;
+    }
     setSelectedVehicle(row);
     setSelectedDocKey(docKey);
   };
@@ -243,6 +249,17 @@ const VehicleDashboardPage = () => {
         className="vehicles-content-wrapper"
         style={{ paddingBottom: 48, alignItems: 'stretch' }}
       >
+        {uploadTarget ? (
+          <VehicleDocumentUploadDialog
+            key={`${uploadTarget.vehicle._id}:${uploadTarget.docKey}`}
+            {...uploadTarget}
+            onClose={() => setUploadTarget(null)}
+            onSaved={() => {
+              setUploadTarget(null);
+              load();
+            }}
+          />
+        ) : null}
         <PageShell
           title="Vehicle Documents"
           subtitle="Fleet-wide document compliance and live expiry tracking. Badges update automatically."

@@ -15,10 +15,7 @@ describe('fleet report destinations', () => {
     ['/trips/trip-1/track?at=now', '/auto-trips/trip-1?at=now&play=1'],
     ['/fuel-and-mileage', '/mileage?tab=live'],
     ['/fuel-consumption', '/mileage?tab=live&subtab=completed'],
-    [
-      '/mileage?tab=mileage&vehicle=BR44GB1162',
-      '/mileage?tab=live&vehicle=BR44GB1162&subtab=completed',
-    ],
+    ['/mileage?tab=mileage&vehicle=BR44GB1162', '/mileage?tab=mileage&vehicle=BR44GB1162'],
     ['/driver-management', '/drivers'],
     ['/vehicle-tracking', '/live-tracking'],
     ['/settings/integrations', '/settings/fleetedge-accounts'],

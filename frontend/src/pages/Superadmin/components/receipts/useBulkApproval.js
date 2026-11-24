@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { ReceiptApprovalService } from '../ReceiptApprovalService';
+import { receiptReviewWarnings } from './receiptReview';
 import { missingKeyFields } from './keyFields';
 import { plainActionError } from './receiptActions';
 
@@ -22,10 +23,19 @@ export const useBulkApproval = ({
   setShowBulkApproveModal,
 }) => {
   const handleBulkApprove = useCallback(async () => {
-    if (selectedIds.size === 0 || bulkBusy) return { missing: [], successCount: 0, failureCount: 0 };
+    if (selectedIds.size === 0 || bulkBusy)
+      return { missing: [], successCount: 0, failureCount: 0 };
 
     const blockedRows = selectedDrafts
-      .map((draft) => ({ draft, missing: missingKeyFields(draft) }))
+      .map((draft) => {
+        const missing = missingKeyFields(draft);
+        return {
+          draft,
+          missing: missing.length
+            ? missing
+            : receiptReviewWarnings(draft).map((label) => ({ label })),
+        };
+      })
       .filter((row) => row.missing.length > 0)
       .map((row) => ({
         id: row.draft._id,

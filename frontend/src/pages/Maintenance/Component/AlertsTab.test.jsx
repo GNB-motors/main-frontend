@@ -4,6 +4,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AlertsTab from './AlertsTab.jsx';
 import { MaintenanceService } from '../MaintenanceService.js';
+import { FleetDataService } from '../../../services/FleetDataService';
+import { getVehicleList } from '../../../services/vehicleListService';
+
+vi.mock('../../../services/FleetDataService', () => ({
+  FleetDataService: { getMaintenancePredictions: vi.fn() },
+}));
+vi.mock('../../../services/vehicleListService', () => ({ getVehicleList: vi.fn() }));
 
 vi.mock('../MaintenanceService.js', () => ({
   MaintenanceService: {
@@ -13,13 +20,13 @@ vi.mock('../MaintenanceService.js', () => ({
 }));
 
 const ALERT = {
-  id: 'SERVICE_DUE-v1',
+  id: 'HIGH_REPAIR_SPEND-v1',
   fingerprint: '2026-01-01T00:00:00.000Z',
-  type: 'SERVICE_DUE',
+  type: 'HIGH_REPAIR_SPEND',
   severity: 'CRITICAL',
   vehicleReg: 'WB1',
   model: 'X',
-  description: 'WB1 service overdue by 10 days',
+  description: 'WB1 repair spend needs review',
   createdDate: '2026-04-10T00:00:00.000Z',
   resolved: false,
   resolvedAt: null,
@@ -37,6 +44,20 @@ function renderTab() {
 describe('AlertsTab — resolve workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getVehicleList.mockResolvedValue([{ registrationNumber: 'WB1' }]);
+    FleetDataService.getMaintenancePredictions.mockResolvedValue({ records: [] });
+  });
+
+  it('shows overdue forecasts even when the old alerts endpoint has none', async () => {
+    MaintenanceService.getAlerts.mockResolvedValue([]);
+    FleetDataService.getMaintenancePredictions.mockResolvedValue({
+      records: [{ registrationNumber: 'WB1', risk: 'OVERDUE', kmUntilDue: -500 }],
+    });
+    renderTab();
+    expect(await screen.findByText('Service overdue by 500 km')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View service' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Resolve' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Everything looks healthy/)).not.toBeInTheDocument();
   });
 
   it('shows an unresolved alert under "All Alerts" with a Resolve button', async () => {

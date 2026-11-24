@@ -14,19 +14,23 @@ import {
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
-import { RISK_TONE } from './fiData.js';
+import { RISK_TONE, computeRisk } from './fiData.js';
 import { onActivateKey } from '../../utils/onActivateKey';
 
 const PAGE_SIZE = 12;
 
 export default function VehicleRiskPanel({
   isLoading,
-  riskVehicles = [],
+  riskVehicles: suppliedVehicles = [],
   onDrill,
   lossLabel = 'Fuel down while parked',
 }) {
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const riskVehicles = useMemo(
+    () => suppliedVehicles.map((row) => ({ ...row, risk: computeRisk(row) })),
+    [suppliedVehicles],
+  );
 
   useEffect(() => setPage(1), [riskVehicles]);
 
@@ -39,13 +43,15 @@ export default function VehicleRiskPanel({
     let high = 0;
     let medium = 0;
     let healthy = 0;
+    let dataChecks = 0;
     riskVehicles.forEach((v) => {
       if (v.risk === 'Critical') critical++;
       else if (v.risk === 'High') high++;
       else if (v.risk === 'Medium') medium++;
-      else healthy++;
+      else if (v.risk === 'Healthy') healthy++;
+      else if (v.risk === 'Data check needed') dataChecks++;
     });
-    return { critical, high, medium, healthy, total: riskVehicles.length };
+    return { critical, high, medium, healthy, dataChecks, total: riskVehicles.length };
   }, [riskVehicles]);
 
   if (isLoading) {
@@ -76,6 +82,9 @@ export default function VehicleRiskPanel({
               <ShieldAlert size={12} /> {summary.critical} Critical
             </span>
           )}
+          {summary.dataChecks > 0 && (
+            <span className="text-xs text-amber-700">{summary.dataChecks} data checks</span>
+          )}
           {summary.high > 0 && (
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
               <AlertTriangle size={12} /> {summary.high} High
@@ -96,7 +105,7 @@ export default function VehicleRiskPanel({
             type="button"
             className={`fi-view-toggle-btn ${viewMode === 'grid' ? 'is-active' : ''}`}
             onClick={() => setViewMode('grid')}
-            title="Threat Cards"
+            title="Truck cards"
           >
             <Columns size={12} />
             <span>Cards</span>
@@ -147,7 +156,7 @@ export default function VehicleRiskPanel({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 font-medium">Audited Fuel Dispensed</span>
                     <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
-                      {formatLitres(v.fillsLitres || 0)}
+                      {formatLitres(v.fillsLitres)}
                     </span>
                   </div>
 
@@ -163,7 +172,7 @@ export default function VehicleRiskPanel({
                       {parkedDropL == null
                         ? '—'
                         : hasLoss
-                          ? `−${formatLitres(parkedDropL)} (${formatINR(v.siphonSuspectedLossInr)})`
+                          ? `${formatLitres(parkedDropL)} (${formatINR(v.siphonSuspectedLossInr)})`
                           : '0.0 L'}
                     </span>
                   </div>
@@ -174,27 +183,27 @@ export default function VehicleRiskPanel({
                   <div className="flex items-center gap-3">
                     <div
                       className="flex items-center gap-1"
-                      title={`${v.defFlagCount || 0} DEF ratio flags`}
+                      title={`${v.defFlagCount ?? 'Unmeasured'} DEF ratio flags`}
                     >
                       <Droplets
                         size={13}
                         className={v.defFlagCount > 0 ? 'text-amber-500' : 'text-slate-400'}
                       />
                       <span className="text-slate-600 dark:text-slate-400 font-mono font-medium">
-                        {v.defFlagCount || 0}
+                        {v.defFlagCount ?? '—'}
                       </span>
                     </div>
 
                     <div
                       className="flex items-center gap-1"
-                      title={`${v.billFlagCount || 0} Bill mismatches`}
+                      title={`${v.billFlagCount ?? 'Unmeasured'} Bill mismatches`}
                     >
                       <ReceiptText
                         size={13}
                         className={v.billFlagCount > 0 ? 'text-amber-500' : 'text-slate-400'}
                       />
                       <span className="text-slate-600 dark:text-slate-400 font-mono font-medium">
-                        {v.billFlagCount || 0}
+                        {v.billFlagCount ?? '—'}
                       </span>
                     </div>
                   </div>
@@ -267,14 +276,14 @@ export default function VehicleRiskPanel({
                     {v.defFlagCount > 0 ? (
                       <span className="ov-pill ov-pill--caution">{v.defFlagCount}</span>
                     ) : (
-                      <span className="num text-dim">0</span>
+                      <span className="num text-dim">{v.defFlagCount ?? '—'}</span>
                     )}
                   </td>
                   <td className="text-right">
                     {v.billFlagCount > 0 ? (
                       <span className="ov-pill ov-pill--caution">{v.billFlagCount}</span>
                     ) : (
-                      <span className="num text-dim">0</span>
+                      <span className="num text-dim">{v.billFlagCount ?? '—'}</span>
                     )}
                   </td>
                   <td>

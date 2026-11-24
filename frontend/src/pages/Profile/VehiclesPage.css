@@ -1324,3 +1324,26 @@
 :is(.vehicle-list-page, .v-dash-page) .dt-table thead th {
   vertical-align: middle;
 }
+
+.vehicle-action-menu {
+  position: relative;
+}
+.vehicle-action-menu summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 6px;
+}
+.vehicle-action-menu summary::-webkit-details-marker {
+  display: none;
+}
+.vehicle-action-menu button {
+  display: block;
+  margin-top: 6px;
+  width: 145px;
+  padding: 10px;
+  background: var(--ds-surface, #fff);
+  border: 1px solid var(--ds-line);
+  border-radius: 6px;
+  color: var(--ds-ink);
+  box-shadow: 0 4px 14px #0002;
+}

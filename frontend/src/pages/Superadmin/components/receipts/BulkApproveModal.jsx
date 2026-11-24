@@ -22,9 +22,7 @@ const BulkApproveModal = ({
       className="ra-modal-overlay"
       role="presentation"
       onClick={() => !bulkBusy && setShowBulkApproveModal(false)}
-      onKeyDown={(event) =>
-        event.key === 'Escape' && !bulkBusy && setShowBulkApproveModal(false)
-      }
+      onKeyDown={(event) => event.key === 'Escape' && !bulkBusy && setShowBulkApproveModal(false)}
     >
       <div className="ra-modal" role="presentation" onClick={(event) => event.stopPropagation()}>
         <div className="ra-modal__head">Bulk Publish to Fuel Ledger</div>
@@ -48,11 +46,11 @@ const BulkApproveModal = ({
             </div>
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted-foreground)' }}>
-            A TripFuelLog entry will be created atomically for each vehicle.
+            Each approved receipt will be saved in the fuel ledger.
           </p>
           {blockedRows.length > 0 && (
             <div className="ra-alert ra-alert--error" role="alert">
-              <strong>{blockedRows.length} not approved: key field missing</strong>
+              <strong>{blockedRows.length} not approved: review needed</strong>
               <ul className="ra-bulk-blocked-list">
                 {blockedRows.map((row) => (
                   <li key={row.id}>

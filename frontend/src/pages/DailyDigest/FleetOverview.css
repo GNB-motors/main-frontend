@@ -84,6 +84,7 @@
   gap: 8px;
 }
 .db-date {
+  flex: 0 0 238px;
   display: flex;
   align-items: stretch;
   height: 36px;
@@ -113,6 +114,7 @@
   color: var(--rd-ink-3);
 }
 .db-date input {
+  width: 128px;
   border: 0;
   background: transparent;
   color: var(--rd-ink);
@@ -142,6 +144,10 @@
   border-color: var(--rd-brand);
   background: var(--rd-brand);
   color: #fff;
+}
+.db-button--refresh {
+  flex: 0 0 136px;
+  justify-content: center;
 }
 .db-button--primary:hover:not(:disabled) {
   border-color: var(--rd-brand-2);
@@ -422,6 +428,9 @@
 .db-leak-total span {
   color: var(--rd-ink-2);
   font-size: 13px;
+}
+.db-leak-total--quiet strong {
+  color: var(--rd-ink);
 }
 .db-leak-split {
   display: flex;

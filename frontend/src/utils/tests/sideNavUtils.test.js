@@ -133,12 +133,12 @@ describe('sidebar destinations stay in their original groups regardless of usage
   };
   const isEnabled = flags(['fleetIntelligence', 'vehicleActivity', 'vehicles', 'drivers']);
 
-  it('keeps Service Intelligence in Vehicles and User Management in Workforce', () => {
+  it('keeps Service Intelligence in Vehicles and Access control in Employees', () => {
     const { items } = computeVisibleNav(isEnabled, 'OWNER', LEARNED);
     expect(items.find((item) => item.label === 'Vehicles')?.children).toEqual(
       expect.arrayContaining([expect.objectContaining({ to: '/vehicles/service-intelligence' })]),
     );
-    expect(items.find((item) => item.label === 'Workforce')?.children).toEqual(
+    expect(items.find((item) => item.label === 'Employees')?.children).toEqual(
       expect.arrayContaining([expect.objectContaining({ to: '/access-control' })]),
     );
   });
@@ -152,6 +152,6 @@ describe('sidebar destinations stay in their original groups regardless of usage
   it('still hides groups when feature or role access is missing', () => {
     const items = getVisibleNavItems(flags(['vehicleActivity']), 'OWNER', LEARNED);
     expect(items.some((item) => item.label === 'Vehicles')).toBe(false);
-    expect(items.some((item) => item.label === 'Workforce')).toBe(false);
+    expect(items.some((item) => item.label === 'Employees')).toBe(false);
   });
 });

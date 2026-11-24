@@ -1,5 +1,14 @@
 import { OverviewCardSkeleton } from './OverviewSkeleton';
-import DataTooltip from '../../../../components/ui/DataTooltip';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatKm, formatNum } from '../../../../utils/formatters';
@@ -27,7 +36,6 @@ function CardHead({ title, children }) {
 export function DistanceCard({ series, prediction, overview, loading }) {
   const measured = series.filter((day) => day.km != null);
   const total = measured.length ? measured.reduce((sum, day) => sum + day.km, 0) : null;
-  const max = Math.max(1, ...measured.map((day) => day.km));
   const pace = numeric(prediction?.avgKmPerDay);
   const target = numeric(overview?.monthlyTargetKm);
   const lastEngineIndex = series.findLastIndex((day) => day.engineKm != null);
@@ -66,54 +74,66 @@ export function DistanceCard({ series, prediction, overview, loading }) {
           </span>
         </div>
       </div>
-      <div
-        className="vdo-bars"
-        role="group"
-        aria-label="Recorded daily distance for the last 30 days; solid bars are engine-confirmed and dashed bars are GPS-only"
-      >
-        {series.map((day, index) => (
-          <button
-            key={day.day}
-            type="button"
-            className="vdo-bar-hit"
-            aria-label={`${shortDate(`${day.day}T12:00:00+05:30`)} · ${day.km == null ? 'Not measured' : `${formatKm(day.km)} · ${day.gpsOnly ? 'GPS-estimated' : 'Engine-confirmed'}`}`}
+      <figure aria-label="Daily distance in km for the last 30 days" className="vdo-distance-chart">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart
+            data={series}
+            margin={{ top: 12, right: 16, bottom: 18, left: 8 }}
+            accessibilityLayer
           >
-            <span
-              className={`vdo-bar${day.gpsOnly ? ' vdo-bar--gps' : ''}${day.km == null || day.km === 0 ? ' vdo-bar--empty' : ''}`}
-              style={{ height: day.km > 0 ? `${Math.max(4, (day.km / max) * 100)}%` : '2px' }}
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="day"
+              tickFormatter={(day) => shortDate(`${day}T12:00:00+05:30`)}
+              minTickGap={24}
             />
-            <DataTooltip
-              className={`vdo-distance-tooltip${index > series.length / 2 ? ' vdo-distance-tooltip--end' : ''}`}
-              aria-hidden="true"
-              label="Daily distance"
-              value={day.km == null ? 'Not measured' : formatKm(day.km)}
-              details={[
-                shortDate(`${day.day}T12:00:00+05:30`),
-                day.km == null
-                  ? 'No distance reading available'
-                  : day.gpsOnly
-                    ? 'GPS-estimated'
-                    : 'Engine-confirmed',
-              ]}
+            <YAxis unit=" km" width={70} domain={[0, 'auto']} />
+            <Tooltip
+              labelFormatter={(day) => shortDate(`${day}T12:00:00+05:30`)}
+              formatter={(value) => [`${value} km`, 'Recorded distance']}
             />
-          </button>
-        ))}
+            <Bar dataKey="km" name="Distance" isAnimationActive={false}>
+              {series.map((day) => (
+                <Cell key={day.day} fill={day.gpsOnly ? '#94a3b8' : '#4469f0'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <figcaption>
+          Daily distance in km. Missing readings are gaps; grey bars use GPS estimates.
+        </figcaption>
         {hasGpsAfter ? (
-          <div
-            className={`vdo-engine-cutoff${lastEngineIndex > 20 ? ' vdo-engine-cutoff--end' : ''}`}
-            style={{ left: `${((lastEngineIndex + 1) / 30) * 100}%` }}
-          >
-            <span>
-              Engine data stopped · {shortDate(`${series[lastEngineIndex].day}T12:00:00+05:30`)}
-            </span>
-          </div>
+          <p>Engine data stopped · {shortDate(`${series[lastEngineIndex].day}T12:00:00+05:30`)}</p>
         ) : null}
-      </div>
-      <div className="vdo-chart-dates">
-        {[0, 7, 14, 21, 29].map((i) => (
-          <span key={i}>{i === 29 ? 'Today' : shortDate(`${series[i].day}T12:00:00+05:30`)}</span>
-        ))}
-      </div>
+        <details>
+          <summary>View daily distances</summary>
+          <table>
+            <caption>Recorded daily distance</caption>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Distance (km)</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {series.map((day) => (
+                <tr key={day.day}>
+                  <td>{shortDate(`${day.day}T12:00:00+05:30`)}</td>
+                  <td>{day.km == null ? 'Not measured' : formatNum(day.km)}</td>
+                  <td>
+                    {day.km == null
+                      ? 'Not available'
+                      : day.gpsOnly
+                        ? 'GPS estimate'
+                        : 'Engine reading'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      </figure>
     </section>
   );
 }
@@ -188,7 +208,7 @@ export function DriverCard({ driver }) {
   return (
     <section className="vdo-card">
       <CardHead title="Assigned driver">
-        <Link className="vdo-link" to="/vehicle-assignments">
+        <Link className="vdo-link" to="/khata-ledger?tab=assignments">
           Change →
         </Link>
       </CardHead>
@@ -227,7 +247,7 @@ export function DriverCard({ driver }) {
           Call driver
         </a>
       ) : (
-        <Link className="vdo-button" to="/vehicle-assignments">
+        <Link className="vdo-button" to="/khata-ledger?tab=assignments">
           {driver ? 'Driver details' : 'Assign driver'}
         </Link>
       )}

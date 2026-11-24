@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import apiClient from '../../../../utils/axiosConfig';
-import { toast } from 'react-toastify';
 import ReceiptApprovalPage from '../ReceiptApprovalPage';
 
 vi.mock('../../../../utils/axiosConfig', () => ({
@@ -61,7 +60,9 @@ describe('The receipt inbox — a failure is never an empty inbox', () => {
 
     expect(await screen.findByText("Couldn't load")).toBeInTheDocument();
     expect(screen.queryByText('No receipts found')).not.toBeInTheDocument();
-    expect(screen.queryByText('All caught up! No fuel bills waiting for review.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('All caught up! No fuel bills waiting for review.'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('No receipts yet')).not.toBeInTheDocument();
     // The words of the failure, once, and a way to try again.
     expect(
@@ -90,49 +91,18 @@ describe('The receipt inbox — a failure is never an empty inbox', () => {
     expect(screen.queryByText("Couldn't load")).not.toBeInTheDocument();
   });
 
-  it('shows a refused approve next to its row, and never says it was approved', async () => {
+  it('opens review without approving from the row', async () => {
     apiClient.get.mockImplementation((url) => {
       if (url === '/api/whatsapp/admin/drafts') return Promise.resolve(pagedOf([row]));
+      if (url.endsWith('/r1')) return Promise.resolve({ data: { data: row } });
       return Promise.resolve({ data: { data: {} } });
     });
-    apiClient.post.mockRejectedValue({
-      response: {
-        status: 400,
-        data: {
-          message: 'The time on this photo is only predicted — accept it or type the real time.',
-        },
-      },
-    });
-
     renderPage();
     await screen.findByText('WB25R9540');
-
-    fireEvent.click(screen.getByTitle('Quick Approve to Fuel Ledger'));
-
-    expect(
-      await screen.findByText(
-        'The time on this photo is only predicted — accept it or type the real time.',
-      ),
-    ).toBeInTheDocument();
-    expect(toast.success).not.toHaveBeenCalled();
-  });
-
-  it('does not say it was approved when the server answers 200 with a refusal', async () => {
-    apiClient.get.mockImplementation((url) => {
-      if (url === '/api/whatsapp/admin/drafts') return Promise.resolve(pagedOf([row]));
-      return Promise.resolve({ data: { data: {} } });
-    });
-    apiClient.post.mockResolvedValue({
-      data: { data: { success: false, message: 'Pick the truck before approving.' } },
-    });
-
-    renderPage();
-    await screen.findByText('WB25R9540');
-
-    fireEvent.click(screen.getByTitle('Quick Approve to Fuel Ledger'));
-
-    expect(await screen.findByText('Pick the truck before approving.')).toBeInTheDocument();
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(screen.queryByTitle('Quick Approve to Fuel Ledger')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Open Review Drawer'));
+    expect(await screen.findByText('Check the fill before you approve it')).toBeInTheDocument();
+    expect(apiClient.post).not.toHaveBeenCalled();
   });
 
   it('shows a chat-import row in the list, with its chips', async () => {

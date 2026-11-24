@@ -101,6 +101,7 @@ export default function useLiveMap({
 
   // Map & interaction refs
   const mapRef = useRef(null);
+  const hasLoadedMapRef = useRef(false);
   const didAutoFitRef = useRef(false);
   const overviewScopeRef = useRef(fleetScope);
   const overviewSelectionRef = useRef(selectedId);
@@ -111,6 +112,7 @@ export default function useLiveMap({
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const mapClickListenerRef = useRef(null);
+  const mapZoomListenerRef = useRef(null);
   const trailHistory = useTrailHistory({
     selectedId,
     mapRef,
@@ -142,13 +144,13 @@ export default function useLiveMap({
   const mapOptions = useMemo(
     () => ({
       disableDefaultUI: true,
-      isFractionalZoomEnabled: true,
+      isFractionalZoomEnabled: false,
       zoomControl: false,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
       styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
-      mapTypeId: mapMode === 'sat' ? 'satellite' : 'roadmap',
+      mapTypeId: mapMode === 'sat' ? 'hybrid' : 'roadmap',
       gestureHandling: 'greedy',
       // Google's own POIs are clickable: a click opens them in Google Maps
       // instead of Google's info window (handled by the map click listener).
@@ -160,7 +162,7 @@ export default function useLiveMap({
   // Sync MapTypeId dynamically
   useEffect(() => {
     if (mapRef.current && window.google) {
-      mapRef.current.setMapTypeId(mapMode === 'sat' ? 'satellite' : 'roadmap');
+      mapRef.current.setMapTypeId(mapMode === 'sat' ? 'hybrid' : 'roadmap');
     }
   }, [mapMode]);
 
@@ -188,10 +190,12 @@ export default function useLiveMap({
 
   const onMapLoad = useCallback(
     (map) => {
+      const firstMap = !hasLoadedMapRef.current;
+      hasLoadedMapRef.current = true;
       mapRef.current = map;
       const initialZ = map.getZoom();
       if (typeof initialZ === 'number') {
-        setMapZoom(initialZ);
+        setMapZoom(Math.floor(initialZ));
       }
       // Offer actions for a location only on the map's context menu gesture.
       mapClickListenerRef.current?.remove();
@@ -207,15 +211,17 @@ export default function useLiveMap({
           y: dom?.clientY ?? null,
         });
       });
-      map.addListener('zoom_changed', () => {
+      mapZoomListenerRef.current?.remove();
+      mapZoomListenerRef.current = map.addListener('zoom_changed', () => {
         const z = map.getZoom();
         if (typeof z === 'number') {
-          setMapZoom(z);
+          // Layers only need zoom thresholds; leave gesture animation to Google.
+          setMapZoom(Math.floor(z));
         }
       });
       // Try fitting to visible vehicles immediately; if positions haven't loaded
       // yet, the auto-fit effect below handles it once they arrive.
-      if (fitToFleetVehicles(map)) {
+      if (firstMap && fitToFleetVehicles(map)) {
         didAutoFitRef.current = true;
       }
     },
@@ -228,7 +234,13 @@ export default function useLiveMap({
    * flood the endpoint, so the box is sampled once the map settles.
    */
   // Detach the map click listener with the map.
-  useEffect(() => () => mapClickListenerRef.current?.remove(), []);
+  useEffect(
+    () => () => {
+      mapClickListenerRef.current?.remove();
+      mapZoomListenerRef.current?.remove();
+    },
+    [],
+  );
 
   const onMapIdle = useCallback(() => {
     const map = mapRef.current;
@@ -385,7 +397,6 @@ export default function useLiveMap({
   return {
     mapRef,
     mapZoom,
-    setMapZoom,
     mapBounds,
     onMapIdle,
     mapOptions,

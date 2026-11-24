@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { resolveTabCounts } from './tripCounts';
 
 describe('resolveTabCounts', () => {
+  it('keeps counts unknown when the list and samples did not answer', () => {
+    const counts = resolveTabCounts();
+    for (const key of ['all', 'delivered', 'open', 'review', 'reposition'])
+      expect(counts[key]).toBeNull();
+    expect(resolveTabCounts({ deliveredTotal: null, waitingTotal: null }).delivered).toBeNull();
+    expect(resolveTabCounts({ deliveredTotal: 0, waitingTotal: 0 }).review).toBe(0);
+  });
   it('uses the counts the list answered with', () => {
     const counts = resolveTabCounts({
       listCounts: { OPEN: 10, COMPLETE: 20, CONFIRMED: 5, NEEDS_REVIEW: 3, reposition: 2 },

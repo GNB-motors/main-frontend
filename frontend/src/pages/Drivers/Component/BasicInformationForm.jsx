@@ -81,7 +81,7 @@ const BasicInformationForm = forwardRef(
 
           {/* Form Container */}
           <div className="basic-info-container">
-            <form ref={ref} onSubmit={handleSubmit} className="basic-info-form">
+            <form ref={ref} onSubmit={handleSubmit} className="basic-info-form" autoComplete="off">
               {/* Row 1: First Name, Last Name */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
@@ -126,6 +126,7 @@ const BasicInformationForm = forwardRef(
                     id={`${fieldId}-email`}
                     aria-label="Email"
                     type="email"
+                    autoComplete="off"
                     className="basic-info-input"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
@@ -188,6 +189,7 @@ const BasicInformationForm = forwardRef(
                     id={`${fieldId}-password`}
                     aria-label="Password"
                     type="password"
+                    autoComplete="new-password"
                     className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}

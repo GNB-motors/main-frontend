@@ -2351,3 +2351,9 @@
     animation: none;
   }
 }
+
+.ra-badge--review {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}

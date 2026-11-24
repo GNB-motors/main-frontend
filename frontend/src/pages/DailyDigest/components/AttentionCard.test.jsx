@@ -75,11 +75,13 @@ describe('Needs attention', () => {
     expect(screen.queryByRole('region', { name: /^Review / })).toBeNull();
   });
 
-  it('names the trucks with possible fuel loss, each opening its own Fuel tab (no page lists them)', () => {
+  it('opens fuel checks for the flagged truck and selected day', () => {
     renderCard();
     expect(screen.queryByRole('link', { name: 'Review Possible fuel loss' })).toBeNull();
     const chip = screen.getByRole('link', { name: /WB11T0662/ });
-    expect(chip.getAttribute('href')).toBe('/vehicles/WB11T0662?tab=fuel');
+    expect(chip.getAttribute('href')).toBe(
+      '/intelligence?tab=fuel&fuelView=drain&vehicle=WB11T0662&from=2026-11-04&to=2026-11-04',
+    );
     expect(chip.textContent).toContain('329.7 L missing');
     expect(screen.getByRole('link', { name: /WB11L8862/ })).toBeTruthy();
   });

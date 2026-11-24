@@ -71,7 +71,7 @@ export default function TripKpiStrip({
   runLoading,
   runFailed,
 }) {
-  const { all = 0, delivered = 0, open = 0, review = 0 } = counts || {};
+  const { all = null, delivered = null, open = null, review = null } = counts || {};
   const tiles = [
     {
       tabKey: '',

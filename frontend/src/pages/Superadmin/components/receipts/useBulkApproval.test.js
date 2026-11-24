@@ -14,6 +14,7 @@ const validDraft = {
   vehicleId: 'v1',
   vehicleReg: 'WB01AB1234',
   litres: 20,
+  rate: 90,
   amount: 1800,
   time: { value: '2026-11-10T13:10:00.000Z' },
 };

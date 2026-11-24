@@ -29,10 +29,11 @@ const metricCell = (metric, d) =>
  * the server's window, every number with its source. A row opens the driver's
  * DNA.
  */
-export default function DriversTab() {
+export default function DriversTab({ from, to } = {}) {
   const { data, loading, error, refetch } = useApi(
-    (signal) => PerformanceApi.drivers({}, signal),
-    [],
+    (signal) => PerformanceApi.drivers({ from, to }, signal),
+    [from, to],
+    { scopeKey: `${from || 'default'}:${to || 'default'}` },
   );
   const drivers = useMemo(() => data?.drivers ?? [], [data]);
   const [open, setOpen] = useState(null);
@@ -56,7 +57,7 @@ export default function DriversTab() {
   const harsh = columnMedian(drivers, (d) => d.harshPer100Km);
   const idle = columnMedian(drivers, (d) => d.idlePct);
   const days = data?.window?.days ?? 30;
-  const range = windowLabel(data?.window);
+  const range = windowLabel(from && to ? { from, to } : data?.window);
   const count = drivers.length;
 
   const columns = [
@@ -113,7 +114,7 @@ export default function DriversTab() {
         loadingVariant="table"
         error={error}
         isEmpty={!count}
-        emptyMessage={`No driver has a reading in the last ${days} days yet. A driver shows up once a truck they drive reports.`}
+        emptyMessage={`No driver has a reading ${range ? `for ${range}` : `in the last ${days} days`} yet. A driver shows up once a truck they drive reports.`}
         what="Driver performance"
         onRetry={refetch}
       >
@@ -121,7 +122,7 @@ export default function DriversTab() {
           <>
             <PerformanceBriefing
               label="Driver performance read"
-              eyebrow={`Driver read · last ${days} days`}
+              eyebrow={`Driver read · ${range || `last ${days} days`}`}
               lead={lead}
               notes={[range ? `Readings from ${range}.` : null, ...gaps.notes.map(hiddenLine)]}
               kpis={[
@@ -181,7 +182,13 @@ export default function DriversTab() {
         )}
       </IntelligenceDataState>
 
-      <DriverDrawer driver={open} window={data?.window} onClose={() => setOpen(null)} />
+      <DriverDrawer
+        from={from}
+        to={to}
+        driver={drivers.find((driver) => driver.driverId === open?.driverId) || null}
+        window={data?.window}
+        onClose={() => setOpen(null)}
+      />
     </div>
   );
 }

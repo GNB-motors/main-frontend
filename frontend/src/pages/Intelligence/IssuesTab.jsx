@@ -13,15 +13,8 @@ import {
   groupIssuesByKind,
   issueCounts,
   issuesWithFilter,
+  selectIssueRows,
 } from './intelligenceModel';
-
-const sameReg = (a, b) =>
-  String(a ?? '')
-    .replace(/\s/g, '')
-    .toUpperCase() ===
-  String(b ?? '')
-    .replace(/\s/g, '')
-    .toUpperCase();
 
 function Chip({ active, onClick, label, count }) {
   return (
@@ -40,7 +33,7 @@ function Chip({ active, onClick, label, count }) {
  * what to watch. The chips narrow the list by tone or by what the issue is
  * about. An empty list is a green line, not a sad one.
  */
-export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
+export default function IssuesTab({ from, to, vehicle = '', kind = '', read }) {
   const [filter, setFilter] = useUrlFilter('issueFilter', 'all', [
     'all',
     'act',
@@ -49,7 +42,7 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
   ]);
   const [search, setSearch] = useUrlFilter('issueSearch');
 
-  const { data, loading, error, refetch } = useApi(
+  const fetchedRead = useApi(
     (signal) =>
       IntelligenceService.getIssues({
         from,
@@ -59,13 +52,12 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
         ...(kind ? { kind } : {}),
       }),
     [from, to, vehicle, kind],
+    { enabled: !read, scopeKey: `${from}:${to}:${vehicle}:${kind}` },
   );
+  const { data, loading, error, refetch } = read || fetchedRead;
 
   const held = data?.held ? data.why : null;
-  const items = (data?.items ?? []).filter(
-    (issue) =>
-      (!vehicle || sameReg(issue.registrationNumber, vehicle)) && (!kind || issue.kind === kind),
-  );
+  const items = selectIssueRows(data?.items, { vehicle, kind });
   const counts = issueCounts(items);
   const shown = issuesWithFilter(items, filter).filter((issue) =>
     matchesIssueSearch(issue, search),
@@ -89,10 +81,7 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
         </p>
       </header>
       {hasList ? (
-        <IssuesBriefing
-          briefing={data?.briefing || briefingFromIssues(items)}
-          onFilter={setFilter}
-        />
+        <IssuesBriefing briefing={briefingFromIssues(items)} onFilter={setFilter} />
       ) : null}
       <div className="intel-issues-toolbar">
         {hasList && (counts.all > 0 || filter !== 'all') ? (

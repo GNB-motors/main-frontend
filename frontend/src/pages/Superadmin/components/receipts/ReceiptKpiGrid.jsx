@@ -1,6 +1,6 @@
-import { AlertTriangle, Fuel, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Fuel, Clock } from 'lucide-react';
 import Skel from './Skel';
-import { fmtMoney, fmtLitres } from './receiptFormat';
+import { fmtMoney, fmtLitres, fmtRelativeTime } from './receiptFormat';
 
 /**
  * The KPI cards.
@@ -42,10 +42,8 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
   const pendingAmount = kpis?.pendingAmount ?? null;
   const pendingCount = kpis?.pendingCount ?? null;
   const totalLitres = kpis?.totalLitres ?? null;
-  const totalAmount = kpis?.totalAmount ?? null;
   const missingOdoCount = kpis?.missingOdoCount ?? null;
 
-  const amountCoverage = coverage?.amount || null;
   const litresCoverage = coverage?.litres || null;
 
   return (
@@ -85,21 +83,16 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
           <Fuel size={16} className="ra-kpi-card__icon" />
         </div>
         <div className="ra-kpi-card__val font-mono">
-          {loading ? (
-            <Skel w={104} h={26} />
-          ) : isTab && totalLitres != null ? (
-            fmtLitres(totalLitres)
-          ) : (
-            '—'
-          )}
+          {loading ? <Skel w={104} h={26} /> : totalLitres != null ? fmtLitres(totalLitres) : '—'}
         </div>
         <div className="ra-kpi-card__sub">
           {loading ? (
             <Skel w="70%" h={11} />
-          ) : isTab && totalLitres != null ? (
+          ) : totalLitres != null ? (
             litresCoverage ? (
               <>
-                Known volume: <strong>{fmtLitres(totalLitres)}</strong> · {litresCoverage.with} of{' '}
+                {isTab ? 'Known volume:' : 'Current page:'}{' '}
+                <strong>{fmtLitres(totalLitres)}</strong> · {litresCoverage.with} of{' '}
                 {litresCoverage.of} bills have litres.
               </>
             ) : (
@@ -113,33 +106,24 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
 
       <div className="ra-kpi-card">
         <div className="ra-kpi-card__head">
-          <span className="ra-kpi-card__title">Total fuel billed</span>
-          <TrendingUp size={16} className="ra-kpi-card__icon" />
+          <span className="ra-kpi-card__title">Oldest waiting</span>
+          <Clock size={16} className="ra-kpi-card__icon" />
         </div>
-        <div className="ra-kpi-card__val font-mono">
+        <div className="ra-kpi-card__val">
           {loading ? (
-            <Skel w={128} h={26} />
-          ) : isTab && totalAmount != null ? (
-            fmtMoney(totalAmount)
+            <Skel w={104} h={26} />
+          ) : kpis?.oldestPendingAt ? (
+            fmtRelativeTime(kpis.oldestPendingAt)
+          ) : pendingCount === 0 ? (
+            'None waiting'
           ) : (
             '—'
           )}
         </div>
         <div className="ra-kpi-card__sub">
-          {loading ? (
-            <Skel w="75%" h={11} />
-          ) : isTab && totalAmount != null ? (
-            amountCoverage ? (
-              <>
-                Known amount: <strong>{fmtMoney(totalAmount)}</strong> · {amountCoverage.with} of{' '}
-                {amountCoverage.of} bills have an amount.
-              </>
-            ) : (
-              'Total amount billed on this tab.'
-            )
-          ) : (
-            notMeasured
-          )}
+          {isTab
+            ? 'Oldest pending receipt on this tab.'
+            : 'Oldest pending receipt on the current page.'}
         </div>
       </div>
 

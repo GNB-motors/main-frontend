@@ -19,6 +19,7 @@ import {
 import TollMarkers from './TollMarkers';
 import { justPassed, tollMarks } from './tripTolls';
 import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
+import { LIGHT_MAP_STYLE } from '../LiveTracking/mapStyles';
 
 const CONTAINER = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.9734, lng: 78.6569 };
@@ -38,21 +39,6 @@ const COLOR = {
   unknown: '#B45309',
   stop: '#64748B',
 };
-/** A quiet, light basemap so the route reads first — Google's own place labels stay on. */
-const MAP_THEME = [
-  { elementType: 'geometry', stylers: [{ color: '#eef2ec' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#f7f8fa' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#d4e2e8' }] },
-  {
-    featureType: 'administrative',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#cbd5e1' }],
-  },
-];
 const LINE = (color, zIndex) => ({ strokeColor: color, strokeOpacity: 1, strokeWeight: 6, zIndex });
 
 /**
@@ -364,7 +350,7 @@ export default function AutoTripReplay({
               zoomControl: true,
               gestureHandling: 'cooperative',
               clickableIcons: true,
-              styles: MAP_THEME,
+              styles: LIGHT_MAP_STYLE,
             }}
           >
             {roadLayers && <RoadTrailLayer layers={roadLayers} color={COLOR.trail} />}

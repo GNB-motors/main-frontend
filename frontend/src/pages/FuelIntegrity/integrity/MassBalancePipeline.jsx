@@ -40,7 +40,9 @@ const MassBalancePipeline = ({
           {formatLitres(totalFillsLitres)}
         </div>
         <div className="fi-step-sub">
-          ≈ {formatINR(totalFillsLitres * pricePerL)} at ₹{pricePerL}/L
+          {totalFillsLitres == null || pricePerL == null
+            ? 'Fuel value not measured'
+            : `≈ ${formatINR(totalFillsLitres * pricePerL)} at ₹${pricePerL}/L`}
         </div>
       </div>
 
@@ -58,7 +60,7 @@ const MassBalancePipeline = ({
           {formatLitres(totalEngineBurnL)}
         </div>
         <div className="fi-step-sub">
-          {totalEngineBurnL > 0 ? 'CAN bus engine burn' : 'Awaiting CAN data'}
+          {totalEngineBurnL == null ? 'Engine use not measured' : 'Measured engine use'}
         </div>
       </div>
 
@@ -121,13 +123,15 @@ const MassBalancePipeline = ({
                   : 'var(--ok, #10b981)',
           }}
         >
-          {lossL == null ? '—' : lossL > 0 ? `−${formatLitres(lossL)}` : '0.0 L'}
+          {lossL == null ? '—' : formatLitres(Math.abs(lossL))}
         </div>
         <div className="fi-step-sub">
           {lossL == null
             ? 'Not measured yet'
             : lossL > 0
-              ? `Worth about ${formatINR(lossL * pricePerL)}`
+              ? pricePerL == null
+                ? 'Value not measured'
+                : `Worth about ${formatINR(lossL * pricePerL)}`
               : 'None found in checked windows'}
         </div>
       </div>

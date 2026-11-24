@@ -151,6 +151,22 @@ export function isAccountIssue(issue) {
 
 const TONE_ORDER = { act: 0, watch: 1, info: 2, good: 3 };
 
+/** Daily snapshots are one current issue per truck and kind, not new trucks. */
+export function latestVehicleIssues(items = []) {
+  const newest = new Map();
+  for (const issue of items) {
+    const reg = String(issue.registrationNumber || '')
+      .replace(/\s/g, '')
+      .toUpperCase();
+    // Account issues can cover several trucks: keep their identities intact.
+    const key = reg && !isAccountIssue(issue) ? `${issue.kind}:${reg}` : issue;
+    const previous = newest.get(key);
+    const time = (value) => Date.parse(value?.lastSeenAt) || 0;
+    if (!previous || time(issue) > time(previous)) newest.set(key, issue);
+  }
+  return [...newest.values()];
+}
+
 /**
  * The issues of the period, in the order the owner should read them:
  * an account that stopped sending data first (it takes many trucks down with
@@ -456,14 +472,44 @@ export function issuesWithFilter(items = [], filter = 'all') {
 }
 
 /** The count each filter chip shows. */
+export function selectIssueRows(items = [], { vehicle = '', kind = '' } = {}) {
+  const plate = (value) =>
+    String(value || '')
+      .replace(/\s/g, '')
+      .toUpperCase();
+  return latestVehicleIssues(items).filter(
+    (issue) =>
+      (!vehicle || plate(issue.registrationNumber) === plate(vehicle)) &&
+      (!kind || issue.kind === kind),
+  );
+}
+
+/** A truck or account counts once per severity, even with several findings. */
+export function issueSubjects(items = []) {
+  return new Set(
+    items.map(
+      (issue) =>
+        (issue.registrationNumber
+          ? `truck:${issue.registrationNumber.replace(/\s/g, '').toUpperCase()}`
+          : null) ||
+        (issue.accountName ? `account:${issue.accountName}` : null) ||
+        issue.id ||
+        issue,
+    ),
+  );
+}
+
 export function issueCounts(items = []) {
-  const counts = { all: items.length, act: 0, watch: 0, groups: {} };
+  const counts = {
+    all: items.length,
+    act: issueSubjects(items.filter((issue) => issue.severity === 'act')).size,
+    watch: issueSubjects(items.filter((issue) => issue.severity === 'watch')).size,
+    groups: {},
+  };
   ISSUE_GROUPS.forEach((group) => {
     counts.groups[group.id] = 0;
   });
   items.forEach((issue) => {
-    if (issue?.severity === 'act') counts.act += 1;
-    if (issue?.severity === 'watch') counts.watch += 1;
     const group = ISSUE_GROUPS.find((entry) => entry.kinds.includes(issue?.kind));
     if (group) counts.groups[group.id] += 1;
   });

@@ -11,8 +11,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
  * Every section starts closed. Opening and closing never throws away what a
  * person typed: the section only folds its own body away.
  */
-const CollapsibleSection = ({ title, summary = '', children }) => {
-  const [open, setOpen] = useState(false);
+const CollapsibleSection = ({ title, summary = '', defaultOpen = false, children }) => {
+  const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
   const label = summary ? `${title} · ${summary}` : title;
 

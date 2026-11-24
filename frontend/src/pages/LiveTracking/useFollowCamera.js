@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const normalizeHeading = (value) => ((value % 360) + 360) % 360;
 
@@ -29,7 +29,8 @@ export default function useFollowCamera({
     return () => listener?.remove();
   }, [map]);
 
-  useEffect(() => {
+  // Restore the old camera before the map wrapper snapshots/replaces its renderer.
+  useLayoutEffect(() => {
     if (!enabled || !map) return undefined;
     if (map.getRenderingType?.() === 'RASTER' || !map.moveCamera) {
       unavailableRef.current?.();

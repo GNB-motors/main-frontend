@@ -1,40 +1,50 @@
 import { formatINR, formatLitres } from '../../../utils/formatters';
 import { fillBillView } from '../fillBillView';
+import {
+  defComparisonBand,
+  defComparisonLabel,
+  DEF_COMPARISON_COPY,
+} from '../../../utils/defComparison';
+
+function DefMeter({ event }) {
+  const band = defComparisonBand(event.defBand ?? event.window?.defBand);
+  const scale = Math.max(15, band?.max || 0, Number(event.defPct) || 0);
+  return (
+    <div className="fi-reconciliation-meter" title={DEF_COMPARISON_COPY}>
+      <div className="flex items-center justify-between text-xs font-semibold">
+        <span>DEF per 100 litres of diesel</span>
+        <span>{event.defFlag || 'Check this reading'}</span>
+      </div>
+      <div className="relative h-2.5 rounded-full bg-slate-200 overflow-hidden">
+        {band && (
+          <div
+            className="absolute top-0 bottom-0 bg-emerald-500/25"
+            style={{
+              left: `${(band.min / scale) * 100}%`,
+              width: `${((band.max - band.min) / scale) * 100}%`,
+            }}
+            title={defComparisonLabel(band)}
+          />
+        )}
+        {event.defPct != null && (
+          <div
+            className="h-full bg-amber-500"
+            style={{ width: `${Math.min(100, Math.max(0, (event.defPct / scale) * 100))}%` }}
+          />
+        )}
+      </div>
+      <div className="flex justify-between text-xs">
+        <span>Measured: {event.defPct == null ? '—' : `${event.defPct}%`}</span>
+        <span>{defComparisonLabel(band)}</span>
+      </div>
+    </div>
+  );
+}
 
 /** The event-specific meter or gauge at the top of the inspector. */
 const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
   <>
-    {isDef && (
-      <div className="fi-reconciliation-meter bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-800/60">
-        <div className="flex items-center justify-between text-xs font-semibold">
-          <span className="text-slate-700 dark:text-slate-300">DEF to Fuel Dosing Ratio</span>
-          <span className="text-amber-600 dark:text-amber-400 font-bold">
-            {activeEvent.defFlag || 'Dosing Anomaly'}
-          </span>
-        </div>
-
-        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden relative">
-          <div
-            className="absolute top-0 bottom-0 bg-emerald-500/25 border-x border-emerald-500/40"
-            style={{ left: '26.6%', width: '20%' }}
-            title="Healthy BS-VI corridor: 4.0% - 7.0%"
-          />
-          <div
-            className="bg-amber-500 h-full rounded-full transition-all"
-            style={{
-              width: `${Math.min(100, Math.max(10, ((activeEvent.defPct ?? 0) / 15) * 100))}%`,
-            }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-          <span>Measured: {activeEvent.defPct != null ? `${activeEvent.defPct}%` : '—'}</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-            BS-VI Standard: 4.0% – 7.0%
-          </span>
-        </div>
-      </div>
-    )}
+    {isDef && <DefMeter event={activeEvent} />}
 
     {isLoss && (
       <div className="fi-reconciliation-meter bg-red-50/60 dark:bg-red-950/20 border-red-200/80 dark:border-red-800/60">
@@ -59,7 +69,9 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-          <span>Lost: −{formatLitres(Math.abs(activeEvent.litres ?? 0))}</span>
+          <span>
+            Loss: {activeEvent.litres == null ? '—' : formatLitres(Math.abs(activeEvent.litres))}
+          </span>
           <span className="text-red-600 dark:text-red-400 font-semibold">
             {activeEvent.inr != null ? formatINR(activeEvent.inr) : '—'}
           </span>

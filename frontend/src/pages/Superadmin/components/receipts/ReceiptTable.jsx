@@ -63,7 +63,7 @@ const ReceiptTable = ({
             <th className="ra-right">Litres</th>
             <th className="ra-right">Amount</th>
             <th className="ra-center">Odometer</th>
-            <th className="ra-center">AI Extraction</th>
+            <th className="ra-center">Bill details</th>
             <th className="ra-center">Status</th>
             <th
               className="ra-sortable"
@@ -90,7 +90,11 @@ const ReceiptTable = ({
           {!loading && error && (
             <tr>
               <td colSpan={12} aria-label="The receipts did not load">
-                <div className="ra-state ra-state--error" role="alert" style={{ padding: '50px 0' }}>
+                <div
+                  className="ra-state ra-state--error"
+                  role="alert"
+                  style={{ padding: '50px 0' }}
+                >
                   <div className="ra-state__icon">
                     <AlertTriangle size={26} />
                   </div>

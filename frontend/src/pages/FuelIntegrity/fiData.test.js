@@ -15,7 +15,7 @@ import {
 
 describe('computeRisk', () => {
   it('flags a vehicle with fuel down while parked as Critical', () => {
-    expect(computeRisk({ siphonSuspectedLossL: 0.5 })).toBe('Critical');
+    expect(computeRisk({ siphonSuspectedLossL: 0.5, fillsLitres: 100 })).toBe('Critical');
   });
 
   it('ranks heavy flag counts as High', () => {
@@ -33,10 +33,19 @@ describe('computeRisk', () => {
   });
 
   it('treats a clean vehicle as Healthy', () => {
-    expect(computeRisk({})).toBe('Healthy');
+    expect(computeRisk({})).toBe('Not assessed');
     expect(computeRisk({ defFlagCount: 0, billFlagCount: 0, siphonSuspectedLossL: 0 })).toBe(
       'Healthy',
     );
+  });
+
+  it('routes zero-fill and implausibly large loss figures to data review', () => {
+    expect(computeRisk({ fillsLitres: 137, siphonSuspectedLossL: 118.4 })).toBe(
+      'Data check needed',
+    );
+    expect(computeRisk({ fillsLitres: 0, siphonSuspectedLossL: 122.8 })).toBe('Data check needed');
+    expect(computeRisk({ fillsLitres: null, siphonSuspectedLossL: 20 })).toBe('Data check needed');
+    expect(computeRisk({ fillsLitres: 100, siphonSuspectedLossL: 30 })).toBe('Critical');
   });
 });
 
@@ -61,7 +70,12 @@ describe('buildEvents', () => {
       defRatioFlag: true,
       defToFuelRatioPct: 7,
     },
-    { _id: 'w2', registrationNumber: 'WB25A0002', verdict: 'EXPLAINED_BY_DRIVING', defRatioFlag: false },
+    {
+      _id: 'w2',
+      registrationNumber: 'WB25A0002',
+      verdict: 'EXPLAINED_BY_DRIVING',
+      defRatioFlag: false,
+    },
   ];
 
   it('merges fills, losses and DEF flags, newest first', () => {
@@ -192,6 +206,22 @@ describe('buildDrillChartData', () => {
 });
 
 describe('buildAffected', () => {
+  it('counts distinct loss events instead of turning every affected truck into a single flag', () => {
+    const rows = buildAffected(
+      [],
+      [
+        { id: 'loss1', vehicle: 'WB1', kind: 'loss' },
+        { id: 'loss2', vehicle: 'WB1', kind: 'loss' },
+        { id: 'loss2', vehicle: 'WB1', kind: 'loss' },
+        { id: 'def1', vehicle: 'WB2', kind: 'def' },
+      ],
+    );
+    expect(rows.list.map((row) => [row.reg, row.anomalies])).toEqual([
+      ['WB1', 2],
+      ['WB2', 1],
+    ]);
+    expect(rows.max).toBe(2);
+  });
   it('keeps only vehicles with anomalies, top 5 by count', () => {
     const vehicles = [
       { registrationNumber: 'A', defFlagCount: 2, billFlagCount: 1 },

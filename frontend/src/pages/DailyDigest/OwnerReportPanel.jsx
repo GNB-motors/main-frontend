@@ -25,6 +25,7 @@ import {
   attentionGroups,
   buildKpis,
   count,
+  extraFuelTotal,
   leakRows,
   rupees,
   sectionsById,
@@ -87,9 +88,9 @@ function Card({
 
 /* ── KPI strip ───────────────────────────────────────────────────────── */
 
-function KpiStrip({ tiles, loading }) {
+function KpiStrip({ tiles, loading, label = 'Key numbers for the day' }) {
   return (
-    <section className="db-kpis" aria-label="Key numbers for the day">
+    <section className="db-kpis" aria-label={label}>
       {tiles.map((tile) => {
         const value =
           tile.value == null
@@ -151,8 +152,12 @@ function TruckChips({ trucks, day, kind }) {
             day={day}
             to={
               kind === 'excessIdling'
-                ? `/intelligence?tab=idling&vehicle=${encodeURIComponent(truck.reg)}`
-                : truckLink(truck.reg)
+                ? `/intelligence?tab=idling&idleSubview=instances&vehicle=${encodeURIComponent(truck.reg)}`
+                : kind === 'fuelOverModel'
+                  ? `/intelligence?tab=mileage&vehicle=${encodeURIComponent(truck.reg)}`
+                  : kind === 'moneyTheft'
+                    ? `/intelligence?tab=fuel&fuelView=drain&vehicle=${encodeURIComponent(truck.reg)}`
+                    : truckLink(truck.reg)
             }
             title={truck.detail || undefined}
           >
@@ -175,8 +180,9 @@ function TruckChips({ trucks, day, kind }) {
   );
 }
 
-function MoneyLeakCard({ brief$, isPendingDay }) {
+function MoneyLeakCard({ brief$, isPendingDay, day }) {
   const brief = brief$.data;
+  const total = extraFuelTotal(brief);
   const rows = useMemo(() => leakRows(brief), [brief]);
   const categorySum = rows.reduce((sum, row) => sum + (row.rupees ?? 0), 0);
   // Explain the server's per-truck maximum without changing its valuation.
@@ -217,10 +223,10 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
       meta={isPendingDay ? 'So far today' : null}
     >
       <div className="db-leak-summary">
-        <div className="db-leak-total">
-          <strong>{rupees(brief?.totalRupees)}</strong>
+        <div className={`db-leak-total${total > 0 ? '' : ' db-leak-total--quiet'}`}>
+          <strong>{rupees(total)}</strong>
           <span>
-            {brief?.totalRupees == null
+            {total == null
               ? 'Not estimated for this day'
               : brief?.partial
                 ? 'Calculated loss · Incomplete'
@@ -255,7 +261,11 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
         </p>
       ) : null}
       {rows.length === 0 ? (
-        <p className="db-empty-line">No extra fuel costs were flagged for this day.</p>
+        <p className="db-empty-line">
+          {total == null
+            ? 'Not counted yet. Fuel calculations are not available for this day.'
+            : 'No extra fuel costs were flagged for this day.'}
+        </p>
       ) : (
         <ol className="db-leak-list">
           {rows.map((row, i) => (
@@ -270,7 +280,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
               <p className="db-leak-preview-label">
                 Top trucks · amounts are part of this category
               </p>
-              <TruckChips trucks={row.trucks} />
+              <TruckChips trucks={row.trucks} kind={row.key} day={day} />
               <details className="db-leak-details">
                 <summary>Why flagged{row.partial ? ' · Incomplete data' : ''}</summary>
                 {row.comparedTo ? <p className="db-leak-compare">{row.comparedTo}</p> : null}
@@ -606,40 +616,26 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt, day }) {
 
 /* ── People ──────────────────────────────────────────────────────────── */
 
-function SubjectList({ title, info, items, reason, emptyTo, day, grade, context }) {
+function SubjectList({ title, info, items, day, grade, context }) {
+  if (!items.length) return null;
   return (
     <Card title={title} className="db-people" info={info}>
-      {items.length === 0 ? (
-        <div className="db-people-empty">
-          <p className="db-empty-line">No one this time</p>
-          {reason ? <p className="db-muted">{reason}</p> : null}
-          {emptyTo ? (
-            <Link
-              className="db-link"
-              to={digestSubjectDestination({ to: emptyTo }, day, grade, context)}
-            >
-              See the drivers <ArrowUpRight size={13} />
+      <ol className="db-people-list">
+        {items.map((item, i) => (
+          <li key={item.id || item.name || i}>
+            <Link to={digestSubjectDestination(item, day, grade, context)}>
+              <span className="db-rank">{i + 1}</span>
+              <span className="db-row-main">
+                <span className="db-row-title">{item.name || item.id || DASH}</span>
+                {item.headline || item.grade ? (
+                  <span className="db-row-sub">{item.headline || item.grade}</span>
+                ) : null}
+              </span>
+              {item.score != null ? <strong className="db-row-num">{item.score}</strong> : null}
             </Link>
-          ) : null}
-        </div>
-      ) : (
-        <ol className="db-people-list">
-          {items.map((item, i) => (
-            <li key={item.id || item.name || i}>
-              <Link to={digestSubjectDestination(item, day, grade, context)}>
-                <span className="db-rank">{i + 1}</span>
-                <span className="db-row-main">
-                  <span className="db-row-title">{item.name || item.id || DASH}</span>
-                  {item.headline || item.grade ? (
-                    <span className="db-row-sub">{item.headline || item.grade}</span>
-                  ) : null}
-                </span>
-                {item.score != null ? <strong className="db-row-num">{item.score}</strong> : null}
-              </Link>
-            </li>
-          ))}
-        </ol>
-      )}
+          </li>
+        ))}
+      </ol>
     </Card>
   );
 }
@@ -716,7 +712,21 @@ function BriefingPanel({
 
   return (
     <div className="db-briefing">
-      <KpiStrip tiles={tiles} loading={reportLoading || (brief$.loading && !brief$.data)} />
+      <KpiStrip
+        tiles={isPendingDay ? tiles : tiles.filter((tile) => tile.period !== 'live')}
+        loading={reportLoading || (brief$.loading && !brief$.data)}
+      />
+      {!isPendingDay ? (
+        <section aria-label="Right now">
+          <h2 className="db-section-title">Right now</h2>
+          <p>Live fleet position, separate from the selected day.</p>
+          <KpiStrip
+            tiles={tiles.filter((tile) => tile.period === 'live')}
+            label="Live fleet numbers"
+            loading={reportLoading && !fleet?.fleetCounts}
+          />
+        </section>
+      ) : null}
 
       <div className="db-grid">
         <div className="db-col db-col--primary">
@@ -810,10 +820,6 @@ function BriefingPanel({
             title="Who drove well"
             items={goodDrivers}
             info={digestExplain.goodDrivers()}
-            reason={story.goodDrivers?.why?.text || null}
-            emptyTo={
-              story.goodDrivers ? story.goodDrivers.link?.to || '/intelligence?tab=drivers' : null
-            }
           />
           <SubjectList
             day={day}
@@ -829,10 +835,6 @@ function BriefingPanel({
                   : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
             }))}
             info={digestExplain.needsWord()}
-            reason={story.needsWord?.why?.text || null}
-            emptyTo={
-              story.needsWord ? story.needsWord.link?.to || '/intelligence?tab=drivers' : null
-            }
           />
         </div>
       </section>

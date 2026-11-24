@@ -140,6 +140,7 @@ export const EditDriverModal = ({
                 aria-label="Email"
                 id="editDriverEmail"
                 type="email"
+                autoComplete="off"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"

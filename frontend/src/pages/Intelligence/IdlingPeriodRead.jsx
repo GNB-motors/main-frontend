@@ -11,8 +11,8 @@ export default function IdlingPeriodRead({
   onLive,
   onHistory,
 }) {
-  const liveReady = !loading && !errors['live idling'];
-  const historyReady = !loading && !errors['idle history'];
+  const liveReady = !loading && !errors['live idling'] && !errors['driver assignments'];
+  const historyReady = !loading && !errors['idle history'] && !errors['driver assignments'];
   const hasNumber = (value) => value != null && value !== '' && Number.isFinite(Number(value));
   const excess = history.filter((row) => row.legitimacy === 'excess');
   const hours =

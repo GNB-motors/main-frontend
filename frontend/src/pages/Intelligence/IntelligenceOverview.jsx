@@ -2,16 +2,8 @@ import { useApi } from '@/hooks/useApi';
 import { formatDuration, formatNumber } from '@/utils/redesign/format';
 import IntelligenceKpi from './IntelligenceKpi';
 import IntelligenceService from './IntelligenceService';
-import { ISSUE_GROUPS, groupIssuesByKind } from './intelligenceModel';
+import { ISSUE_GROUPS, groupIssuesByKind, issueCounts, selectIssueRows } from './intelligenceModel';
 import { truncatedNoteFor } from './truncatedLists';
-
-const sameReg = (a, b) =>
-  String(a ?? '')
-    .replace(/\s/g, '')
-    .toUpperCase() ===
-  String(b ?? '')
-    .replace(/\s/g, '')
-    .toUpperCase();
 
 /** "8 trucks with no data" — the biggest reasons behind a count, in words. */
 function reasonLine(items, max = 2) {
@@ -58,18 +50,20 @@ export default function IntelligenceOverview({
   from,
   to,
   vehicle = '',
+  kind = '',
   onOpenTab,
 }) {
   const overspeed = useInstanceSummary('overspeed', { from, to, vehicle });
   const detours = useInstanceSummary('detour', { from, to, vehicle });
 
-  const issueItems = (issues?.items ?? []).filter(
-    (issue) => !vehicle || sameReg(issue?.registrationNumber, vehicle),
-  );
+  const issueItems = selectIssueRows(issues?.items, { vehicle, kind });
+  const counts = issueCounts(issueItems);
   const issuesKnown = Boolean(issues && !issues.held);
   const act = issueItems.filter((issue) => issue?.severity === 'act');
   const watch = issueItems.filter((issue) => issue?.severity === 'watch');
-  const silent = groupIssuesByKind(issueItems.filter((issue) => issue?.kind === 'NO_DATA'))[0];
+  const silent = groupIssuesByKind(
+    selectIssueRows(issues?.items, { vehicle }).filter((issue) => issue?.kind === 'NO_DATA'),
+  )[0];
   const silentCount = silent?.count ?? 0;
   const fleetTrucks = summary?.fleet?.trucks;
   const disconnected = summary?.fleet?.disconnected ?? 0;
@@ -91,8 +85,7 @@ export default function IntelligenceOverview({
     reportingContext = silentCount
       ? `${silent.countLabel} ${silent.range ?? 'silent'}`
       : 'Every truck sent data in the last day';
-    if (disconnected > 0)
-      reportingContext += ` · ${disconnected} on a disconnected account`;
+    if (disconnected > 0) reportingContext += ` · ${disconnected} on a disconnected account`;
   } else if (issuesKnown) {
     reportingContext = 'Fleet size not received';
   }
@@ -108,13 +101,13 @@ export default function IntelligenceOverview({
     <section aria-label="This period at a glance" className="intel-kpi-strip">
       <IntelligenceKpi
         label="Needs you"
-        value={issuesKnown ? formatNumber(act.length) : null}
+        value={issuesKnown ? formatNumber(counts.act) : null}
         tone={issuesKnown ? (act.length ? 'act' : 'good') : 'info'}
         context={
           issuesKnown ? (act.length ? reasonLine(act) : 'Nothing needs you right now') : pending
         }
         onOpen={() => onOpenTab?.('issues')}
-        openLabel={`Needs you: ${act.length} open issues. Open the issues`}
+        openLabel={`Needs you: ${counts.act} affected trucks or accounts. Open the issues`}
       />
       <IntelligenceKpi
         label="Trucks reporting"
@@ -130,13 +123,11 @@ export default function IntelligenceOverview({
       />
       <IntelligenceKpi
         label="To watch"
-        value={issuesKnown ? formatNumber(watch.length) : null}
+        value={issuesKnown ? formatNumber(counts.watch) : null}
         tone={issuesKnown && watch.length ? 'watch' : 'info'}
-        context={
-          issuesKnown ? (watch.length ? groupLine(watch) : 'Nothing to watch') : pending
-        }
+        context={issuesKnown ? (watch.length ? groupLine(watch) : 'Nothing to watch') : pending}
         onOpen={() => onOpenTab?.('issues')}
-        openLabel={`To watch: ${watch.length} open issues. Open the issues`}
+        openLabel={`To watch: ${counts.watch} affected trucks or accounts. Open the issues`}
       />
       <IntelligenceKpi
         label="Overspeed"

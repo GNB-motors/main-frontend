@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight, MapPin, Phone, PlugZap } from 'lucide-react';
 import Link from '@/components/redesign/FleetLink';
 import ToneBadge from '@/components/redesign/ToneBadge';
-import { formatIst } from '@/utils/redesign/format';
+import { formatIst, formatIstDate } from '@/utils/redesign/format';
 import { RECONNECT_PATH, trackLink } from '@/utils/redesign/links';
 import { shiftYmd } from './intelligenceModel';
 import { toISTDateString } from '../../utils/dateUtils';
-import DataTooltip from '../../components/ui/DataTooltip';
 
 function actionTarget(action) {
   if (!action) return null;
@@ -137,36 +136,20 @@ const MEANINGS = {
 };
 
 function ActivityCells({ issue, endDay }) {
+  const startDay = shiftYmd(endDay, -13);
   const observed = new Set(
-    (issue.evidence || []).map((entry) => toISTDateString(entry.at)).filter(Boolean),
+    (issue.evidence || [])
+      .map((entry) => toISTDateString(entry.at))
+      .filter((day) => day && day >= startDay && day <= endDay),
   );
   const last = toISTDateString(issue.lastSeenAt);
-  if (last) observed.add(last);
+  if (last && last >= startDay && last <= endDay) observed.add(last);
+  const latest = [...observed].sort().at(-1);
   return (
-    <span className="intel-issue-activity" aria-label="Recorded evidence over 14 days">
-      {Array.from({ length: 14 }, (_, index) => {
-        const day = shiftYmd(endDay, index - 13);
-        return (
-          <button
-            type="button"
-            onClick={(event) => event.stopPropagation()}
-            key={day}
-            className={
-              observed.has(day)
-                ? 'intel-activity-cell intel-activity-cell--seen'
-                : 'intel-activity-cell'
-            }
-            aria-label={`${day}: ${observed.has(day) ? 'Evidence recorded' : 'No dated evidence returned'}`}
-          >
-            <DataTooltip
-              className={`intel-activity-tooltip${index > 6 ? ' intel-activity-tooltip--end' : ''}`}
-              aria-hidden="true"
-              label={day}
-              details={[observed.has(day) ? 'Evidence recorded' : 'No dated evidence returned']}
-            />
-          </button>
-        );
-      })}
+    <span>
+      {observed.size
+        ? `Recorded on ${observed.size} of the last 14 days · last ${formatIstDate(`${latest}T12:00:00+05:30`)}`
+        : 'No dated evidence in the last 14 days'}
     </span>
   );
 }
@@ -226,7 +209,7 @@ export default function IssueGroup({ group, to }) {
           </div>
         ) : null}
         <small className="intel-issue-method">
-          Activity cells show dated evidence only; unmarked days do not confirm that checks passed.
+          Recorded days count the evidence returned. Other days do not confirm that checks passed.
         </small>
       </div>
       <div className="intel-issue-records">
@@ -242,20 +225,7 @@ export default function IssueGroup({ group, to }) {
                   <span className="sr-only">Open</span>
                 </th>
                 <th>{group.isAccount ? 'Account' : 'Truck'}</th>
-                <th aria-label="Recorded evidence dates">
-                  <span className="intel-activity-dates">
-                    <span>
-                      {
-                        formatIst(`${shiftYmd(endDay, -13)}T12:00:00+05:30`, {
-                          withDate: true,
-                        }).split(',')[0]
-                      }
-                    </span>
-                    <span>
-                      {formatIst(`${endDay}T12:00:00+05:30`, { withDate: true }).split(',')[0]}
-                    </span>
-                  </span>
-                </th>
+                <th>Evidence in the last 14 days</th>
                 <th className="intel-num">{metric?.label || 'Occurrences'}</th>
                 <th className="intel-num">{group.lastLabel || 'Last seen'}</th>
               </tr>

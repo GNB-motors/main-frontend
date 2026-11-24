@@ -344,13 +344,13 @@ const FuelIntegrityPage = () => {
   const lossSigmaL = totals?.siphonSuspectedLossSigmaL ?? null;
   const v2Loss = summary?.mathVersion === 'v2';
   const lossLabel = v2Loss ? 'Fuel loss to review' : 'Fuel down while parked';
-  const billCount = totals?.billFlagCount || 0;
-  const defCount = totals?.defFlagCount || 0;
+  const billCount = totals?.billFlagCount ?? null;
+  const defCount = totals?.defFlagCount ?? null;
   const windowDays = summary ? daysBetween(summary.window?.from, summary.window?.to) : null;
 
-  const totalFillsLitres = totals?.totalFillsLitres ?? totals?.fillsLitres ?? 0;
-  const totalEngineBurnL = totals?.totalEngineBurnL ?? 0;
-  const totalNetTankDeltaL = totals?.totalNetTankDeltaL ?? 0;
+  const totalFillsLitres = totals?.totalFillsLitres ?? totals?.fillsLitres ?? null;
+  const totalEngineBurnL = totals?.totalEngineBurnL ?? null;
+  const totalNetTankDeltaL = totals?.totalNetTankDeltaL ?? null;
 
   const events = useMemo(() => buildEvents(fills, windows, pricePerL), [fills, windows, pricePerL]);
 
@@ -372,7 +372,7 @@ const FuelIntegrityPage = () => {
   }, [pageEvents, selectedEventId]);
 
   const chartData = useMemo(() => buildChartData(fills, windows), [fills, windows]);
-  const affected = useMemo(() => buildAffected(summary?.vehicles), [summary]);
+  const affected = useMemo(() => buildAffected(summary?.vehicles, events), [summary, events]);
   const riskVehicles = useMemo(() => buildRiskVehicles(summary?.vehicles), [summary]);
 
   const drillWindows = useMemo(

@@ -63,7 +63,9 @@ beforeEach(() => {
   VehicleService.uploadVehicleDocument.mockResolvedValue({});
 });
 async function fillForm() {
-  fireEvent.click(await screen.findByRole('radio', { name: 'Tata' }));
+  fireEvent.change(await screen.findByRole('combobox', { name: 'Manufacturer' }), {
+    target: { value: 'TATA' },
+  });
   changeField(screen.getByLabelText('Registration number'), {
     target: { value: 'WB11F1234' },
   });
@@ -106,7 +108,9 @@ describe('Add Vehicle save flow', () => {
     await fillForm();
     await waitFor(() => expect(screen.getByLabelText(/Account/)).not.toBeDisabled());
     changeField(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
-    fireEvent.click(screen.getByRole('radio', { name: 'Ashok Leyland' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
+      target: { value: 'ASHOK LEYLAND' },
+    });
     expect(screen.getByLabelText(/Account/)).toHaveValue('');
     expect(screen.getByRole('status')).toHaveTextContent('Account cleared');
   });
@@ -146,7 +150,9 @@ it('preserves an existing account when opening edit, even when it is unavailable
       <AddVehiclePage />
     </MemoryRouter>,
   );
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'Tata' })).toBeChecked());
+  await waitFor(() =>
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveValue('TATA'),
+  );
   expect(screen.getByLabelText(/Account/)).toHaveValue('unavailable-account');
   fireEvent.click(screen.getByRole('button', { name: 'Update vehicle' }));
   await waitFor(() => expect(VehicleService.updateVehicle).toHaveBeenCalled());

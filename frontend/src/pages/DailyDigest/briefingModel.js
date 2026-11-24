@@ -46,6 +46,15 @@ export const count = (value) =>
     ? DASH
     : Number(value).toLocaleString('en-IN', { maximumFractionDigits: 1 });
 
+/** A zero assembled from missing calculations is not a measured zero. */
+export function extraFuelTotal(brief) {
+  const total = brief?.totalRupees;
+  if (total == null || !Number.isFinite(Number(total))) return null;
+  const measured = brief.sections?.some((section) => section.rupees != null);
+  if (Number(total) === 0 && (brief.partial || !measured)) return null;
+  return Number(total);
+}
+
 /** Sections keyed by id, numbers defaulting to {}. */
 export function sectionsById(sections) {
   const out = {};
@@ -56,8 +65,8 @@ export function sectionsById(sections) {
 }
 
 /**
- * The five headline tiles. Live counts win for "now" when the page is on
- * today and live positions are loaded; otherwise the report's snapshot is
+ * The five headline tiles. Live counts win for "now" whenever live positions
+ * are loaded; otherwise the report's snapshot is
  * used and the tile says when it was taken.
  */
 export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtAt, day }) {
@@ -67,7 +76,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
   const health = byId.dataHealth?.numbers || {};
   const tripsModule = work.openTrips != null;
   const tripsTo = day ? `/auto-trips?range=custom&from=${day}&to=${day}` : '/auto-trips';
-  const live = isToday && liveCounts && liveCounts.all > 0 ? liveCounts : null;
+  const live = liveCounts && liveCounts.all > 0 ? liveCounts : null;
   const snapshot = builtAt ? `When the report ran, ${builtAt}` : 'From the daily report';
 
   // A reported zero is a count, even while today's trips are still open.
@@ -89,6 +98,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
   return [
     {
       key: 'moving',
+      period: 'live',
       label: 'Moving now',
       value: live ? live.moving : (fleet.moving ?? null),
       context: live
@@ -141,14 +151,14 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     {
       key: 'lost',
       label: isToday ? 'Extra fuel cost today' : 'Extra fuel cost',
-      value: brief?.totalRupees ?? null,
+      value: extraFuelTotal(brief),
       money: true,
       tone: Number(brief?.totalRupees) > 0 ? 'act' : null,
       context:
         briefState === 'error'
           ? 'Morning brief did not load'
-          : brief?.totalRupees == null
-            ? 'Not estimated for this day'
+          : extraFuelTotal(brief) == null
+            ? 'Not counted yet'
             : brief?.partial
               ? 'Calculated loss · Incomplete'
               : 'Estimated extra diesel cost',
@@ -156,6 +166,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     },
     {
       key: 'dark',
+      period: 'live',
       label: notForDay ? 'Dark now' : 'Trucks dark',
       value: dark,
       tone: Number(dark) > 0 ? 'watch' : null,

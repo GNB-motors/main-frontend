@@ -4,6 +4,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ServiceIntelligencePage from './ServiceIntelligencePage.jsx';
 import { MaintenanceService } from './MaintenanceService.js';
+vi.mock('../../services/FleetDataService', () => ({
+  FleetDataService: { getMaintenancePredictions: async () => ({ records: [] }) },
+}));
+vi.mock('../../services/vehicleListService', () => ({ getVehicleList: async () => [] }));
 
 vi.mock('./MaintenanceService.js', () => ({
   MaintenanceService: {

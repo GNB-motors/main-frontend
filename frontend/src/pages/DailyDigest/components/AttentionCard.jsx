@@ -98,8 +98,8 @@ function Review({ row, day }) {
   );
 }
 
-/** The flagged trucks themselves, each opening its own Fuel tab. */
-function TruckList({ row }) {
+/** The flagged trucks, with the selected day's fuel checks. */
+function TruckList({ row, day }) {
   const trucks = (row.rows || []).filter((t) => t.registrationNumber);
   if (!trucks.length) return <span className="db-attention-none" />;
   const more = Number.isFinite(row.count) ? row.count - trucks.length : 0;
@@ -107,15 +107,16 @@ function TruckList({ row }) {
     <ul className="db-chips db-chips--tight db-attention-trucks">
       {trucks.map((t) => (
         <li key={t.id || t.registrationNumber}>
-          <Link
+          <DigestLink
             className="db-chip"
-            to={`/vehicles/${encodeURIComponent(t.registrationNumber)}?tab=fuel`}
+            day={day}
+            to={`/intelligence?tab=fuel&fuelView=drain&vehicle=${encodeURIComponent(t.registrationNumber)}`}
           >
             <span className="db-chip-reg">{t.registrationNumber}</span>
             {t.missingL != null ? (
               <span className="db-chip-detail">{`${t.missingL} L missing`}</span>
             ) : null}
-          </Link>
+          </DigestLink>
         </li>
       ))}
       {more > 0 ? <li className="db-muted">{`+${more} more`}</li> : null}
@@ -158,7 +159,7 @@ function Category({ row, day }) {
         <small>{attentionCopy.unit(row.kind, row.count)}</small>
       </div>
       {trucksRow ? null : <Review row={row} day={day} />}
-      {trucksRow && !failed ? <TruckList row={row} /> : null}
+      {trucksRow && !failed ? <TruckList row={row} day={day} /> : null}
     </li>
   );
 }

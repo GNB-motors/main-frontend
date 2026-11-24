@@ -75,7 +75,11 @@ const DashboardLayoutInner = () => {
         id="main-content"
         className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}
       >
-        <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} pageTitle={pageTitle} />
+        <Navbar
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+          pageTitle={pageTitle}
+        />
         <div className="page-content" key={branchId || 'all-locations'}>
           <ConfirmDialogHost>
             {/* A page crash stays inside the page area; sidebar and navbar survive. */}

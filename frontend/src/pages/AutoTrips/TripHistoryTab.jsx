@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
-import { formatDuration, formatIst } from '../../utils/redesign/format';
+import { formatDuration, formatIst, formatIstDate } from '../../utils/redesign/format';
 import { tripsHistoryLink } from '../../utils/redesign/links';
 import ToneBadge from '../../components/redesign/ToneBadge';
 import NotYetAvailable from '../../components/redesign/NotYetAvailable';
@@ -84,7 +84,8 @@ export default function TripHistoryTab({
     <div className="flex flex-col gap-3">
       {minDwell ? (
         <p>
-          Visits of {minDwell} minutes or more{from && to ? ` · ${from} – ${to}` : ''}.
+          Visits of {minDwell} minutes or more
+          {from && to ? ` · ${formatIstDate(from)} – ${formatIstDate(to)}` : ''}.
         </p>
       ) : null}
       {data?.truncated ? (
@@ -96,7 +97,7 @@ export default function TripHistoryTab({
         <p className="m-0 text-[14px] text-[var(--rd-ink)]">
           {vehicle}
           {placeCount !== null ? ` visited this place ${placeCount} times` : ' visited this place'}
-          {from && to ? ` between ${from} and ${to}` : ''}.
+          {from && to ? ` between ${formatIstDate(from)} and ${formatIstDate(to)}` : ''}.
         </p>
       ) : null}
 
@@ -136,7 +137,7 @@ export default function TripHistoryTab({
               <span className="w-[130px] shrink-0 text-[12px] text-[var(--rd-ink-3)] tabular-nums">
                 {item.arrivedAt
                   ? formatIst(item.arrivedAt, { withDate: true })
-                  : item.register?.date}
+                  : formatIstDate(item.register?.date)}
               </span>
               <span className="w-[130px] shrink-0 text-[13px] font-medium text-[var(--rd-ink)]">
                 {item.registrationNumber}

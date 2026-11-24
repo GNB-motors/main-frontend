@@ -8,7 +8,7 @@ import FleetLinkIndicator from './FleetLinkIndicator.jsx';
 import SupportButton from './SupportButton.jsx';
 import './Navbar.css';
 
-const Navbar = ({ toggleSidebar, pageTitle = null }) => {
+const Navbar = ({ toggleSidebar, isSidebarOpen, pageTitle = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTripsCount, setActiveTripsCount] = useState(0);
@@ -116,7 +116,12 @@ const Navbar = ({ toggleSidebar, pageTitle = null }) => {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <button className="menu-toggle" onClick={toggleSidebar}>
+        <button
+          className="menu-toggle"
+          aria-label="Toggle navigation"
+          aria-expanded={isSidebarOpen}
+          onClick={toggleSidebar}
+        >
           <Menu />
         </button>
         {/* A page with its own H1 already names itself; the top bar repeating it

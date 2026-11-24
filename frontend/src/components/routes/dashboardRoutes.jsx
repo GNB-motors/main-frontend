@@ -3,18 +3,22 @@ import { lazy, Suspense } from 'react';
 import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
 import TripsRedirect from './TripsRedirect';
+import PerformanceRedirect from './PerformanceRedirect';
+import LegacyTripRedirect from './LegacyTripRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
 import FeatureGate from './FeatureGate';
 import ReceiptApprovalDetailPage from './lazyReceiptApprovalDetailPage';
 import erpRoutes from './erpRoutes';
 
 const ReportsPage = lazy(() => import('../../pages/Reports/ReportsPage.jsx'));
+const NotFoundPage = lazy(() => import('../../pages/NotFoundPage.jsx'));
 const ProfilePage = lazy(() => import('../../pages/Profile/ProfilePage.jsx'));
 const SettingsPage = lazy(() => import('../../pages/Settings/SettingsPage.jsx'));
 const FleetEdgeAccountsPage = lazy(() => import('../../pages/Settings/FleetEdgeAccountsPage.jsx'));
 const IalertAccountsPage = lazy(() => import('../../pages/Settings/IalertAccountsPage.jsx'));
 const IalertFleetPage = lazy(() => import('../../pages/IalertFleet/IalertFleetPage.jsx'));
 const DriversPage = lazy(() => import('../../pages/Drivers/DriversPage.jsx'));
+const DriverProfilePage = lazy(() => import('../../pages/Drivers/DriverProfilePage.jsx'));
 const AddDriverPage = lazy(() => import('../../pages/Drivers/AddDriverPage.jsx'));
 const BulkUploadDriversPage = lazy(() => import('../../pages/Drivers/BulkUploadDriversPage.jsx'));
 const BulkUploadVehiclesPage = lazy(() => import('../../pages/Profile/BulkUploadVehiclesPage.jsx'));
@@ -111,7 +115,7 @@ const dashboardRoutes = (
     <Route path="/driving-dna" element={<DrivingDnaPage />} />
     {/* The Performance page was folded into the Intelligence page's Performance
         section; its old URL lands on that section. */}
-    <Route path="/performance" element={<Navigate to="/intelligence?tab=perfVehicles" replace />} />
+    <Route path="/performance" element={<PerformanceRedirect />} />
     <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
     <Route path="/reports" element={<ReportsPage />} />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
@@ -145,7 +149,7 @@ const dashboardRoutes = (
     />
     <Route path="/overspeed" element={<RedirectWithState to="/intelligence?tab=overspeed" />} />
     {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
-    <Route path="/hotspots" element={<Navigate to="/intelligence?tab=fuel" replace />} />
+    <Route path="/hotspots" element={<RedirectWithState to="/intelligence?tab=fuel" />} />
     <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
@@ -181,6 +185,7 @@ const dashboardRoutes = (
     {/* Fleet Intelligence Routes */}
     <Route path="/route-hub" element={<RouteHubPage />} />
     <Route path="/drivers" element={<DriversPage />} />
+    <Route path="/drivers/:id" element={<DriverProfilePage />} />
     <Route path="/access-control" element={<AccessControlPage />} />
     <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />
     <Route path="/drivers/add" element={<AddDriverPage />} />
@@ -189,7 +194,12 @@ const dashboardRoutes = (
     <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
     {/* The old weight-slip trip form was retired with its backend; adding a trip now happens on the Trips page. */}
     <Route path="/trip/new" element={<Navigate to="/auto-trips?new=manual" replace />} />
-    <Route path="/trip/:tripId" element={<TripManagementPage />} />
+    <Route path="/trip/:tripId" element={<LegacyTripRedirect />} />
+    <Route path="/fuel-ledger" element={<RedirectWithState to="/mileage" />} />
+    <Route
+      path="/vehicle-assignments"
+      element={<RedirectWithState to="/khata-ledger?tab=assignments" />}
+    />
     <Route path="/trips/:id" element={<TripsRedirect />} />
     {/* Fuel Management Routes */}
     <Route path="/mileage" element={<MileagePage />} />
@@ -253,6 +263,7 @@ const dashboardRoutes = (
     <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
     <Route path="/khata-ledger" element={<KhataLedgerPage />} />
     {erpRoutes}
+    <Route path="*" element={<NotFoundPage />} />
 
     <Route path="/khata-ledger/drivers/:id" element={<KhataLedgerDriverDetailPage />} />
     <Route path="/khata-ledger/trucks/:id" element={<KhataLedgerVehicleDetailPage />} />

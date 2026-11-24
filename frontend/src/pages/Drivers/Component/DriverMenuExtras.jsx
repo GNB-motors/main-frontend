@@ -51,11 +51,13 @@ export const FilterDropdown = ({
       <div className="drivers-filter-content">
         {/* Role Filter */}
         <div className="drivers-filter-group">
-          <label className="drivers-filter-label">
+          <label className="drivers-filter-label" htmlFor="employee-role-filter">
             Role
             {filters.role && <span className="drivers-filter-indicator"></span>}
           </label>
           <SearchableSelect
+            id="employee-role-filter"
+            contentClassName="drivers-filter-options"
             value={tempFilters.role}
             onChange={(e) => onFilterChange('role', e.target.value)}
             disabled={isLoading}
@@ -71,11 +73,13 @@ export const FilterDropdown = ({
 
         {/* Vehicle Assignment Filter */}
         <div className="drivers-filter-group">
-          <label className="drivers-filter-label">
+          <label className="drivers-filter-label" htmlFor="employee-assignment-filter">
             Vehicle Assignment
             {filters.vehicleAssignment && <span className="drivers-filter-indicator"></span>}
           </label>
           <SearchableSelect
+            id="employee-assignment-filter"
+            contentClassName="drivers-filter-options"
             value={tempFilters.vehicleAssignment}
             onChange={(e) => onFilterChange('vehicleAssignment', e.target.value)}
             disabled={isLoading}

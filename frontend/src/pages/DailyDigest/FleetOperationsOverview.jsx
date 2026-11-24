@@ -151,7 +151,7 @@ export default function FleetOperationsOverview({
             {legacy?.exportAction}
             <button
               type="button"
-              className="db-button db-button--primary"
+              className="db-button db-button--primary db-button--refresh"
               onClick={handleRefresh}
               disabled={refreshing}
             >

@@ -122,7 +122,7 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
         odometerSource: 'OCR',
       };
       const meta = getOdometerMeta(draft);
-      expect(meta.badgeText).toBe('Dash Photo OCR');
+      expect(meta.badgeText).toBe('Dashboard photo');
     });
   });
 

@@ -72,7 +72,7 @@ describe('MileageDefTab', () => {
 
     expect(await screen.findByText('DEF use outside the normal band')).toBeInTheDocument();
     expect(screen.getByText('0.4% of diesel')).toBeInTheDocument();
-    expect(screen.getByText('normal 3%–6%')).toBeInTheDocument();
+    expect(screen.getByText('Comparison range: 3–6%')).toBeInTheDocument();
     expect(screen.getByText('DEF use is far below the normal band.')).toBeInTheDocument();
   });
 

@@ -321,6 +321,7 @@ export default function ReleaseDigest({ renderOverview = null }) {
               <button
                 type="button"
                 className="nd-btn nd-btn--refresh"
+                style={{ width: 136, justifyContent: 'center', flexShrink: 0 }}
                 onClick={handleRefresh}
                 disabled={loading}
                 title={

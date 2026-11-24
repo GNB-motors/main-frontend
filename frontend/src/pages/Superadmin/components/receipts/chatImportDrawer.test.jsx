@@ -117,6 +117,8 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
 
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+    if (screen.queryByRole('button', { name: 'Confirm approval' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));
     expect(postCalls('/publish')[0][1]).toEqual({
@@ -141,7 +143,7 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
       fireEvent.click(approve);
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
-        'Key field missing: Truck, Fill time',
+        'Needed before approving: Truck, Fill time',
       );
       expect(postCalls('/publish')).toHaveLength(0);
       expect(screen.getByRole('button', { name: /Approve & Publish/i })).toHaveClass(
@@ -169,9 +171,11 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
 
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+    if (screen.queryByRole('button', { name: 'Confirm approval' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Key field missing: Truck, Fill time',
+      'Needed before approving: Truck, Fill time',
     );
     expect(postCalls('/publish')).toHaveLength(1);
     expect(screen.getByRole('button', { name: /Approve & Publish/i })).toHaveClass(
@@ -189,7 +193,7 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
         status: 422,
         data: {
           success: false,
-          message: 'Key field missing: Truck, Fill time',
+          message: 'Needed before approving: Truck, Fill time',
           data: { missing: ['TRUCK', 'FILL_TIME'] },
         },
       },
@@ -202,9 +206,11 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
 
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+    if (screen.queryByRole('button', { name: 'Confirm approval' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Key field missing: Truck, Fill time',
+      'Needed before approving: Truck, Fill time',
     );
     expect(postCalls('/publish')).toHaveLength(1);
   });
@@ -244,6 +250,8 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+    if (screen.queryByRole('button', { name: 'Confirm approval' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));
     expect(postCalls('/publish')[0][1]).toMatchObject({ time: { action: 'accept' } });
@@ -258,6 +266,8 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time and 218 L' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+    if (screen.queryByRole('button', { name: 'Confirm approval' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));
     expect(postCalls('/publish')[0][1]).toMatchObject({ time: { action: 'accept' }, litres: 218 });
@@ -305,6 +315,8 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+    if (screen.queryByRole('button', { name: 'Confirm approval' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     expect(
       await screen.findByText(

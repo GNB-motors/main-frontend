@@ -9,6 +9,7 @@ import { ServiceCard } from './panels/overview/ReferenceOverviewCards';
 import FuelPanel from './panels/FuelPanel';
 import TelemetryPanel from './panels/TelemetryPanel';
 import TyresPanel from './panels/TyresPanel';
+import { getUserRole } from '@/utils/session';
 import { vehicleAxles } from './vehicleAxles';
 import { fluidLevels } from './panels/overview/referenceOverviewModel';
 
@@ -17,7 +18,12 @@ vi.mock('../../services/FleetDataService', () => ({
     getVehicleOverview: vi.fn(),
     getVehicleTelemetry: vi.fn(),
     getTyreStatus: vi.fn(),
+    fitTyreSet: vi.fn(),
   },
+}));
+vi.mock('@/utils/session', async (importOriginal) => ({
+  ...(await importOriginal()),
+  getUserRole: vi.fn(() => 'OWNER'),
 }));
 vi.mock('../../services/billPhotoService', () => ({ default: { uploadBillPhoto: vi.fn() } }));
 vi.mock('./panels/ServiceInsights', () => ({ ServiceCentreCard: () => null }));
@@ -26,6 +32,8 @@ vi.mock('../Compliance/OpenChallanBadge', () => ({ default: () => null }));
 const mount = (node) => render(<MemoryRouter>{node}</MemoryRouter>);
 beforeEach(() => {
   vi.clearAllMocks();
+  getUserRole.mockReturnValue('OWNER');
+  FleetDataService.fitTyreSet.mockResolvedValue({ id: 'set1' });
   FleetDataService.getVehicleOverview.mockResolvedValue({
     fuel: { litres: null, percent: null, at: null },
     def: { litres: null, percent: null, at: null },
@@ -66,6 +74,15 @@ describe('recorded axle configuration', () => {
 });
 
 describe('sensor cards', () => {
+  it('opens the working mileage page filtered to the current truck', async () => {
+    mount(<FuelPanel registrationNumber="WB11T0662" />);
+    const link = await screen.findByRole('link', { name: 'All fuel entries →' });
+    expect(link).toHaveAttribute('href', '/mileage?vehicle=WB11T0662&search=WB11T0662');
+    expect(screen.getByRole('link', { name: /Open fuel ledger/ })).toHaveAttribute(
+      'href',
+      link.getAttribute('href'),
+    );
+  });
   it('does not substitute a poll timestamp for a missing sensor timestamp', () => {
     const [fuel, def] = fluidLevels(
       { fuel: { at: null, percent: null }, def: { at: null, percent: null } },
@@ -217,4 +234,55 @@ it('shows the same service distance in the header, overview and service tab afte
   expect(
     within(screen.getByTestId('service-overview')).getByText('10,000 at forecast'),
   ).toBeInTheDocument();
+});
+
+it('shows one actionable empty tyre state and saves the real set', async () => {
+  mount(<TyresPanel fleetMaster={{ id: 'v1', registrationNumber: 'WB11T0662' }} />);
+  const form = await screen.findByRole('form', { name: 'Add tyre details' });
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(screen.queryByText('Change layout')).not.toBeInTheDocument();
+  fireEvent.change(within(form).getByLabelText('Fitted on'), { target: { value: '2026-11-24' } });
+  for (const [label, value] of [
+    ['Odometer at fitment (km)', '125000'],
+    ['Number of tyres', '10'],
+    ['Total set cost (₹)', '250000'],
+    ['Expected life (km)', '80000'],
+  ]) {
+    fireEvent.change(within(form).getByLabelText(label), { target: { value } });
+  }
+  fireEvent.submit(form);
+  await waitFor(() =>
+    expect(FleetDataService.fitTyreSet).toHaveBeenCalledWith({
+      vehicleId: 'v1',
+      fittedAt: '2026-11-24T00:00:00+05:30',
+      fittedOdometer: 125000,
+      tyreCount: 10,
+      totalCostInr: 250000,
+      expectedLifeKm: 80000,
+    }),
+  );
+  await waitFor(() => expect(FleetDataService.getTyreStatus).toHaveBeenCalledTimes(2));
+});
+it('shows a retry state for a failed tyre read instead of a blank layout', async () => {
+  FleetDataService.getTyreStatus.mockRejectedValue(new Error('Offline'));
+  mount(<TyresPanel fleetMaster={{ id: 'v1' }} />);
+  expect(await screen.findByText('Couldn’t load tyre details')).toBeInTheDocument();
+  expect(screen.queryByText('Add tyre details')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+});
+it('keeps tyre writes restricted to owners and managers', async () => {
+  getUserRole.mockReturnValue('DRIVER');
+  mount(<TyresPanel fleetMaster={{ id: 'v1' }} />);
+  await screen.findByText('Add tyre details');
+  expect(screen.queryByRole('form')).not.toBeInTheDocument();
+});
+it('preserves entered tyre details when saving fails', async () => {
+  FleetDataService.fitTyreSet.mockRejectedValue(new Error('Offline'));
+  mount(<TyresPanel fleetMaster={{ id: 'v1' }} />);
+  const form = await screen.findByRole('form', { name: 'Add tyre details' });
+  fireEvent.change(within(form).getByLabelText('Brand (optional)'), { target: { value: 'MRF' } });
+  fireEvent.submit(form);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not save tyre details');
+  expect(within(form).getByLabelText('Brand (optional)')).toHaveValue('MRF');
+  expect(screen.getByRole('button', { name: 'Save tyre details' })).toBeEnabled();
 });

@@ -3,7 +3,7 @@ import FocusedRouteLayer from './FocusedRouteLayer.jsx';
 import TollLayer from './TrackPlacesTollLayer.jsx';
 import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MarkerF, PolylineF } from '@react-google-maps/api';
 import VectorGoogleMap from './VectorGoogleMap.jsx';
 import { formatDuration } from '../../utils/redesign/format';
@@ -41,7 +41,6 @@ export default function LiveMapCanvas({
   isLoaded,
   loadError,
   mapZoom,
-  setMapZoom,
   onMapLoad,
   onMapIdle,
   mapRef,
@@ -141,7 +140,26 @@ export default function LiveMapCanvas({
   // drive instead of a three-kilometre slice of it. The fit happens once per
   // trail: a change of range is a new trail and gets its own fit.
   const fittedTrailRef = useRef(null);
-  const mapInstance = mapRef?.current || map;
+  const renderingType = followCameraEnabled ? 'VECTOR' : 'RASTER';
+  const [loadedMap, setLoadedMap] = useState(null);
+  const mapInstance = loadedMap
+    ? loadedMap.renderingType === renderingType
+      ? loadedMap.instance
+      : null
+    : mapRef?.current || map;
+  const handleMapLoad = useCallback(
+    (instance) => {
+      setLoadedMap({ instance, renderingType });
+      onMapLoad?.(instance);
+    },
+    [onMapLoad, renderingType],
+  );
+  const handleMapUnmount = useCallback(
+    (instance) => {
+      if (mapRef?.current === instance) mapRef.current = null;
+    },
+    [mapRef],
+  );
   const selectedVehicle = mapVehicles.find((vehicle) => vehicle.id === selectedId);
   const replayHeading = useMemo(() => {
     const path = replayRunPaths?.at(-1)?.path || [];
@@ -209,19 +227,18 @@ export default function LiveMapCanvas({
     setHoveredHalt(null);
   }, [habitualHalts, isHabitualHaltsVisible, selectedId]);
 
-  // Track mode wants a clean map for one truck's path, so every basemap line is
-  // switched off — roads, railways, district/administrative boundaries, and the
-  // outlines of rivers and land — while the town labels and the land/water
-  // fills stay for context. The live map keeps all of it. Memoised so playback,
+  // Track mode reduces boundary clutter while keeping roads and road names
+  // so the owner can locate the journey. Memoised so playback,
   // which re-renders every frame, does not re-apply the whole style each time.
   const effectiveMapOptions = useMemo(
     () =>
       track
         ? {
             ...mapOptions,
+            isFractionalZoomEnabled: followCameraEnabled,
             styles: [
               ...(mapOptions?.styles || []),
-              { featureType: 'road', stylers: [{ visibility: 'off' }] },
+              { featureType: 'road', stylers: [{ visibility: 'on' }] },
               { featureType: 'transit', stylers: [{ visibility: 'off' }] },
               {
                 featureType: 'administrative',
@@ -240,8 +257,8 @@ export default function LiveMapCanvas({
               },
             ],
           }
-        : mapOptions,
-    [track, mapOptions],
+        : { ...mapOptions, isFractionalZoomEnabled: followCameraEnabled },
+    [track, mapOptions, followCameraEnabled],
   );
   return (
     <div id="map" className="gmap-host">
@@ -257,16 +274,12 @@ export default function LiveMapCanvas({
       ) : (
         <VectorGoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}
+          renderingType={renderingType}
           center={INDIA_CENTER}
-          zoom={mapZoom}
-          onLoad={onMapLoad}
+          zoom={12}
+          onLoad={handleMapLoad}
+          onUnmount={handleMapUnmount}
           onIdle={onMapIdle}
-          onZoomChanged={() => {
-            if (mapRef.current) {
-              const z = mapRef.current.getZoom();
-              if (typeof z === 'number') setMapZoom(z);
-            }
-          }}
           onClick={(event) => {
             setHoveredHalt(null);
             if (draft && event?.latLng)
@@ -277,7 +290,7 @@ export default function LiveMapCanvas({
           {/* Google's live traffic, as a display layer only. The owner acts
               on the congestion in the vehicle panel's ETA, which comes from
               our own road network, not from this layer. */}
-          <TrafficLayer map={map} enabled={isTrafficOn} />
+          <TrafficLayer map={mapInstance} enabled={isTrafficOn} />
           {!track && !replayState.on && !isTrailVisible ? (
             <PassiveTrailLayer trail={passiveTrail} color={resolveMapColor(selectedStatusColor)} />
           ) : null}
@@ -387,7 +400,7 @@ export default function LiveMapCanvas({
           routeLines.length ? (
             <RouteLayer
               dimmed={Boolean(selectedId)}
-              map={map}
+              map={mapInstance}
               lines={routeLines}
               sites={routeSites}
               selectedId={null}

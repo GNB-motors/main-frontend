@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { useGoogleMap } from '@react-google-maps/api';
 import VectorGoogleMap from './VectorGoogleMap';
@@ -8,29 +9,53 @@ afterEach(() => vi.unstubAllGlobals());
 function setup() {
   const handlers = {};
   const removers = [];
-  const instance = {
+  const instances = [];
+  const createInstance = () => ({
+    camera: {},
     setOptions: vi.fn((options) => {
       if ('renderingType' in options)
         throw new Error('renderingType cannot change after instantiation');
     }),
-    setCenter: vi.fn(),
-    setZoom: vi.fn(),
+    setCenter: vi.fn(function (center) {
+      this.camera.center = center;
+    }),
+    getCenter() {
+      return (
+        this.camera.center && {
+          lat: () => this.camera.center.lat,
+          lng: () => this.camera.center.lng,
+        }
+      );
+    },
+    setZoom: vi.fn(function (zoom) {
+      this.camera.zoom = zoom;
+    }),
+    getZoom() {
+      return this.camera.zoom;
+    },
+    setRenderingType: vi.fn(() => {
+      throw new Error("Setting map 'renderingType' after instantiation is not supported.");
+    }),
     addListener: vi.fn((name, handler) => {
       handlers[name] = handler;
       const remove = vi.fn();
       removers.push(remove);
       return { remove };
     }),
-  };
-  const constructor = vi.fn(function () {
-    return instance;
+  });
+  const instance = createInstance();
+  const constructor = vi.fn(function (_container, options) {
+    const next = instances.length ? createInstance() : instance;
+    next.camera = { ...options };
+    instances.push(next);
+    return next;
   });
   vi.stubGlobal('google', { maps: { Map: constructor } });
-  return { instance, constructor, handlers, removers };
+  return { instance, instances, constructor, handlers, removers };
 }
 
 describe('vector map lifecycle', () => {
-  it('sets renderingType only at creation and keeps the same map through replay and style changes', () => {
+  it('keeps the normal raster map through replay and style changes', () => {
     const { instance, constructor } = setup();
     const center = { lat: 22, lng: 88 };
     const onLoad = vi.fn();
@@ -49,7 +74,7 @@ describe('vector map lifecycle', () => {
     );
     expect(constructor).toHaveBeenCalledOnce();
     expect(constructor.mock.calls[0][1]).toMatchObject({
-      renderingType: 'VECTOR',
+      renderingType: 'RASTER',
       center,
       zoom: 12,
     });
@@ -79,6 +104,91 @@ describe('vector map lifecycle', () => {
     expect(instance.setCenter).toHaveBeenLastCalledWith(newCenter);
     expect(instance.setZoom).toHaveBeenLastCalledWith(16);
     expect(screen.getByText('Same map')).toBeInTheDocument();
+  });
+
+  it('recreates the map only for renderer changes, preserves the view and restores grey styles', () => {
+    const { instance, instances, constructor, removers } = setup();
+    const styles = [{ elementType: 'geometry', stylers: [{ color: '#f0f3f6' }] }];
+    const options = { styles, mapTypeId: 'roadmap' };
+    const onLoad = vi.fn();
+    const onUnmount = vi.fn();
+    function Layer() {
+      return <output>{`Map ${instances.indexOf(useGoogleMap()) + 1}`}</output>;
+    }
+    const { rerender } = render(
+      <VectorGoogleMap
+        options={options}
+        renderingType="RASTER"
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+      >
+        <Layer />
+      </VectorGoogleMap>,
+    );
+    expect(constructor.mock.calls[0][1]).toMatchObject({ renderingType: 'RASTER', styles });
+    expect(screen.getByText('Map 1')).toBeInTheDocument();
+    instance.setCenter({ lat: 23, lng: 89 });
+    instance.setZoom(17.25);
+    rerender(
+      <VectorGoogleMap
+        options={options}
+        renderingType="VECTOR"
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+      >
+        <Layer />
+      </VectorGoogleMap>,
+    );
+    expect(screen.getByText('Map 2')).toBeInTheDocument();
+    expect(constructor.mock.calls[1][1]).toMatchObject({
+      renderingType: 'VECTOR',
+      center: { lat: 23, lng: 89 },
+      zoom: 17.25,
+    });
+    expect(constructor.mock.calls[1][1]).not.toHaveProperty('styles');
+    expect(onUnmount).toHaveBeenCalledWith(instance);
+    expect(removers.slice(0, 3).every((remove) => remove.mock.calls.length === 1)).toBe(true);
+    rerender(
+      <VectorGoogleMap
+        options={options}
+        renderingType="RASTER"
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+      >
+        <Layer />
+      </VectorGoogleMap>,
+    );
+    expect(screen.getByText('Map 3')).toBeInTheDocument();
+    expect(constructor.mock.calls[2][1]).toMatchObject({
+      renderingType: 'RASTER',
+      styles,
+      center: { lat: 23, lng: 89 },
+      zoom: 17.25,
+      tilt: 0,
+      heading: 0,
+    });
+    expect(constructor).toHaveBeenCalledTimes(3);
+    expect(onLoad).toHaveBeenCalledTimes(3);
+    expect(onUnmount).toHaveBeenCalledTimes(2);
+    expect(instances.every((map) => map.setRenderingType.mock.calls.length === 0)).toBe(true);
+  });
+
+  it('does not echo a native zoom gesture back into the camera', () => {
+    const { instance, handlers } = setup();
+    let nativeZoom = 12;
+    instance.getZoom = () => nativeZoom;
+    function MapWithZoomState() {
+      const [zoom, setZoom] = useState(12);
+      return <VectorGoogleMap zoom={zoom} onZoomChanged={() => setZoom(instance.getZoom())} />;
+    }
+    render(<MapWithZoomState />);
+    for (let frame = 1; frame <= 60; frame++) {
+      act(() => {
+        nativeZoom = 12 + frame / 60;
+        handlers.zoom_changed();
+      });
+    }
+    expect(instance.setZoom).not.toHaveBeenCalled();
   });
 
   it('uses current event callbacks and removes its listeners when leaving', () => {

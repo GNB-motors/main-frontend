@@ -76,3 +76,10 @@ describe('resolveIntelligenceTab', () => {
     );
   });
 });
+
+it('gives scorecards and measurements distinct tab names while keeping old links', () => {
+  const labels = INTELLIGENCE_TABS.map((tab) => tab.label);
+  expect(new Set(labels).size).toBe(labels.length);
+  expect(resolveIntelligenceTab('drivers')).toBe('drivers');
+  expect(resolveIntelligenceTab('perfDrivers')).toBe('perfDrivers');
+});

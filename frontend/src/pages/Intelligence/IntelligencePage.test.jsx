@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 // Navigation is exercised here; each tab's API and contents have dedicated tests.
 vi.mock('./ReportCardsTab', () => ({ default: ({ headerControl }) => <div>{headerControl}</div> }));
+vi.mock('../Performance/DriversTab', () => ({
+  default: ({ from, to }) => (
+    <div data-testid="driver-period">
+      {from}:{to}
+    </div>
+  ),
+}));
 vi.mock('./IdlingTab', () => ({ default: () => <div>Idling view</div> }));
 vi.mock('./OverspeedTab', () => ({ default: () => <div>Overspeed view</div> }));
 vi.mock('./FuelRiskTab', () => ({ default: () => <div>Fuel checks view</div> }));
@@ -121,7 +128,7 @@ describe('IntelligencePage', () => {
     ).toBeInTheDocument();
     const sections = {
       Issues: [],
-      'Trucks & drivers': ['Trucks', 'Drivers'],
+      'Trucks & drivers': ['Truck scores', 'Driver scores'],
       Driving: ['Idling', 'Overspeed', 'Cruise & gears', 'Detours'],
       'Fuel & DEF': ['Fuel checks', 'Mileage & DEF'],
       'Runs & places': ['Loaded & empty runs', 'Places'],
@@ -198,7 +205,10 @@ describe('IntelligencePage', () => {
     renderPage();
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Trucks' })).toHaveAttribute('aria-selected', 'true'),
+      expect(screen.getByRole('tab', { name: 'Truck scores' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
     );
   });
 
@@ -252,5 +262,49 @@ describe('IntelligencePage', () => {
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=overspeed'));
     expect(screen.getByRole('tab', { name: 'Overspeed' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('passes the selected period to driver measurements', async () => {
+    renderPage('/intelligence?tab=perfDrivers&from=2026-11-01&to=2026-11-07');
+    expect(await screen.findByTestId('driver-period')).toHaveTextContent('2026-11-01:2026-11-07');
+  });
+
+  it('uses the same affected-subject count in overview, section, briefing and filters', async () => {
+    IntelligenceService.getIssues.mockResolvedValue({
+      items: [
+        { id: 'a', kind: 'NO_DATA', severity: 'act', registrationNumber: 'WB11T0662' },
+        { id: 'b', kind: 'WARNING_LAMP', severity: 'act', registrationNumber: 'wb11t0662' },
+        { id: 'c', kind: 'GPS_FROZEN', severity: 'watch', registrationNumber: 'WB11T0999' },
+        { id: 'd', kind: 'BATTERY', severity: 'watch', registrationNumber: 'wb11t0999' },
+      ],
+      counts: { act: 175 },
+      briefing: { needsYou: 27, highlights: [], watch: 0, vehicles: 27, kinds: 1 },
+    });
+    renderPage('/intelligence?tab=issues');
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'This period at a glance' })).toHaveTextContent(
+        'Needs you1',
+      ),
+    );
+    expect(screen.getByRole('tab', { name: /Issues 1/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'This period at a glance' })).toHaveTextContent(
+      'To watch1',
+    );
+    expect(IntelligenceService.getIssues).toHaveBeenCalledTimes(1);
+    const briefing = await screen.findByRole('region', { name: 'Issues briefing' });
+    expect(within(briefing).getByRole('button', { name: /^Watch/ })).toHaveTextContent('Watch1');
+    expect(
+      within(screen.getByRole('group', { name: 'Filter the issues' })).getByRole('button', {
+        name: 'Watch 1',
+      }),
+    ).toBeInTheDocument();
+    expect(within(briefing).getByRole('button', { name: /^Needs you/ })).toHaveTextContent(
+      'Needs you1',
+    );
+    expect(
+      within(screen.getByRole('group', { name: 'Filter the issues' })).getByRole('button', {
+        name: 'Needs you 1',
+      }),
+    ).toBeInTheDocument();
   });
 });

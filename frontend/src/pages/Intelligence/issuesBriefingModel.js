@@ -1,21 +1,12 @@
-import { groupIssuesByKind } from './intelligenceModel';
+import { groupIssuesByKind, issueSubjects } from './intelligenceModel';
 
-/** Compatibility with backends that have not yet deployed the briefing field. */
+/** One definition of affected subjects across the overview, briefing and filters. */
 export function briefingFromIssues(items) {
-  const subjects = (rows) =>
-    new Set(
-      rows.map(
-        (issue) =>
-          issue.registrationNumber?.replace(/\s/g, '').toUpperCase() ||
-          issue.accountName ||
-          issue.id,
-      ),
-    );
   const groups = groupIssuesByKind(items);
   const byKind = groups.map((group) => ({
     kind: group.kind,
     label: group.label,
-    subjects: subjects(group.items).size,
+    subjects: issueSubjects(group.items).size,
     vehicles: new Set(
       group.items
         .map((issue) => issue.registrationNumber?.replace(/\s/g, '').toUpperCase())
@@ -40,8 +31,8 @@ export function briefingFromIssues(items) {
         .filter(Boolean),
     ).size,
     kinds: groups.length,
-    needsYou: subjects(items.filter((issue) => issue.severity === 'act')).size,
-    watch: subjects(items.filter((issue) => issue.severity === 'watch')).size,
+    needsYou: issueSubjects(items.filter((issue) => issue.severity === 'act')).size,
+    watch: issueSubjects(items.filter((issue) => issue.severity === 'watch')).size,
     highlights: byKind.slice(0, 3),
     note: 'Summarised from loaded issue records. Findings are not confirmed hardware diagnoses; a truck may appear under more than one issue.',
   };

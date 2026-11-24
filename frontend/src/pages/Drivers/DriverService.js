@@ -61,6 +61,21 @@ export const DriverService = {
     }
   },
 
+  // Assignment filters and exports need the complete matching list before paging.
+  getAllDriverPages: async (businessRefId, params = {}) => {
+    const all = [];
+    for (let page = 1, totalPages = 1; page <= totalPages; page += 1) {
+      const result = await DriverService.getAllDrivers(businessRefId, {
+        ...params,
+        page,
+        limit: 1000,
+      });
+      all.push(...(result.data || []));
+      totalPages = result.meta?.totalPages || 1;
+    }
+    return all;
+  },
+
   // --- Add Driver (single employee) ---
   addDriver: async (businessRefId, driverData) => {
     try {

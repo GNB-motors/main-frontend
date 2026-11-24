@@ -295,7 +295,6 @@ const LiveTrackingPage = () => {
   const {
     mapRef,
     mapZoom,
-    setMapZoom,
     mapBounds,
     onMapIdle,
     mapOptions,
@@ -1229,7 +1228,6 @@ const LiveTrackingPage = () => {
               isLoaded={isLoaded}
               loadError={loadError}
               mapZoom={mapZoom}
-              setMapZoom={setMapZoom}
               onMapLoad={onMapLoad}
               onMapIdle={onMapIdle}
               mapRef={mapRef}

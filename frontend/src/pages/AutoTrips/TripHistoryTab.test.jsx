@@ -38,3 +38,23 @@ it('finds a long visit beyond the first page and sends the full selected IST day
     ),
   );
 });
+
+it('formats oil-register timestamps on their IST calendar day', async () => {
+  fleetViewService.getTripsHistory.mockResolvedValueOnce({
+    items: [
+      {
+        kind: 'REGISTER_TRIP',
+        registrationNumber: 'WB11G1462',
+        register: { date: '2026-03-31T18:30:00.000Z', from: 'Plant', to: ['Drop'] },
+      },
+    ],
+    total: 1,
+  });
+  render(
+    <MemoryRouter>
+      <TripHistoryTab />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText('1 Apr')).toBeInTheDocument();
+  expect(screen.queryByText('2026-03-31T18:30:00.000Z')).not.toBeInTheDocument();
+});

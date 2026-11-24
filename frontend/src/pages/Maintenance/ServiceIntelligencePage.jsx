@@ -28,6 +28,7 @@ import ServiceIntelligenceTable from './serviceIntelligence/ServiceIntelligenceT
 import '../Profile/VehiclesPage.css';
 import './ServiceIntelligencePage.css';
 import logger from '../../utils/logger';
+import { loadServiceAlerts } from './serviceForecasts';
 
 const ServiceIntelligencePage = () => {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ const ServiceIntelligencePage = () => {
   const [selectedResolveItem, setSelectedResolveItem] = useState(null);
 
   // Active alerts count for tab badge
-  const [activeAlertsCount, setActiveAlertsCount] = useState(0);
+  const [activeAlertsCount, setActiveAlertsCount] = useState(null);
   const [alertsRefreshKey, setAlertsRefreshKey] = useState(0);
   const [alertsRefreshing, setAlertsRefreshing] = useState(false);
 
@@ -71,13 +72,13 @@ const ServiceIntelligencePage = () => {
     let mounted = true;
     (async () => {
       try {
-        const alerts = await MaintenanceService.getAlerts();
+        const alerts = await loadServiceAlerts();
         if (mounted && Array.isArray(alerts)) {
           const activeCount = alerts.filter((a) => !a.resolved).length;
           setActiveAlertsCount(activeCount);
         }
       } catch {
-        // Silently skip if alerts cannot be fetched
+        if (mounted) setActiveAlertsCount(null);
       }
     })();
     return () => {
