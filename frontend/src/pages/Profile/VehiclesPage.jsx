@@ -32,8 +32,6 @@ import { useFleetLink } from '../../contexts/fleetLinkContext';
 import logger from '../../utils/logger';
 import useVehicleManufacturers from './useVehicleManufacturers.js';
 import VehicleListFilters from './VehicleListFilters.jsx';
-import useApi from '../../hooks/useApi';
-import { LiveTrackingService } from '../LiveTracking/LiveTrackingService';
 import VehicleListService from './VehicleListService.js';
 
 const VehiclesPage = () => {
@@ -51,13 +49,10 @@ const VehiclesPage = () => {
   const [searchVehicleNo, setSearchVehicleNo] = useState('');
   const [manufacturerFilter, setManufacturerFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [registryStatus, setRegistryStatus] = useState('');
-  const [account, setAccount] = useState('');
-  const [missingDocs, setMissingDocs] = useState(false);
   const { manufacturers, metadataError, retryMetadata } = useVehicleManufacturers();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [itemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
@@ -102,13 +97,18 @@ const VehiclesPage = () => {
           manufacturer: manufacturerFilter,
           search: searchVehicleNo,
           view: statusFilter,
-          status: registryStatus,
-          account,
-          missingDocs,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
 
+        // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
+        try {
+          const accounts = await listAccounts({ signal: controller.signal });
+          if (!controller.signal.aborted) setFleetEdgeAccounts(accounts || []);
+        } catch {
+          /* non-fatal */
+        }
+        if (controller.signal.aborted) return;
         setVehicles(result.data);
         setTotalPages(result.meta.totalPages);
         setTotalVehicles(result.meta.total);
@@ -130,20 +130,7 @@ const VehiclesPage = () => {
     manufacturerFilter,
     searchVehicleNo,
     statusFilter,
-    registryStatus,
-    account,
-    missingDocs,
   ]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    listAccounts({ signal: controller.signal })
-      .then((accounts) => {
-        if (!controller.signal.aborted) setFleetEdgeAccounts(accounts || []);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [refreshKey]);
 
   // --- Remove Vehicle ---
   const handleRemoveVehicle = async (vehicleIdToRemove) => {
@@ -213,9 +200,6 @@ const VehiclesPage = () => {
       manufacturer: manufacturerFilter,
       search: searchVehicleNo,
       view: statusFilter,
-      status: registryStatus,
-      account,
-      missingDocs,
     });
     return all.map((vehicle) => mapVehicleForExport(vehicle, accountMap, linkIndex));
   };
@@ -229,31 +213,10 @@ const VehiclesPage = () => {
   const activeFilterCount =
     Number(Boolean(searchVehicleNo.trim())) +
     Number(Boolean(manufacturerFilter)) +
-    Number(statusFilter !== 'ALL') +
-    Number(Boolean(registryStatus)) +
-    Number(Boolean(account)) +
-    Number(missingDocs);
-
-  const positions = useApi(
-    (signal) => LiveTrackingService.getPositions({}, { signal }),
-    [refreshKey],
-  );
-  const positionIndex = useMemo(
-    () =>
-      new Map(
-        (positions.data || []).map((row) => [
-          String(row.registrationNumber || '')
-            .replace(/\s/g, '')
-            .toUpperCase(),
-          row,
-        ]),
-      ),
-    [positions.data],
-  );
+    Number(statusFilter !== 'ALL');
 
   const columns = useVehicleColumns({
     accountMap,
-    positionIndex,
     manufacturers,
     linkIndex,
     linkLoading: !linkData && !linkError,
@@ -283,9 +246,6 @@ const VehiclesPage = () => {
               setSearchVehicleNo('');
               setManufacturerFilter('');
               setStatusFilter('ALL');
-              setRegistryStatus('');
-              setAccount('');
-              setMissingDocs(false);
               setCurrentPage(1);
             }}
             right={
@@ -299,27 +259,6 @@ const VehiclesPage = () => {
                 }}
                 onManufacturerChange={(value) => {
                   setManufacturerFilter(value);
-                  setCurrentPage(1);
-                }}
-                registryStatus={registryStatus}
-                onRegistryStatusChange={(value) => {
-                  setRegistryStatus(value);
-                  setCurrentPage(1);
-                }}
-                account={account}
-                accounts={fleetEdgeAccounts}
-                onAccountChange={(value) => {
-                  setAccount(value);
-                  setCurrentPage(1);
-                }}
-                missingDocs={missingDocs}
-                onMissingDocsChange={(value) => {
-                  setMissingDocs(value);
-                  setCurrentPage(1);
-                }}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={(value) => {
-                  setItemsPerPage(value);
                   setCurrentPage(1);
                 }}
                 metadataError={metadataError}
@@ -392,7 +331,7 @@ const VehiclesPage = () => {
           activeFilters={activeFilterCount}
           paginated={true}
           pagination={
-            totalPages > 1 ? (
+            totalPages > 1 || totalVehicles > 10 ? (
               <VehiclesPagination
                 currentPage={currentPage}
                 totalPages={totalPages}

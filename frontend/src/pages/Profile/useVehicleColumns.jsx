@@ -2,11 +2,8 @@
 // DataTable column definitions for the Vehicles page.
 // Extracted from VehiclesPage.jsx (WS0.7) to keep the page under the file-size rule;
 // cell markup preserved byte-identically.
-import { viewOf } from '../../utils/liveView';
-import { formatDateTimeIST } from '../../utils/dateUtils';
-import PlaceLabel from '../../components/ui/PlaceLabel';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, MoreHorizontal, Pencil, Plug, Trash2, ToggleRight, Unplug } from 'lucide-react';
+import { Eye, Pencil, Plug, Trash2, ToggleRight, Unplug } from 'lucide-react';
 import { describeFleetEdgeAccount } from './vehicleList.js';
 import '../../components/FleetLink.css';
 import { manufacturerLabel } from './vehicleManufacturerOptions.js';
@@ -76,18 +73,15 @@ function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActiv
           >
             <Pencil size={16} />
           </button>
-          <details className="vehicle-action-menu">
-            <summary
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-              aria-label={`More actions for ${vehicle.registration_no}`}
-            >
-              <MoreHorizontal size={16} />
-            </summary>
-            <button type="button" onClick={handleDelete} disabled={isSubmitting}>
-              Delete vehicle…
-            </button>
-          </details>
+          <button
+            className="vehicle-inline-btn vehicle-inline-btn--delete"
+            onClick={handleDelete}
+            disabled={isSubmitting}
+            title="Delete vehicle"
+            type="button"
+          >
+            <Trash2 size={16} />
+          </button>
         </>
       )}
     </div>
@@ -96,7 +90,6 @@ function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActiv
 
 export function useVehicleColumns({
   accountMap,
-  positionIndex = null,
   manufacturers,
   linkIndex,
   linkLoading = false,
@@ -106,7 +99,7 @@ export function useVehicleColumns({
   onDelete,
   onActivateHere,
 }) {
-  const columns = [
+  return [
     {
       key: 'registration_no',
       label: 'Vehicle No',
@@ -386,97 +379,5 @@ export function useVehicleColumns({
         />
       ),
     },
-  ];
-  if (!positionIndex) return columns;
-  const lookup = (vehicle) =>
-    positionIndex.get(
-      String(vehicle.registration_no || '')
-        .replace(/\s/g, '')
-        .toUpperCase(),
-    );
-  const accountColumn = columns.find((column) => column.key === 'fleetEdgeAccountId');
-  const operational = [
-    {
-      key: 'liveMotion',
-      label: 'Live status',
-      render: (vehicle) => {
-        const row = lookup(vehicle);
-        if (!row) return '—';
-        return (
-          { moving: 'Moving', stopped: 'Parked', idling: 'Idling', offline: 'Offline' }[
-            viewOf(row).status
-          ] || '—'
-        );
-      },
-    },
-    {
-      key: 'location',
-      label: 'Last location',
-      render: (vehicle) => {
-        const row = lookup(vehicle);
-        if (row?.address && !/^\s*[-+\d.,\s]+$/.test(row.address)) return row.address;
-        if (Number.isFinite(row?.latitude) && Number.isFinite(row?.longitude)) {
-          return (
-            <PlaceLabel
-              lat={row.latitude}
-              lng={row.longitude}
-              showMap={false}
-              fallbackText="Location not named"
-            />
-          );
-        }
-        return '—';
-      },
-    },
-    {
-      key: 'fuelLevel',
-      label: 'Fuel',
-      render: (vehicle) => {
-        const row = lookup(vehicle);
-        const value =
-          row?.fuel?.unit === '%'
-            ? row.fuel.value
-            : row?.fuelLevelUnit === 'percent' || row?.fuelLevelUnit === '%'
-              ? row.primaryFuelLevel
-              : null;
-        return Number.isFinite(value) && value >= 0 && value <= 100 ? `${Math.round(value)}%` : '—';
-      },
-    },
-    {
-      key: 'driver',
-      label: 'Driver',
-      render: (vehicle) => {
-        const driver = lookup(vehicle)?.driver;
-        return (
-          driver?.name || [driver?.firstName, driver?.lastName].filter(Boolean).join(' ') || '—'
-        );
-      },
-    },
-    {
-      key: 'lastSeen',
-      label: 'Last seen',
-      render: (vehicle) => {
-        const seen = viewOf(lookup(vehicle)).lastFixAt;
-        return seen ? formatDateTimeIST(seen) : '—';
-      },
-    },
-    {
-      key: 'details',
-      label: 'Details',
-      render: (vehicle) => (
-        <details role="presentation" onClick={(event) => event.stopPropagation()}>
-          <summary>Details</summary>
-          <div>Chassis {vehicle.chassis_number || '—'}</div>
-          <div>{accountColumn.render(vehicle)}</div>
-        </details>
-      ),
-    },
-  ];
-  return [
-    ...columns.slice(0, 1),
-    ...operational,
-    ...columns.filter((column) =>
-      ['manufacturer', 'model', 'missingDocTypes', 'actions'].includes(column.key),
-    ),
   ];
 }

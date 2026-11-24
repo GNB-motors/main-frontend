@@ -2,9 +2,9 @@ import { VehicleService } from './VehicleService.js';
 import { normalizeVehicle } from './vehicleList.js';
 
 // Only exports read successive pages. The table always requests exactly one server page.
-async function getMatching({ businessRefId, view = 'ALL', ...filters }) {
+async function getMatching({ businessRefId, manufacturer, search, signal, view = 'ALL' }) {
   const limit = 1000;
-  const options = { ...filters, view };
+  const options = { manufacturer, search, signal, view };
   const first = await VehicleService.getAllVehicles(businessRefId, 1, limit, options);
   const all = [...(first.data || [])];
   for (let page = 2; page <= (first.meta?.totalPages || 1); page += 1) {
@@ -22,9 +22,6 @@ const VehicleListService = {
       search: options.search,
       signal: options.signal,
       view,
-      ...(options.status ? { status: options.status } : {}),
-      ...(options.account ? { account: options.account } : {}),
-      ...(options.missingDocs ? { missingDocs: true } : {}),
     });
     return { ...result, data: (result.data || []).map(normalizeVehicle) };
   },
