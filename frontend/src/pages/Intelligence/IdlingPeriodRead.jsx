@@ -1,3 +1,5 @@
+import { toISTDateString } from '../../utils/dateUtils';
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatInr, formatNumber } from '@/utils/redesign/format';
 import './reportCardsReference.css';
 import '../Vehicle360/panels/overview/referenceOverview.css';
@@ -11,8 +13,8 @@ export default function IdlingPeriodRead({
   onLive,
   onHistory,
 }) {
-  const liveReady = !loading && !errors['live idling'];
-  const historyReady = !loading && !errors['idle history'];
+  const liveReady = !loading && !errors['live idling'] && !errors['driver assignments'];
+  const historyReady = !loading && !errors['idle history'] && !errors['driver assignments'];
   const hasNumber = (value) => value != null && value !== '' && Number.isFinite(Number(value));
   const excess = history.filter((row) => row.legitimacy === 'excess');
   const hours =
@@ -23,6 +25,22 @@ export default function IdlingPeriodRead({
     historyReady && excess.every((row) => hasNumber(row.rupees))
       ? excess.reduce((sum, row) => sum + Number(row.rupees), 0)
       : null;
+  const truckHours = new Map();
+  const dayHours = new Map();
+  if (historyReady) {
+    for (const row of history) {
+      if (!hasNumber(row.durationMin) || Number(row.durationMin) < 0) continue;
+      const duration = Number(row.durationMin) / 60;
+      const truck = row.registrationNumber;
+      const day = row.startAt ? toISTDateString(row.startAt) : null;
+      if (truck) truckHours.set(truck, (truckHours.get(truck) || 0) + duration);
+      if (day) dayHours.set(day, (dayHours.get(day) || 0) + duration);
+    }
+  }
+  const trucks = [...truckHours.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const days = [...dayHours.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, hours]) => ({ day, hours: Number(hours.toFixed(2)) }));
   return (
     <section
       className="intel-assessment-briefing"
@@ -101,6 +119,33 @@ export default function IdlingPeriodRead({
           </button>
         ))}
       </div>
+      {trucks.length ? (
+        <figure className="intel-idle-chart" aria-label="Recorded idle hours by truck">
+          <figcaption>Recorded idle hours · top {trucks.length} trucks</figcaption>
+          {trucks.map(([truck, value]) => (
+            <div className="intel-idle-bar" key={truck}>
+              <span>{truck}</span>
+              <i aria-hidden="true">
+                <b style={{ width: `${(100 * value) / (trucks[0][1] || 1)}%` }} />
+              </i>
+              <span>{formatNumber(value, { digits: 1 })} h</span>
+            </div>
+          ))}
+        </figure>
+      ) : null}
+      {days.length ? (
+        <figure className="intel-idle-chart" aria-label="Recorded idle hours by day">
+          <figcaption>Recorded idle hours by day</figcaption>
+          <ResponsiveContainer width="100%" height={140}>
+            <LineChart data={days}>
+              <XAxis dataKey="day" tickFormatter={(day) => day.slice(5)} />
+              <YAxis unit=" h" />
+              <Tooltip />
+              <Line dataKey="hours" stroke="#315be1" isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </figure>
+      ) : null}
     </section>
   );
 }

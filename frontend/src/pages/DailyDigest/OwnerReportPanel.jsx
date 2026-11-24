@@ -151,8 +151,12 @@ function TruckChips({ trucks, day, kind }) {
             day={day}
             to={
               kind === 'excessIdling'
-                ? `/intelligence?tab=idling&vehicle=${encodeURIComponent(truck.reg)}`
-                : truckLink(truck.reg)
+                ? `/intelligence?tab=idling&idleSubview=instances&vehicle=${encodeURIComponent(truck.reg)}`
+                : kind === 'fuelOverModel'
+                  ? `/intelligence?tab=mileage&vehicle=${encodeURIComponent(truck.reg)}`
+                  : kind === 'moneyTheft'
+                    ? `/intelligence?tab=fuel&fuelView=drain&vehicle=${encodeURIComponent(truck.reg)}`
+                    : truckLink(truck.reg)
             }
             title={truck.detail || undefined}
           >
@@ -175,7 +179,7 @@ function TruckChips({ trucks, day, kind }) {
   );
 }
 
-function MoneyLeakCard({ brief$, isPendingDay }) {
+function MoneyLeakCard({ brief$, isPendingDay, day }) {
   const brief = brief$.data;
   const rows = useMemo(() => leakRows(brief), [brief]);
   const categorySum = rows.reduce((sum, row) => sum + (row.rupees ?? 0), 0);
@@ -270,7 +274,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
               <p className="db-leak-preview-label">
                 Top trucks · amounts are part of this category
               </p>
-              <TruckChips trucks={row.trucks} />
+              <TruckChips trucks={row.trucks} kind={row.key} day={day} />
               <details className="db-leak-details">
                 <summary>Why flagged{row.partial ? ' · Incomplete data' : ''}</summary>
                 {row.comparedTo ? <p className="db-leak-compare">{row.comparedTo}</p> : null}
@@ -745,6 +749,9 @@ function BriefingPanel({
               key={`${day}:${report$.data?.generatedAt || ''}`}
               day={day}
               section={byId.exceptions}
+              idleCostRecorded={leakRows(brief$.data).some(
+                (row) => row.key === 'excessIdling' && row.trucks.length > 0,
+              )}
               loading={reportLoading}
               onRetry={report$.refetch}
               isPendingDay={isPendingDay}

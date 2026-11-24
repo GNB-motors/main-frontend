@@ -1,4 +1,5 @@
 import Link from '@/components/redesign/FleetLink';
+import { toISTDateString } from '@/utils/dateUtils';
 import { MapPinned, X } from 'lucide-react';
 import {
   Sheet,
@@ -40,6 +41,9 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
   if (!card) return null;
 
   const isDriver = card?.subject === 'driver';
+  // "See all its idling" opens the card's own period, not the page's default.
+  const periodFrom = toISTDateString(card.periodFrom);
+  const periodTo = toISTDateString(card.periodTo);
   const lastDay = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   return (
@@ -184,8 +188,8 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
               <Link
                 to={intelligenceLink(
                   isDriver
-                    ? { tab: 'idling', driver: card?.id }
-                    : { tab: 'idling', vehicle: card?.id },
+                    ? { tab: 'idling', driver: card?.id, from: periodFrom, to: periodTo }
+                    : { tab: 'idling', vehicle: card?.id, from: periodFrom, to: periodTo },
                 )}
                 className="inline-flex items-center gap-1.5 rounded-[var(--rd-radius-xs)] border border-[var(--rd-line-strong)] bg-[var(--rd-card)] px-2.5 py-1 text-[13px] font-semibold text-[var(--rd-ink)] no-underline hover:bg-[var(--rd-card-2)]"
               >
