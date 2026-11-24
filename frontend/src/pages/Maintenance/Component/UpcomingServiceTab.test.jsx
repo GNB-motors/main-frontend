@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import UpcomingServiceTab from './UpcomingServiceTab';
 import { FleetDataService } from '../../../services/FleetDataService';
@@ -46,6 +46,11 @@ it('shows whole service days and preserves overdue status for a fraction of a da
   expect(screen.getByText('Due today')).toBeInTheDocument();
   expect(screen.getByText('Due date not projected')).toBeInTheDocument();
   expect(screen.queryByText(/82\.42|80\.3|69\.71/)).not.toBeInTheDocument();
+  const all = screen.getByRole('button', { name: 'All 7' });
+  expect(all).toHaveAttribute('aria-pressed', 'true');
+  expect(all).toHaveClass('si-filter-pill--active');
+  fireEvent.click(screen.getByRole('button', { name: 'On track 1' }));
+  expect(screen.queryByRole('region', { name: 'Top overdue trucks in kilometres' })).toBeNull();
 });
 
 it('does not show a telemetry start as a completed service and excludes retired trucks', async () => {

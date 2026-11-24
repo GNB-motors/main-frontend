@@ -51,7 +51,7 @@ export default function UpcomingServiceTab({ search = '', refreshKey = 0 }) {
       (subTab === 'ALL' || row.risk === subTab) &&
       row.registrationNumber.toLowerCase().includes(search.trim().toLowerCase()),
   );
-  const overdue = records
+  const overdue = filtered
     .filter((row) => row.risk === 'OVERDUE' && row.kmUntilDue < 0)
     .slice(0, 10)
     .map((row) => ({ truck: row.registrationNumber, km: Math.abs(row.kmUntilDue) }));
@@ -91,12 +91,12 @@ export default function UpcomingServiceTab({ search = '', refreshKey = 0 }) {
             key={key}
             aria-pressed={subTab === key}
             onClick={() => setSubTab(key)}
-            className="si-filter-pill"
+            className={`si-filter-pill${subTab === key ? ' si-filter-pill--active' : ''}`}
           >
             {label} <span>{count(key)}</span>
           </button>
         ))}
-        <NewButton text="Refresh" onClick={load} disabled={loading} />
+        <NewButton text="Refresh" size="sm" onClick={load} disabled={loading} />
       </div>
       {error ? (
         <p role="alert">
@@ -110,17 +110,20 @@ export default function UpcomingServiceTab({ search = '', refreshKey = 0 }) {
       ) : (
         <>
           {overdue.length > 0 && (
-            <section aria-label="Top overdue trucks in kilometres">
-              <h3>Top {overdue.length} overdue trucks · km</h3>
-              <div style={{ width: '100%', height: Math.max(180, overdue.length * 32) }}>
+            <section className="si-overdue-chart" aria-label="Top overdue trucks in kilometres">
+              <h3 className="si-overdue-chart__title">Top {overdue.length} overdue trucks · km</h3>
+              <div
+                className="si-overdue-chart__plot"
+                style={{ height: Math.min(340, Math.max(220, overdue.length * 30)) }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={overdue} layout="vertical" margin={{ left: 20, right: 30 }}>
-                    <XAxis type="number" unit=" km" />
-                    <YAxis type="category" dataKey="truck" width={110} />
+                  <BarChart data={overdue} layout="vertical" margin={{ left: 8, right: 18 }}>
+                    <XAxis type="number" unit=" km" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="truck" width={100} tick={{ fontSize: 12 }} />
                     <Tooltip
                       formatter={(value) => [`${value.toLocaleString('en-IN')} km`, 'Overdue']}
                     />
-                    <Bar dataKey="km" fill="#ea580c" />
+                    <Bar dataKey="km" fill="#ea580c" barSize={18} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
