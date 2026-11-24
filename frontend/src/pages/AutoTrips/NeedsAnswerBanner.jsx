@@ -9,6 +9,7 @@ export default function NeedsAnswerBanner({
   questionsTrips,
   questionsLoading = false,
   questionsFailed,
+  onRetryQuestions,
   onAnswerPlaces,
   onShowTrips,
   showingTrips = false,
@@ -40,9 +41,7 @@ export default function NeedsAnswerBanner({
                 : `${formatNum(total)} trips need your answer`}
             </h2>
             <p>
-              {questionsLoading ? (
-                'Loading stops that need review…'
-              ) : questionsFailed ? (
+              {questionsFailed ? (
                 'Places could not be loaded. Open the affected trips to review their drops.'
               ) : places > 0 ? (
                 <>
@@ -60,6 +59,11 @@ export default function NeedsAnswerBanner({
         {places > 0 && !questionsLoading && !questionsFailed ? (
           <button type="button" className="atx-btn atx-btn--primary" onClick={onAnswerPlaces}>
             Review places
+          </button>
+        ) : null}
+        {questionsFailed && !questionsLoading && onRetryQuestions ? (
+          <button type="button" className="atx-btn" onClick={onRetryQuestions}>
+            Retry places
           </button>
         ) : null}
         {onShowTrips ? (

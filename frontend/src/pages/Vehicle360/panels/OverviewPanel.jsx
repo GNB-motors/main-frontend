@@ -8,6 +8,8 @@ import { fleetViewService } from '../../../services/fleetViewService';
 import { timeAgo } from '../../../utils/formatters';
 import { viewOf } from '../../../utils/liveView';
 import { trackLink } from '../../../utils/redesign/links';
+import VehiclePositionLabel from '../VehiclePositionLabel';
+import TruckActivityStrip from './overview/TruckActivityStrip';
 import ReferenceOverviewMap from './overview/ReferenceOverviewMap';
 import {
   DistanceCard,
@@ -53,12 +55,6 @@ export default function OverviewPanel({
     [overviewData, track.data],
   );
   const view = viewOf(livePosition);
-  const location =
-    livePosition?.address ||
-    livePosition?.area ||
-    (livePosition?.latitude != null && livePosition?.longitude != null
-      ? `${Number(livePosition.latitude).toFixed(4)}, ${Number(livePosition.longitude).toFixed(4)}`
-      : 'Location not reported');
   const motion = {
     stopped: 'Parked',
     moving: 'Moving',
@@ -70,6 +66,7 @@ export default function OverviewPanel({
     <PanelErrorBoundary name="vehicle-overview">
       <div className="vdo-overview">
         <div className="vdo-content">
+          <TruckActivityStrip vehicle={reg} stops={track.data?.stops} />
           <div className="vdo-top-row">
             <DistanceCard
               series={series}
@@ -83,7 +80,9 @@ export default function OverviewPanel({
               <section className="vdo-card vdo-location">
                 <div className="vdo-location-head">
                   <div>
-                    <h3>{location}</h3>
+                    <h3>
+                      <VehiclePositionLabel position={livePosition} />
+                    </h3>
                     <p>
                       {[
                         motion,
@@ -101,8 +100,8 @@ export default function OverviewPanel({
                 <ReferenceOverviewMap
                   track={track.data}
                   livePosition={livePosition}
-                  series={series}
-                  loading={track.loading}
+                  error={track.error}
+                  onRetry={track.refetch}
                 />
               </section>
             )}

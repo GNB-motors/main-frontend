@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Skel from './Skel.jsx';
 import VehicleCardSkeleton from './VehicleCardSkeleton.jsx';
 import renderIconSvg from './renderIconSvg.jsx';
@@ -11,6 +12,7 @@ import { modelLabel } from './vehiclePanelModel.js';
 import { formatFuelValue, fuelUnitTitle } from '../../utils/liveView.js';
 
 const SKEL_CARD_COUNT = 6;
+const CARD_BATCH = 50;
 
 export default function FleetListView({
   isLiveLoading,
@@ -25,6 +27,7 @@ export default function FleetListView({
   onRetry = null,
   alertCounts = new Map(),
 }) {
+  const [cardLimit, setCardLimit] = useState(CARD_BATCH);
   // A failed load is not an empty fleet. Say so instead of showing "0 vehicles".
   const loadFailed = Boolean(error) && vehicles.length === 0;
 
@@ -80,10 +83,12 @@ export default function FleetListView({
             .sort((a, b) => {
               const order = { moving: 0, idling: 1, stopped: 2, offline: 3 };
               return (
+                Number(b.id === selectedId) - Number(a.id === selectedId) ||
                 (order[a.status] ?? 4) - (order[b.status] ?? 4) ||
                 (a.ago ?? Infinity) - (b.ago ?? Infinity)
               );
             })
+            .slice(0, cardLimit)
             .map((v) => {
               const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
               const isSel = v.id === selectedId;
@@ -113,7 +118,6 @@ export default function FleetListView({
                         {v.manufacturer || 'Manufacturer unknown'}
                         {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
                       </div>
-                      <div className="vc-vin">VIN: {v.vin || '—'}</div>
                     </div>
                     <span className="vc-state">
                       <i />
@@ -144,13 +148,17 @@ export default function FleetListView({
                     {v.ignition && v.ignition !== '—' ? (
                       <span>
                         {renderIconSvg('zap', 13)}
-                        {v.ignition}
+                        {v.ignition === 'ON' ? 'Engine on' : 'Engine off'}
                       </span>
                     ) : null}
                     {v.gps && v.gps !== '—' ? (
                       <span>
                         {renderIconSvg('nav', 13)}
-                        {v.gps}
+                        {v.gps === 'Fix'
+                          ? 'GPS current'
+                          : v.gps === 'Last known'
+                            ? 'Last GPS position'
+                            : 'No GPS fix'}
                       </span>
                     ) : null}
                     <span className="sp" />
@@ -166,6 +174,15 @@ export default function FleetListView({
               );
             })
         )}
+        {!isLiveLoading && filteredVehicles.length > cardLimit ? (
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => setCardLimit((count) => count + CARD_BATCH)}
+          >
+            Show more trucks · {cardLimit} of {filteredVehicles.length}
+          </button>
+        ) : null}
       </div>
     </div>
   );

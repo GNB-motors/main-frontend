@@ -441,6 +441,30 @@ export default function AutoTripReplay({
             ) : null}
           </GoogleMap>
         ) : null}
+        {isLoaded && (frames.length > 0 || pts.path.length > 1 || pts.pickup || pts.drop) ? (
+          <ul className="atx-map-legend" aria-label="Trip map legend">
+            {pts.pickup ? (
+              <li>
+                <i style={{ backgroundColor: COLOR.start }} /> Pickup
+              </li>
+            ) : null}
+            {pts.drop || pts.extras.length ? (
+              <li>
+                <i style={{ backgroundColor: COLOR.drop }} /> Drop
+              </li>
+            ) : null}
+            {stopMarks.some((mark) => mark.unknown) ? (
+              <li>
+                <i style={{ borderColor: COLOR.unknown }} /> Unknown stop
+              </li>
+            ) : null}
+            {segments.some((segment) => segment.load === 'empty') ? (
+              <li>
+                <i className="atx-map-legend-dashed" /> Empty driving
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
         {chip ? <span className="atx-map-chip">{chip}</span> : null}
       </div>
 

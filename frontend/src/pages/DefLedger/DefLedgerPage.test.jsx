@@ -122,12 +122,12 @@ describe('DEF ledger page', () => {
     expect(within(tileFor('Needs review')).getByText('3')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('combobox', { name: 'Status' }));
     fireEvent.click(screen.getByRole('option', { name: /Needs review/ }));
-    expect(screen.getAllByRole('button', { name: /^Log AdBlue for/ })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /^View DEF details for/ })).toHaveLength(3);
     expect(screen.getByText(vehicles[2].registrationNumber)).toBeInTheDocument();
     expect(screen.queryByText(vehicles[3].registrationNumber)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('combobox', { name: 'Status' }));
     fireEvent.click(screen.getByRole('option', { name: /Unlogged burn/ }));
-    expect(screen.getAllByRole('button', { name: /^Log AdBlue for/ })).toHaveLength(9);
+    expect(screen.getAllByRole('button', { name: /^View DEF details for/ })).toHaveLength(9);
     expect(screen.queryByText(vehicles[2].registrationNumber)).not.toBeInTheDocument();
     expect(screen.getByText(vehicles[3].registrationNumber)).toBeInTheDocument();
   });
@@ -139,8 +139,31 @@ describe('DEF ledger page', () => {
 
   it('opens the detail with a button that says what it does', async () => {
     await renderPage();
-    expect(screen.getAllByRole('button', { name: /^Log AdBlue for/ })).toHaveLength(2);
-    expect(screen.queryByRole('button', { name: /Audit Drawer/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^View DEF details for/ })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'View DEF details for WB11L8862' }));
+    const drawer = within(screen.getByRole('dialog'));
+    expect(drawer.getByRole('button', { name: 'Log AdBlue for this truck' })).toBeInTheDocument();
+    expect(drawer.getByRole('link', { name: 'View latest DEF tank level' })).toHaveAttribute(
+      'href',
+      '/vehicles/WB11L8862?tab=fuel',
+    );
+  });
+
+  it('treats an unreported DEF counter as missing, while retaining a measured zero', async () => {
+    const absent = {
+      ...DATA.vehicles[0],
+      telemetryDefL: 0,
+      defReported: false,
+      status: 'NOT_REPORTED',
+    };
+    const zero = { ...DATA.vehicles[1], telemetryDefL: 0, defReported: true };
+    useApi.mockReturnValue({ data: { ...DATA, vehicles: [absent, zero] }, loading: false });
+    await renderPage();
+    expect(within(rowFor(absent.registrationNumber)).queryByText('0 L')).not.toBeInTheDocument();
+    expect(within(rowFor(zero.registrationNumber)).getByText('0 L')).toBeInTheDocument();
+    expect(
+      within(tileFor('DEF burned (fresh telemetry)')).getByText(/1 truck.*with readings/),
+    ).toBeInTheDocument();
   });
 
   it('uses each vehicle’s logging state in a fleet where only one truck has AdBlue entries', async () => {

@@ -10,10 +10,21 @@ const now = {
     sinceAt: '2026-11-02T18:38:00Z',
     durationMin: 130,
     vsUsual: { usualMin: 185, diffMin: -55 },
-    why: { text: 'The truck is stopped inside the plant gate with the engine off.', basis: 'Speed 0 km/h for 2 h 10 min' },
+    why: {
+      text: 'The truck is stopped inside the plant gate with the engine off.',
+      basis: 'Speed 0 km/h for 2 h 10 min',
+    },
   },
   place: {
-    at: { id: 'site-jk-buxar', kind: 'SITE', name: 'JK BUXAR', category: 'PLANT', lat: 25.5, lng: 83.9, radiusM: 600 },
+    at: {
+      id: 'site-jk-buxar',
+      kind: 'SITE',
+      name: 'JK BUXAR',
+      category: 'PLANT',
+      lat: 25.5,
+      lng: 83.9,
+      radiusM: 600,
+    },
     inside: true,
     sinceAt: '2026-11-02T18:38:00Z',
     dwellMin: 130,
@@ -25,8 +36,26 @@ const now = {
   trip: {
     autoTripId: 'trip-1',
     leg: 'LADEN',
-    pickup: { id: 'site-jk-buxar', kind: 'SITE', name: 'JK BUXAR', category: 'PLANT', lat: 25.5, lng: 83.9, radiusM: 600, departedAt: null },
-    drop: { id: 'site-dankuni', kind: 'SITE', name: 'DANKUNI SIDING', category: 'PLANT', lat: 22.6, lng: 88.3, radiusM: 500, arrivedAt: null },
+    pickup: {
+      id: 'site-jk-buxar',
+      kind: 'SITE',
+      name: 'JK BUXAR',
+      category: 'PLANT',
+      lat: 25.5,
+      lng: 83.9,
+      radiusM: 600,
+      departedAt: null,
+    },
+    drop: {
+      id: 'site-dankuni',
+      kind: 'SITE',
+      name: 'DANKUNI SIDING',
+      category: 'PLANT',
+      lat: 22.6,
+      lng: 88.3,
+      radiusM: 500,
+      arrivedAt: null,
+    },
     material: 'Cement or clinker',
     materialSource: 'PLANT_TYPE',
     tonnage: null,
@@ -97,7 +126,15 @@ describe('VehicleNowCard', () => {
       <MemoryRouter>
         <VehicleNowCard
           now={{ ...now, activity: null }}
-          vehicle={{ plate: 'WB11L8862', status: 'moving', speed: 18, live: true, ago: 2, hasFix: true, area: 'Dankuni, Hooghly' }}
+          vehicle={{
+            plate: 'WB11L8862',
+            status: 'moving',
+            speed: 18,
+            live: true,
+            ago: 2,
+            hasFix: true,
+            area: 'Dankuni, Hooghly',
+          }}
         />
       </MemoryRouter>,
     );
@@ -106,12 +143,35 @@ describe('VehicleNowCard', () => {
     expect(screen.queryByText(/once it reports/)).not.toBeInTheDocument();
   });
 
+  it('clears a parked-place classification when the current fix says moving', () => {
+    render(
+      <MemoryRouter>
+        <VehicleNowCard
+          now={now}
+          vehicle={{ status: 'moving', speed: 14, live: true, hasFix: true, area: 'Dankuni' }}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Now · Moving at 14 km/h' })).toBeInTheDocument();
+    expect(screen.getByText('Dankuni')).toBeInTheDocument();
+    expect(screen.queryByText(/Usually|this truck has been here/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Open place →')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open trip/ })).toBeInTheDocument();
+  });
+
   it('says a truck is not reporting when it is offline', () => {
     render(
       <MemoryRouter>
         <VehicleNowCard
           now={{ ...now, activity: null }}
-          vehicle={{ plate: 'WB11L8862', status: 'offline', live: false, ago: 300, hasFix: true, area: 'Dankuni' }}
+          vehicle={{
+            plate: 'WB11L8862',
+            status: 'offline',
+            live: false,
+            ago: 300,
+            hasFix: true,
+            area: 'Dankuni',
+          }}
         />
       </MemoryRouter>,
     );

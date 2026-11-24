@@ -113,3 +113,19 @@ export function rowsOf(payload) {
   if (Array.isArray(payload?.cycles)) return payload.cycles;
   return [];
 }
+
+/** Keep cycle evidence while showing which km/L and counters came from telemetry. */
+export function withTruckTelemetry(data) {
+  const rows = rowsOf(data);
+  if (!Array.isArray(data?.telemetry)) return rows;
+  const plateKey = (plate) =>
+    String(plate || '')
+      .replace(/\s/g, '')
+      .toUpperCase();
+  const byPlate = new Map(rows.map((row) => [plateKey(row.registrationNumber), row]));
+  for (const reading of data.telemetry) {
+    const key = plateKey(reading.registrationNumber);
+    byPlate.set(key, { ...byPlate.get(key), ...reading, mileageFromTelemetry: true });
+  }
+  return [...byPlate.values()];
+}

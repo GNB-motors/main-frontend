@@ -91,7 +91,7 @@
 .vtelemetry-channel-heading,
 .vtelemetry-channel-row {
   display: grid;
-  grid-template-columns: minmax(100px, 140px) minmax(0, 1fr) minmax(82px, auto);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
 }
@@ -117,70 +117,10 @@
   color: #93939a;
   line-height: 1.5;
 }
-.vtelemetry-cells {
-  display: flex;
-  gap: 1px;
-  height: 14px;
-}
-.vtelemetry-cells > button {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 1px solid #dfdfe2;
-  border-radius: 1px;
-  background: #f3f3f6;
-  cursor: pointer;
-}
-.vtelemetry-cells > .vtelemetry-cell--received {
-  background: #187a32;
-  border-color: #187a32;
-}
-.data-tooltip.vtelemetry-tooltip {
-  display: none;
-  position: absolute;
-  bottom: 22px;
-  left: 0;
-  z-index: 20;
-}
-.data-tooltip.vtelemetry-tooltip--end {
-  left: auto;
-  right: 0;
-}
-.vtelemetry-cells > button:hover,
-.vtelemetry-cells > button:focus-visible {
-  z-index: 21;
-}
-.vtelemetry-cells > button:hover > .data-tooltip,
-.vtelemetry-cells > button:focus-visible > .data-tooltip {
-  display: grid;
-}
 .vtelemetry-last {
   text-align: right;
   font-size: 11.5px;
   color: #5d5d5e;
-}
-.vtelemetry-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-size: 11.5px;
-  color: #5d5d5e;
-}
-.vtelemetry-legend > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.vtelemetry-legend i {
-  width: 12px;
-  height: 8px;
-  background: #187a32;
-  border-radius: 2px;
-}
-.vtelemetry-legend > span + span i {
-  background: #f3f3f6;
-  border: 1px solid #dfdfe2;
 }
 .vtelemetry .vtelemetry-diagnosis {
   border: 1px solid transparent;
@@ -273,10 +213,26 @@
   }
   .vtelemetry-channel-heading,
   .vtelemetry-channel-row {
-    grid-template-columns: 90px minmax(0, 1fr) 68px;
     gap: 6px;
   }
   .vtelemetry-last {
     font-size: 10px;
   }
+}
+
+.vtelemetry-history {
+  display: grid;
+  gap: 12px;
+}
+.vtelemetry-history [role='group'] {
+  display: flex;
+  gap: 8px;
+}
+.vtelemetry-history [aria-pressed='true'] {
+  background: #eaf0ff;
+  border-color: #315be1;
+}
+.vtelemetry-chart {
+  min-width: 0;
+  height: 220px;
 }

@@ -603,7 +603,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* The note beside the SAP km is clipped with "…"; its tooltip has the rest. */
+/* Keep the full SAP verdict readable in the cell. */
 .atx-sap-note {
   justify-self: start;
   max-width: 100%;
@@ -615,8 +615,8 @@
   display: block;
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .atx-sr {
   position: absolute;

@@ -164,11 +164,15 @@ function Category({ row, day }) {
   );
 }
 
-export default function AttentionCard({ section, loading, day }) {
+export default function AttentionCard({ section, loading, day, idleCostRecorded = false }) {
   const rows = rowsOf(section);
   const liveReadAt = rows.find((r) => r.period === 'live')?.readAt;
   const group = (period) => {
     const inGroup = rows.filter((r) => r.period === period && r.state !== 'unmeasured');
+    const separateIdleCoverage =
+      period === 'day' &&
+      idleCostRecorded &&
+      inGroup.some((row) => row.kind === 'idling' && row.count === 0);
     const quiet = (row) => row.count === 0 && row.state !== 'error' && row.state !== 'pending';
     return (
       <>
@@ -181,9 +185,15 @@ export default function AttentionCard({ section, loading, day }) {
         </ul>
         {inGroup.some(quiet) ? (
           <ul className="db-attention-quiet">
-            {inGroup.filter(quiet).map((r) => (
-              <Category key={r.kind} row={r} day={day} />
-            ))}
+            {inGroup.filter(quiet).map((r) =>
+              r.kind === 'idling' && separateIdleCoverage ? (
+                <li key={r.kind} className="db-muted">
+                  No stops met the alert duration. The fuel estimate can include shorter idles.
+                </li>
+              ) : (
+                <Category key={r.kind} row={r} day={day} />
+              ),
+            )}
           </ul>
         ) : null}
       </>

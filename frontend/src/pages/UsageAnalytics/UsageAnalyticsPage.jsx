@@ -54,7 +54,21 @@ export default function UsageAnalyticsPage() {
   }, [surfaces, updateProfile, revision]);
 
   const labels = React.useMemo(() => navLabels(catalog), [catalog]);
-  const rows = visibleUsageRows(data?.surfaces || [], labels, { query, disposition, sort });
+  const menuLocations = React.useMemo(
+    () =>
+      new Map(
+        catalog
+          .filter((item) => item.type === 'group')
+          .flatMap((item) => (item.children || []).map((child) => [child.to, item.label])),
+      ),
+    [catalog],
+  );
+  const rows = visibleUsageRows(data?.surfaces || [], labels, {
+    query,
+    disposition,
+    sort,
+    menuLocations,
+  });
   const lessUsed = (data?.surfaces || []).filter(
     (row) => row.disposition === 'BELOW_ORG_FLOOR' || row.disposition === 'NEVER_OPENED',
   ).length;
@@ -224,7 +238,11 @@ export default function UsageAnalyticsPage() {
                             {STATUS_COPY[row.disposition] || 'Collecting history'}
                           </span>
                         </td>
-                        <td>{row.canOpen ? 'Main menu' : 'Outside your menu'}</td>
+                        <td>
+                          {row.canOpen
+                            ? menuLocations.get(row.surfaceKey) || 'Main menu'
+                            : 'Outside your menu'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

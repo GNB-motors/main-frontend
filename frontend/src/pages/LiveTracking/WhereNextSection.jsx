@@ -6,7 +6,12 @@ import { fleetViewService } from '../../services/fleetViewService';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { trafficWord } from './vehiclePanelModel';
 import { etaHasPassed, ETA_PASSED_TEXT } from './etaPassed';
-import { destinationHeading, destinationName, evidence, heldReason } from './whereNextModel';
+import {
+  destinationHeading,
+  destinationName,
+  evidence,
+  predictionConfidence,
+} from './whereNextModel';
 
 /**
  * WhereNextSection — where is this truck likely going, and when?
@@ -16,8 +21,7 @@ import { destinationHeading, destinationName, evidence, heldReason } from './whe
  * it shows the reasons, the road, the usual break and the overspeed risk.
  *
  * The API sends the reason in words ("usually goes here after JK BUXAR, 18
- * of 24 times"). We print it exactly as sent. We never show a raw
- * probability, and we never invent a reason.
+ * of 24 times"). We show it with the reported confidence when available.
  */
 export default function WhereNextSection({
   registrationNumber,
@@ -33,36 +37,26 @@ export default function WhereNextSection({
     { enabled: Boolean(registrationNumber), scopeKey: registrationNumber },
   );
 
-  const held = data?.held === true;
-  const destinations = Array.isArray(data?.destinations) ? data.destinations : [];
-  const top = destinations[0] ?? null;
-  const selected = destinations.find((d) => d.place?.id === selectedId) ?? top;
+  const hasDestinations = Array.isArray(data?.destinations) && data.destinations[0]?.place;
+  const prediction = loading || error || data?.held || !hasDestinations ? null : data;
+  const destinations = prediction?.destinations;
+  const top = destinations?.[0];
+  const selected = destinations?.find((d) => d?.place?.id === selectedId) ?? top;
 
   useEffect(() => {
-    onPrediction?.({ registrationNumber, data: loading || error ? null : data, open: isOpen });
-  }, [registrationNumber, data, loading, error, isOpen, onPrediction]);
+    onPrediction?.({ registrationNumber, data: prediction, open: Boolean(prediction && isOpen) });
+  }, [registrationNumber, prediction, isOpen, onPrediction]);
 
-  // Nothing real to say — still asking, endpoint missing, request failed, or
-  // no guess with no reason — means no section. A held answer is real, so it
-  // stays, and so does the API's reason for not guessing.
-  const noGuessWhy = data?.noPredictionWhy?.text || null;
-  if (!held && (loading || error)) return null;
-  if (!held && destinations.length === 0) {
-    if (!noGuessWhy) return null;
-    return (
-      <SectionCard icon={Navigation} tone="info" title="Where next · no guess">
-        <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{noGuessWhy}</p>
-      </SectionCard>
-    );
-  }
+  if (!top) return null;
 
-  // A held answer never leaks its guess into the header, and an ETA already
-  // in the past is stale data, not a time to show.
-  const headerTitle = held
-    ? 'Where next · not sure yet'
-    : top
-      ? `${destinationHeading(top)}${etaHasPassed(top.eta) ? ` · ${ETA_PASSED_TEXT}` : top.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? ` · ETA ${formatIst(top.eta.at)}` : ''}`
-      : 'Where next';
+  const confidence = predictionConfidence(top);
+  const headerTitle = [
+    destinationHeading(top),
+    confidence,
+    etaHasPassed(top.eta) ? ETA_PASSED_TEXT : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <SectionCard
@@ -80,9 +74,7 @@ export default function WhereNextSection({
         </button>
       }
     >
-      {held ? (
-        <p className="m-0 text-[12px] text-[var(--rd-ink-2)]">{heldReason(data)}</p>
-      ) : !isOpen ? (
+      {!isOpen ? (
         <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">
           {top?.route?.viaNames?.length ? `usually via ${top.route.viaNames.join(' → ')} · ` : ''}
           {evidence(top)}
@@ -93,18 +85,21 @@ export default function WhereNextSection({
             <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{data.basis.text}</p>
           ) : null}
 
-          {destinations.slice(0, 3).map((destination, index) => (
-            <DestinationRow
-              key={destination.place?.id ?? index}
-              destination={destination}
-              index={index}
-              selected={selected?.place?.id === destination.place?.id}
-              onSelect={() => {
-                setSelectedId(destination.place?.id);
-                onSelectDestination?.(destination);
-              }}
-            />
-          ))}
+          {destinations
+            .filter((destination) => destination?.place)
+            .slice(0, 3)
+            .map((destination, index) => (
+              <DestinationRow
+                key={destination.place?.id ?? index}
+                destination={destination}
+                index={index}
+                selected={selected?.place?.id === destination.place?.id}
+                onSelect={() => {
+                  setSelectedId(destination.place?.id);
+                  onSelectDestination?.(destination);
+                }}
+              />
+            ))}
         </div>
       )}
     </SectionCard>
@@ -135,9 +130,9 @@ function DestinationRow({ destination, index, selected, onSelect }) {
           <span className="mr-1 text-[var(--rd-ink-3)]">{index + 1}</span>
           {destinationName(destination.place)}
         </span>
-        {evidence(destination) ? (
+        {predictionConfidence(destination) || evidence(destination) ? (
           <span className="shrink-0 text-[12px] text-[var(--rd-ink-2)] tabular-nums">
-            {evidence(destination)}
+            {[predictionConfidence(destination), evidence(destination)].filter(Boolean).join(' · ')}
           </span>
         ) : null}
       </span>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useState } from 'react';
 import DataTable from '../../../components/ui/DataTable';
 import SegmentedChips from './SegmentedChips';
@@ -115,8 +116,20 @@ export default function ReconciliationTab({ range, searchQuery = '', onOpenDrawe
   const rows = data?.data?.records || [];
   const total = data?.meta?.total ?? rows.length;
 
+  const fillParams = new URLSearchParams({
+    tab: 'live',
+    subtab: 'stream',
+    ...(range.from && { from: range.from }),
+    ...(range.to && { to: range.to }),
+    ...(searchQuery && { search: searchQuery }),
+  });
   return (
     <div className="mhub">
+      {!loading && !error && !rows.length && status === 'all' && (
+        <Link className="pshell-btn" to={`/mileage?${fillParams}`}>
+          Open Diesel fills
+        </Link>
+      )}
       <div className="mhub-status-row">
         <SegmentedChips
           ariaLabel="Filter bills by status"
@@ -138,7 +151,7 @@ export default function ReconciliationTab({ range, searchQuery = '', onOpenDrawe
         showing={rows.length}
         total={total}
         emptyTitle="No bills to compare in these dates"
-        emptyHint="Bills appear here once they are matched to a tank rise."
+        emptyHint="Bill check requires a diesel bill matched to a detected tank rise. Open Diesel fills to see unmatched fills and upload receipts."
         pagination={
           <EnterprisePagination
             page={page}

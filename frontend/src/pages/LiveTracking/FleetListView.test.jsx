@@ -73,7 +73,7 @@ describe('FleetListView error state', () => {
   });
 });
 
-it('shows the original vehicle details alongside speed', async () => {
+it('shows make and speed without putting the VIN on the fleet card', async () => {
   const vehicle = {
     id: 'v1',
     plate: 'WB01AB1234',
@@ -89,5 +89,18 @@ it('shows the original vehicle details alongside speed', async () => {
   expect(await screen.findByText('View current location')).toBeInTheDocument();
   expect(screen.getByText('32 km/h')).toBeInTheDocument();
   expect(screen.getByText('Tata')).toBeInTheDocument();
-  expect(screen.getByText('VIN: TEST-VIN')).toBeInTheDocument();
+  expect(screen.queryByText('VIN: TEST-VIN')).not.toBeInTheDocument();
+});
+
+it('keeps the rest of the fleet reachable after the first card batch', () => {
+  const vehicles = Array.from({ length: 51 }, (_, i) => ({
+    id: String(i),
+    plate: `WB${i}`,
+    status: 'moving',
+    hasFix: false,
+  }));
+  renderRail({ vehicles, filteredVehicles: vehicles });
+  expect(screen.queryByText('WB50')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Show more trucks/ }));
+  expect(screen.getByText('WB50')).toBeInTheDocument();
 });

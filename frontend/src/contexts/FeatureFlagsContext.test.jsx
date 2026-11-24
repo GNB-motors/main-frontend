@@ -6,7 +6,10 @@ import { isAuthenticated } from '../utils/session.js';
 import { FeatureFlagsProvider, useFeatureFlags } from './FeatureFlagsContext.jsx';
 
 vi.mock('../utils/axiosConfig', () => ({ default: { get: vi.fn() } }));
-vi.mock('../utils/session.js', () => ({ isAuthenticated: vi.fn() }));
+vi.mock('../utils/session.js', async (actual) => ({
+  ...(await actual()),
+  isAuthenticated: vi.fn(),
+}));
 
 // Records every render so we can assert no render was ever "ready" with
 // empty permissions — the exact flash the DashboardLayout gate exists to stop.

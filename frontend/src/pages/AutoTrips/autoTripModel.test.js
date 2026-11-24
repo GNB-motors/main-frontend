@@ -257,7 +257,7 @@ describe('timelinePlan', () => {
       { kind: 'plant', label: 'At plant', min: 903 },
       { kind: 'drive', label: 'Driving', min: 464 },
       { kind: 'unknown', label: 'Unknown stop', min: 3 },
-      { kind: 'drop', label: 'Unloading', min: 151 },
+      { kind: 'drop', label: 'At the drop', min: 151 },
     ]);
     expect(plan.totalMin).toBe(903 + 464 + 3 + 151);
     expect(plan.totalOf).toBe('plant arrival to drop departure');
@@ -348,4 +348,21 @@ describe('tripRoadLayers / tripRoadAt: the trip replay draws the road our engine
     expect(r.truckAt.lng).toBeLessThan(A.lng);
     expect(r.truckAt.lng).toBeGreaterThan(B.lng);
   });
+});
+
+it('does not ask to confirm a pickup stop as an inferred drop', () => {
+  const pickup = {
+    name: 'Loading plant',
+    orgSiteId: 'plant',
+    arrivedAt: '2026-11-23T08:00:00Z',
+    departedAt: '2026-11-23T09:00:00Z',
+    stopIds: ['loading-stop'],
+  };
+  const timeline = timelinePlan({
+    pickup,
+    drop: { orgSiteId: 'plant', source: 'INFERRED_TURNAROUND', arrivedAt: '2026-11-23T10:00:00Z' },
+    routeStops: [{ _id: 'loading-stop', startAt: '2026-11-23T08:00:00Z' }],
+  });
+  expect(timeline.items).toHaveLength(1);
+  expect(timeline.items[0]).toMatchObject({ id: 'pickup', kind: 'loading' });
 });

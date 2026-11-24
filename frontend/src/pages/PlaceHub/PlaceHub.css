@@ -2272,3 +2272,17 @@
 .ph-toll-pop-line dd {
   margin: 0;
 }
+
+.ph-map-tile-status {
+  position: absolute;
+  z-index: 2;
+  inset: auto 1rem 1rem;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--rd-surface, Canvas);
+  color: var(--rd-ink, CanvasText);
+}

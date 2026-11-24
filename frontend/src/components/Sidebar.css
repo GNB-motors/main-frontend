@@ -764,3 +764,22 @@
 .sidebar--erp .nav-parent.active-parent::before {
   background-color: var(--erp, #2563eb);
 }
+
+.nav-screen-search {
+  margin: 0.25rem 0.75rem 0.5rem;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8rem;
+}
+.nav-screen-search::placeholder {
+  color: inherit;
+  opacity: 0.75;
+}
+.nav-search-empty {
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+}

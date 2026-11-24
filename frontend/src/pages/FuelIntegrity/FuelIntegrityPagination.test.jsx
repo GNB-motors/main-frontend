@@ -89,6 +89,21 @@ beforeEach(() => {
   FuelIntegrityService.getPumpLedger.mockResolvedValue({ pumps: [] });
 });
 
+it('shows the full-window headline while the detailed feeds are pending', async () => {
+  let finishFills;
+  FuelIntegrityService.getFills.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishFills = () => resolve(fillPage());
+      }),
+  );
+  mount();
+  expect(await screen.findByText('16,000')).toBeInTheDocument();
+  expect(screen.getByLabelText('Loaded fills')).toHaveTextContent('0');
+  await act(async () => finishFills());
+  expect(await screen.findByText('Showing 100 of 160 fills')).toBeInTheDocument();
+});
+
 it('loads the remaining fills in the same window, deduplicating overlapping pages', async () => {
   mount();
   await screen.findByText('Showing 100 of 160 fills');

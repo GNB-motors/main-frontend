@@ -3,6 +3,7 @@ import { Truck, Check, Loader2, CheckCircle2, Unplug } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver.jsx';
 import { formatINR } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
+import { ownerAlertDestination } from './ownerAlertsModel';
 import { useFleetLink } from '../../contexts/fleetLinkContext';
 
 // Account-level FleetEdge alerts: the fix is a re-link, not a vehicle to look at.
@@ -18,6 +19,7 @@ const IALERT_ACCOUNT_TYPES = ['IALERT_REAUTH_REQUIRED', 'IALERT_RELINK_DUE'];
 export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking }) {
   const { enabled: canRelink, openPanel } = useFleetLink();
   if (!alert) return null;
+  const destination = ownerAlertDestination(alert);
   const relinkable = canRelink && RELINK_TYPES.includes(alert.type);
   const sev = alert.severity || 'WARNING';
   const color =
@@ -125,12 +127,9 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {alert.vehicleNumber ? (
-            <Link
-              to={`/vehicles/${encodeURIComponent(alert.vehicleNumber)}`}
-              className="ov-btn justify-center"
-            >
-              <Truck size={15} /> View vehicle
+          {destination ? (
+            <Link to={destination.to} className="ov-btn justify-center">
+              <Truck size={15} /> {destination.label}
             </Link>
           ) : relinkable ? (
             <button

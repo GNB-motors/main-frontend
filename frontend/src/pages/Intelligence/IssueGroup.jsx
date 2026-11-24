@@ -232,7 +232,9 @@ export default function IssueGroup({ group, to }) {
             </thead>
             <tbody>
               {rows.map((issue) => {
-                const subject = issue.registrationNumber || issue.accountName || issue.title;
+                const subject = group.isAccount
+                  ? issue.accountName || 'Account name unavailable'
+                  : issue.registrationNumber || issue.accountName || issue.title;
                 const open = openIds.has(issue.id);
                 return (
                   <IssueRecord

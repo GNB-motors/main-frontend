@@ -1,3 +1,7 @@
+import { Link } from 'react-router-dom';
+import { listTripsWithCounts, resolveTabCounts } from '../../AutoTrips/tripCounts';
+import { rangeToParams, ymdOf } from '../../AutoTrips/tripRange';
+import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
@@ -27,47 +31,79 @@ export default function OverviewView({ go, toast, setBadge }) {
   const [utilization, setUtilization] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [chip, setChip] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const to = new Date();
-    const from = new Date(to.getTime() - hours * 3600000);
-    const iso = { from: from.toISOString(), to: to.toISOString() };
-    const osHours = Math.min(hours, OS_MAX_HOURS);
-    const osFrom = new Date(to.getTime() - osHours * 3600000);
-
-    // Each panel degrades on its own — one dead endpoint shouldn't blank the page.
-    const [dev, os, pf, util, veh] = await Promise.all([
-      RouteHubService.getDeviationEvents({ status: 'OPEN', limit: 100 }).catch(() => null),
-      RouteHubService.getFleetOverspeed({
-        from: osFrom.toISOString(),
-        to: iso.to,
-        speedKmh: OS_THRESHOLD,
-        durationSec: OS_MIN_MIN * 60,
-      }).catch(() => null),
-      RouteHubService.getAutoTripRunningCost({ days: 30 }).catch(() => null),
-      RouteHubService.getUtilization(iso).catch(() => null),
-      RouteHubService.getVehicles().catch(() => []),
-    ]);
-
-    setDeviation(dev?.records || []);
-    setDeviationSummary(dev?.summary || null);
-    setOverspeed(os);
-    setProfit(pf);
-    setUtilization(util);
-    setVehicles(veh || []);
-    setBadge(
-      'deviation',
-      dev?.summary?.open ??
-        (dev?.records || []).filter((d) => String(d.status).toUpperCase() === 'OPEN').length,
+  const [tripWindow, setTripWindow] = useState(null);
+  const [tripCount, setTripCount] = useState(null);
+  const [auditWindow, setAuditWindow] = useState(null);
+  const [positions, setPositions] = useState([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    LiveTrackingService.getPositions({}, { signal: controller.signal }).then(
+      (rows) => {
+        if (!controller.signal.aborted && Array.isArray(rows)) setPositions(rows);
+      },
+      () => {},
     );
-    setBadge('overspeed', os?.totals?.eventCount ?? 0);
-    setLoading(false);
-    setReady(true);
-  }, [hours, setBadge]);
+    return () => controller.abort();
+  }, []);
+
+  const load = useCallback(
+    async (signal) => {
+      setLoading(true);
+      const to = new Date();
+      const from = new Date(to.getTime() - hours * 3600000);
+      const iso = { from: from.toISOString(), to: to.toISOString() };
+      const osHours = Math.min(hours, OS_MAX_HOURS);
+      const osFrom = new Date(to.getTime() - osHours * 3600000);
+      const firstTripDay = rangeToParams({ range: '30d' }, to).from;
+      const tripDays = { range: 'custom', from: ymdOf(new Date(firstTripDay)), to: ymdOf(to) };
+      const auditDates = { from: osFrom.toISOString(), to: iso.to };
+      listTripsWithCounts({ ...rangeToParams(tripDays), page: 1, limit: 1 }, { signal })
+        .then(({ tabCounts }) => {
+          if (!signal?.aborted) setTripCount(resolveTabCounts({ listCounts: tabCounts }).all);
+        })
+        .catch(() => {
+          if (!signal?.aborted) setTripCount(null);
+        });
+      setTripWindow(tripDays);
+
+      // Each panel degrades on its own — one dead endpoint shouldn't blank the page.
+      const [dev, os, pf, util, veh] = await Promise.all([
+        RouteHubService.getDeviationEvents({ status: 'OPEN', limit: 100 }).catch(() => null),
+        RouteHubService.getFleetOverspeed({
+          from: osFrom.toISOString(),
+          to: iso.to,
+          speedKmh: OS_THRESHOLD,
+          durationSec: OS_MIN_MIN * 60,
+        }).catch(() => null),
+        RouteHubService.getAutoTripRunningCost({ days: 30 }).catch(() => null),
+        RouteHubService.getUtilization(iso).catch(() => null),
+        RouteHubService.getVehicles().catch(() => []),
+      ]);
+
+      if (signal?.aborted) return;
+      setDeviation(dev?.records || []);
+      setDeviationSummary(dev?.summary || null);
+      setOverspeed(os);
+      setAuditWindow(auditDates);
+      setProfit(pf);
+      setUtilization(util);
+      setVehicles(veh || []);
+      setBadge(
+        'deviation',
+        dev?.summary?.open ??
+          (dev?.records || []).filter((d) => String(d.status).toUpperCase() === 'OPEN').length,
+      );
+      setBadge('overspeed', os?.totals?.eventCount ?? null);
+      setLoading(false);
+      setReady(true);
+    },
+    [hours, setBadge],
+  );
 
   useEffect(() => {
-    load();
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
   }, [load]);
 
   const first = loading && !ready;
@@ -139,7 +175,7 @@ export default function OverviewView({ go, toast, setBadge }) {
     {
       ic: 'gauge',
       l: 'Sustained overspeed',
-      v: overspeed == null ? '—' : (osTotals.eventCount ?? 0),
+      v: osTotals.eventCount ?? '—',
       s: `over ${OS_THRESHOLD} km/h for ${OS_MIN_MIN}+ min · last ${osHours}h`,
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
@@ -162,10 +198,14 @@ export default function OverviewView({ go, toast, setBadge }) {
     {
       ic: 'route',
       l: 'Detected trips',
-      v: noDetectedTrips ? '—' : (costTotals.tripCount ?? 0),
-      s: noDetectedTrips
-        ? 'No detected trips yet'
-        : `${costTotals.economicsTripCount ?? 0} priced · last 30 days`,
+      v: tripCount ?? '—',
+      s: tripWindow ? (
+        <Link to={`/auto-trips?${new URLSearchParams(tripWindow)}`}>
+          Trips · last 30 calendar days
+        </Link>
+      ) : (
+        'Last 30 calendar days'
+      ),
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
@@ -180,13 +220,13 @@ export default function OverviewView({ go, toast, setBadge }) {
       const cities = [];
       withPath.forEach((r) => {
         L.polyline(r.path, {
-          color: r.health.c,
+          color: r.health?.c || '#2563eb',
           weight: 12,
           opacity: 0.12,
           lineCap: 'round',
         }).addTo(group);
         const line = L.polyline(r.path, {
-          color: r.health.c,
+          color: r.health?.c || '#2563eb',
           weight: 4,
           opacity: 0.9,
           lineCap: 'round',
@@ -201,7 +241,7 @@ export default function OverviewView({ go, toast, setBadge }) {
           cities.push({ lat: last[0], lng: last[1], label: r.destCity });
         }
       });
-      if (cities.length) cityLayer(map, cities);
+      if (cities.length) cityLayer(group, cities);
 
       (overspeed?.vehicles || []).forEach((v) =>
         (v.events || [])
@@ -218,7 +258,7 @@ export default function OverviewView({ go, toast, setBadge }) {
                 className: 'tag',
                 direction: 'top',
               })
-              .on('click', () => go('overspeed', { v: v.vehicleId }))
+              .on('click', () => go('overspeed', { ...auditWindow, v: v.vehicleId }))
               .addTo(group),
           ),
       );
@@ -235,10 +275,21 @@ export default function OverviewView({ go, toast, setBadge }) {
       if (plotted.length) {
         map.fitBounds(L.latLngBounds(plotted), { padding: [40, 40], maxZoom: 9 });
       } else {
-        map.setView([22.5, 82], 5);
+        const fleet = positions
+          .filter(
+            (row) =>
+              Number.isFinite(row.latitude) &&
+              Math.abs(row.latitude) <= 90 &&
+              Number.isFinite(row.longitude) &&
+              Math.abs(row.longitude) <= 180 &&
+              (row.latitude !== 0 || row.longitude !== 0),
+          )
+          .map((row) => [row.latitude, row.longitude]);
+        if (fleet.length) map.fitBounds(L.latLngBounds(fleet), { padding: [40, 40], maxZoom: 9 });
+        else map.setView([22.5, 82], 5);
       }
     },
-    [routes, overspeed, go],
+    [routes, overspeed, go, auditWindow, positions],
   );
 
   return (
@@ -246,8 +297,7 @@ export default function OverviewView({ go, toast, setBadge }) {
       <div className="phead">
         <div className="t">
           <p>
-            Every corridor, trip and exception across your fleet in the last 24 hours. Open any
-            module for full detail.
+            Recorded routes and exceptions across your fleet. Each total shows its reporting window.
           </p>
         </div>
         <div className="tools">
@@ -267,7 +317,7 @@ export default function OverviewView({ go, toast, setBadge }) {
       <div className="bento">
         <div className="card s8" style={{ minHeight: 560 }}>
           <div className="card-head">
-            <h3>Network today</h3>
+            <h3>Route network</h3>
             <span className="hint">Routes coloured by margin health</span>
             <span className="sp" />
             <div className="legend">
@@ -307,6 +357,7 @@ export default function OverviewView({ go, toast, setBadge }) {
             first={first}
             hours={hours}
             osTotals={osTotals}
+            auditWindow={auditWindow}
             overspeed={overspeed}
             vehicles={vehicles}
           />

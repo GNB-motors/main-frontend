@@ -142,6 +142,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
   const kpis = useMemo(() => {
     let totalCost = 0;
     let fuelCost = 0;
+    let fuelEntries = 0;
     let maintenanceCost = 0;
     let otherExpenses = 0;
     let tollCost = 0;
@@ -151,8 +152,9 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
       const amt = Number(exp.amount) || 0;
       totalCost += amt;
 
-      if (exp.source === 'FUEL' || exp.category === 'FUEL') {
+      if (exp.source === 'FUEL' || ['FUEL', 'FUEL_EXPENSE'].includes(exp.category)) {
         fuelCost += amt;
+        fuelEntries += 1;
       } else if (exp.source === 'MAINTENANCE' || ['MAINTENANCE', 'REPAIR'].includes(exp.category)) {
         maintenanceCost += amt;
       } else if (exp.category === 'TOLL' || exp.source === 'DETECTED_CROSSING') {
@@ -189,6 +191,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
     return {
       totalCost,
       fuelCost,
+      fuelEntries,
       maintenanceCost,
       otherExpenses,
       tollCost,
@@ -518,7 +521,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
             subtitle={
               showErp
                 ? 'Operating costs and entries waiting for review'
-                : 'Where this period’s spend went'
+                : 'Recorded expenses for these filters. Fuel Integrity measures tank use in litres.'
             }
           />
           <KhataKpiGrid
@@ -526,10 +529,12 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
             loading={loading}
             items={[
               {
-                label: 'Fuel',
-                value: money(kpis.fuelCost),
-                pct: share(kpis.fuelCost),
-                sub: shareNote(kpis.fuelCost, 'refills'),
+                label: 'Recorded fuel spend',
+                value: kpis.fuelEntries ? money(kpis.fuelCost) : '—',
+                pct: kpis.fuelEntries ? share(kpis.fuelCost) : null,
+                sub: kpis.fuelEntries
+                  ? shareNote(kpis.fuelCost, 'recorded refills')
+                  : 'No fuel entries match these filters',
               },
               {
                 label: 'Tolls',

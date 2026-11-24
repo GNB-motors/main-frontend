@@ -37,6 +37,7 @@ const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
 /** Below this zoom a few-hundred-metre circle is a speck; draw the pin only. */
 const SHAPE_MIN_ZOOM = 11;
+const TILE_WAIT_MS = 12000;
 
 // Satellite keeps its own colours; only the clutter goes.
 const SATELLITE_STYLES = [
@@ -81,6 +82,20 @@ export default function PlaceHubMap({
 }) {
   const [map, setMap] = useState(null);
   const [zoom, setZoom] = useState(5);
+  const [tilesStatus, setTilesStatus] = useState('loading');
+  const [mapRevision, setMapRevision] = useState(0);
+
+  useEffect(() => {
+    if (!map || tilesStatus !== 'loading') return undefined;
+    const timer = setTimeout(() => setTilesStatus('delayed'), TILE_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [map, tilesStatus]);
+
+  const retryMap = () => {
+    lastFitKey.current = null;
+    setTilesStatus('loading');
+    setMapRevision((value) => value + 1);
+  };
   const { labels, markerPlaces } = usePlaceAreaLabels(
     places,
     zoom,
@@ -99,6 +114,7 @@ export default function PlaceHubMap({
 
   const options = useMemo(
     () => ({
+      backgroundColor: isDark ? '#252a31' : '#f0eee8',
       streetViewControl: false,
       mapTypeControl: false,
       fullscreenControl: false,
@@ -198,178 +214,190 @@ export default function PlaceHubMap({
   const maxHalt = Math.max(0, ...vehicleHalts.map((h) => h.occurrences || 1));
 
   return (
-    <GoogleMap
-      mapContainerStyle={MAP_STYLE}
-      center={INDIA}
-      zoom={5}
-      options={options}
-      onLoad={setMap}
-      onUnmount={() => setMap(null)}
-      onZoomChanged={() => map && setZoom(map.getZoom() || 5)}
-      onIdle={onIdle}
-      onClick={onMapClick}
-    >
-      {showPoi && <PoiLayer pois={pois} />}
-      {(showAllTolls || showUsedTolls) && (
-        <TollLayer plazas={tollPlazas} interactive={interactive} />
-      )}
-      {tab === 'routes' && routes && (
-        <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
-      )}
+    <>
+      <GoogleMap
+        key={mapRevision}
+        mapContainerStyle={MAP_STYLE}
+        center={INDIA}
+        zoom={5}
+        options={options}
+        onLoad={setMap}
+        onUnmount={() => setMap(null)}
+        onZoomChanged={() => map && setZoom(map.getZoom() || 5)}
+        onIdle={onIdle}
+        onTilesLoaded={() => setTilesStatus('ready')}
+        onClick={onMapClick}
+      >
+        {showPoi && <PoiLayer pois={pois} />}
+        {(showAllTolls || showUsedTolls) && (
+          <TollLayer plazas={tollPlazas} interactive={interactive} />
+        )}
+        {tab === 'routes' && routes && (
+          <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
+        )}
 
-      {tab === 'places' && (
-        <>
-          {places.map((p) =>
-            p.id === hiddenPlaceId ? null : <GroupShape key={`g-${p.id}`} place={p} />,
+        {tab === 'places' && (
+          <>
+            {places.map((p) =>
+              p.id === hiddenPlaceId ? null : <GroupShape key={`g-${p.id}`} place={p} />,
+            )}
+            {places.map((p) =>
+              p.id === hiddenPlaceId ? null : (
+                <PlaceShape
+                  key={`s-${p.id}`}
+                  place={p}
+                  selected={p.id === selectedId}
+                  showCircle={showCircles || p.id === selectedId}
+                  interactive={interactive}
+                  showTooltip={!markerIds.has(p.id)}
+                  onSelect={onSelect}
+                />
+              ),
+            )}
+          </>
+        )}
+        {tab === 'places' &&
+          places.map(
+            (p) =>
+              p.id !== hiddenPlaceId &&
+              labels.has(p.id) && (
+                <PlaceAreaLabel key={`label-${p.id}`} name={p.name} layout={labels.get(p.id)} />
+              ),
           )}
-          {places.map((p) =>
-            p.id === hiddenPlaceId ? null : (
-              <PlaceShape
-                key={`s-${p.id}`}
-                place={p}
-                selected={p.id === selectedId}
-                showCircle={showCircles || p.id === selectedId}
+        {tab === 'places' && (
+          <PlaceClusterer
+            places={markerPlaces}
+            options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
+            styles={clusterStylesNow}
+            title="Zoom in to see these places"
+            onUnmount={detachClusterer}
+          >
+            {(clusterer) => (
+              <>
+                {markerPlaces.map((p) =>
+                  p.id === hiddenPlaceId ? null : (
+                    <PlaceMarker
+                      key={`m-${p.id}`}
+                      place={p}
+                      selected={p.id === selectedId}
+                      interactive={interactive}
+                      onSelect={onSelect}
+                      clusterer={clusterer}
+                    />
+                  ),
+                )}
+                <ClusterRepaint
+                  clusterer={clusterer}
+                  styles={clusterStylesNow}
+                  places={markerPlaces}
+                  hiddenPlaceId={hiddenPlaceId}
+                />
+              </>
+            )}
+          </PlaceClusterer>
+        )}
+
+        {tab !== 'places' &&
+          tab !== 'routes' &&
+          contextPlaces.map((p) => (
+            <ContextShape key={`c-${p.id}`} place={p} showCircle={showCircles} />
+          ))}
+
+        {tab === 'idling' &&
+          idleSpots.map((s) => (
+            <ScaledDot
+              key={s.id}
+              id={s.id}
+              lat={s.lat}
+              lng={s.lng}
+              color={IDLE_COLOR[idleTone(s.excessShare)]}
+              scale={scaleFor(s.rupees, maxIdle)}
+              title={`${s.events} idles · ${formatInrCompact(s.rupees)} burned`}
+              selected={s.id === selectedId}
+              interactive={interactive}
+              onSelect={onSelect}
+            />
+          ))}
+        {tab === 'idling' &&
+          idleLive.map((e) => (
+            <LiveIdleMarker
+              key={`live-${e._id}`}
+              event={e}
+              selected={`live:${e._id}` === selectedId}
+              interactive={interactive}
+              onSelect={onSelect}
+            />
+          ))}
+
+        {tab === 'stops' &&
+          stopGroups.map((g) => (
+            <ScaledDot
+              key={g.id}
+              id={g.id}
+              lat={g.lat}
+              lng={g.lng}
+              color={STOP_COLOR}
+              scale={scaleFor(g.minutes, maxStop)}
+              title={`${hoursLabel(g.minutes / 60)} unexplained · ${g.stops.length} stops`}
+              selected={g.id === selectedId}
+              interactive={interactive}
+              onSelect={onSelect}
+            />
+          ))}
+
+        {tab === 'fuel' &&
+          drainCells.map((c) => (
+            <ScaledDot
+              key={c.id}
+              id={c.id}
+              lat={c.lat}
+              lng={c.lng}
+              color={DRAIN_COLOR}
+              scale={scaleFor(c.rupees || c.events, maxDrain)}
+              title={`${c.events} fuel drops · ${formatInrCompact(c.rupees)}`}
+              selected={c.id === selectedId}
+              interactive={interactive}
+              onSelect={onSelect}
+            />
+          ))}
+        {tab === 'fuel' &&
+          hotspots.map((h) =>
+            h.id === hiddenPlaceId ? null : (
+              <HotspotShape
+                key={h.id}
+                hotspot={h}
+                selected={h.id === selectedId}
                 interactive={interactive}
-                showTooltip={!markerIds.has(p.id)}
                 onSelect={onSelect}
               />
             ),
           )}
-        </>
+
+        {vehicleHalts.map((h, i) => (
+          <ScaledDot
+            key={`vh-${i}`}
+            id={`vh-${i}`}
+            lat={h.lat}
+            lng={h.lng}
+            color={VEHICLE_HALT_COLOR}
+            scale={scaleFor(h.occurrences || 1, maxHalt, 8, 22)}
+            title={`${h.occurrences || 1} visit${h.occurrences !== 1 ? 's' : ''}${h.medianDwellMs ? ` · ${hoursLabel(h.medianDwellMs / 3600000)} median dwell` : ''}`}
+            selected={false}
+            interactive={false}
+            onSelect={() => {}}
+          />
+        ))}
+
+        {draft && <DraftLayer draft={draft} onDraftChange={onDraftChange} />}
+      </GoogleMap>
+      {tilesStatus === 'delayed' && (
+        <div className="ph-map-tile-status" role="status">
+          Road tiles are taking longer to load.
+          <button type="button" className="pshell-btn" onClick={retryMap}>
+            Retry map
+          </button>
+        </div>
       )}
-      {tab === 'places' &&
-        places.map(
-          (p) =>
-            p.id !== hiddenPlaceId &&
-            labels.has(p.id) && (
-              <PlaceAreaLabel key={`label-${p.id}`} name={p.name} layout={labels.get(p.id)} />
-            ),
-        )}
-      {tab === 'places' && (
-        <PlaceClusterer
-          places={markerPlaces}
-          options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
-          styles={clusterStylesNow}
-          title="Zoom in to see these places"
-          onUnmount={detachClusterer}
-        >
-          {(clusterer) => (
-            <>
-              {markerPlaces.map((p) =>
-                p.id === hiddenPlaceId ? null : (
-                  <PlaceMarker
-                    key={`m-${p.id}`}
-                    place={p}
-                    selected={p.id === selectedId}
-                    interactive={interactive}
-                    onSelect={onSelect}
-                    clusterer={clusterer}
-                  />
-                ),
-              )}
-              <ClusterRepaint
-                clusterer={clusterer}
-                styles={clusterStylesNow}
-                places={markerPlaces}
-                hiddenPlaceId={hiddenPlaceId}
-              />
-            </>
-          )}
-        </PlaceClusterer>
-      )}
-
-      {tab !== 'places' &&
-        tab !== 'routes' &&
-        contextPlaces.map((p) => (
-          <ContextShape key={`c-${p.id}`} place={p} showCircle={showCircles} />
-        ))}
-
-      {tab === 'idling' &&
-        idleSpots.map((s) => (
-          <ScaledDot
-            key={s.id}
-            id={s.id}
-            lat={s.lat}
-            lng={s.lng}
-            color={IDLE_COLOR[idleTone(s.excessShare)]}
-            scale={scaleFor(s.rupees, maxIdle)}
-            title={`${s.events} idles · ${formatInrCompact(s.rupees)} burned`}
-            selected={s.id === selectedId}
-            interactive={interactive}
-            onSelect={onSelect}
-          />
-        ))}
-      {tab === 'idling' &&
-        idleLive.map((e) => (
-          <LiveIdleMarker
-            key={`live-${e._id}`}
-            event={e}
-            selected={`live:${e._id}` === selectedId}
-            interactive={interactive}
-            onSelect={onSelect}
-          />
-        ))}
-
-      {tab === 'stops' &&
-        stopGroups.map((g) => (
-          <ScaledDot
-            key={g.id}
-            id={g.id}
-            lat={g.lat}
-            lng={g.lng}
-            color={STOP_COLOR}
-            scale={scaleFor(g.minutes, maxStop)}
-            title={`${hoursLabel(g.minutes / 60)} unexplained · ${g.stops.length} stops`}
-            selected={g.id === selectedId}
-            interactive={interactive}
-            onSelect={onSelect}
-          />
-        ))}
-
-      {tab === 'fuel' &&
-        drainCells.map((c) => (
-          <ScaledDot
-            key={c.id}
-            id={c.id}
-            lat={c.lat}
-            lng={c.lng}
-            color={DRAIN_COLOR}
-            scale={scaleFor(c.rupees || c.events, maxDrain)}
-            title={`${c.events} fuel drops · ${formatInrCompact(c.rupees)}`}
-            selected={c.id === selectedId}
-            interactive={interactive}
-            onSelect={onSelect}
-          />
-        ))}
-      {tab === 'fuel' &&
-        hotspots.map((h) =>
-          h.id === hiddenPlaceId ? null : (
-            <HotspotShape
-              key={h.id}
-              hotspot={h}
-              selected={h.id === selectedId}
-              interactive={interactive}
-              onSelect={onSelect}
-            />
-          ),
-        )}
-
-      {vehicleHalts.map((h, i) => (
-        <ScaledDot
-          key={`vh-${i}`}
-          id={`vh-${i}`}
-          lat={h.lat}
-          lng={h.lng}
-          color={VEHICLE_HALT_COLOR}
-          scale={scaleFor(h.occurrences || 1, maxHalt, 8, 22)}
-          title={`${h.occurrences || 1} visit${h.occurrences !== 1 ? 's' : ''}${h.medianDwellMs ? ` · ${hoursLabel(h.medianDwellMs / 3600000)} median dwell` : ''}`}
-          selected={false}
-          interactive={false}
-          onSelect={() => {}}
-        />
-      ))}
-
-      {draft && <DraftLayer draft={draft} onDraftChange={onDraftChange} />}
-    </GoogleMap>
+    </>
   );
 }

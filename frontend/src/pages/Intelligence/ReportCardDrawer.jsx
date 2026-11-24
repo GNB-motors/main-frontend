@@ -1,3 +1,4 @@
+import { toISTDateString } from '../../utils/dateUtils';
 import Link from '@/components/redesign/FleetLink';
 import { MapPinned, X } from 'lucide-react';
 import {
@@ -11,7 +12,7 @@ import InsightChip from '@/components/redesign/InsightChip';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { intelligenceLink, trackLink } from '@/utils/redesign/links';
-import { isInternalBasis } from './intelligenceModel';
+import { isInternalBasis, periodRangeLabel } from './intelligenceModel';
 
 const GRADE_LABEL = {
   EXCELLENT: 'Excellent',
@@ -41,6 +42,9 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
 
   const isDriver = card?.subject === 'driver';
   const lastDay = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const from = toISTDateString(card.periodFrom);
+  const to = toISTDateString(card.periodTo);
+  const period = from && to ? periodRangeLabel(from, to) : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -89,10 +93,12 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
               Rank {card.rank} of {card.rankedCount} graded records
             </p>
           ) : null}
-          {card.periodFrom && card.periodTo ? (
+          {period ? <p className="intel-assessment-period">Assessment period · {period}</p> : null}
+          {!isDriver && card.score != null && card.measuredFactors != null ? (
             <p className="intel-assessment-period">
-              Assessment period · {String(card.periodFrom).slice(0, 10)} →{' '}
-              {String(card.periodTo).slice(0, 10)}
+              {card.measuredFactors === 1
+                ? 'Score based on one recorded measure.'
+                : `Recorded measures: ${card.measuredFactors} of 5.`}
             </p>
           ) : null}
           {isDriver && card.assignmentCoverage ? (
@@ -164,7 +170,11 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
                 {card.basis.text}
               </p>
               {card.basis.basis && !isInternalBasis(card.basis.basis) ? (
-                <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{card.basis.basis}</p>
+                <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">
+                  {String(card.basis.basis).replace(/\b\d{4}-\d{2}-\d{2}\b/g, (day) =>
+                    periodRangeLabel(day, day),
+                  )}
+                </p>
               ) : null}
             </section>
           ) : null}
@@ -184,8 +194,8 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
               <Link
                 to={intelligenceLink(
                   isDriver
-                    ? { tab: 'idling', driver: card?.id }
-                    : { tab: 'idling', vehicle: card?.id },
+                    ? { tab: 'idling', driver: card?.id, from, to }
+                    : { tab: 'idling', vehicle: card?.id, from, to },
                 )}
                 className="inline-flex items-center gap-1.5 rounded-[var(--rd-radius-xs)] border border-[var(--rd-line-strong)] bg-[var(--rd-card)] px-2.5 py-1 text-[13px] font-semibold text-[var(--rd-ink)] no-underline hover:bg-[var(--rd-card-2)]"
               >
@@ -194,8 +204,8 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
               <Link
                 to={intelligenceLink(
                   isDriver
-                    ? { tab: 'overspeed', driver: card?.id }
-                    : { tab: 'overspeed', vehicle: card?.id },
+                    ? { tab: 'overspeed', driver: card?.id, from, to }
+                    : { tab: 'overspeed', vehicle: card?.id, from, to },
                 )}
                 className="inline-flex items-center gap-1.5 rounded-[var(--rd-radius-xs)] border border-[var(--rd-line-strong)] bg-[var(--rd-card)] px-2.5 py-1 text-[13px] font-semibold text-[var(--rd-ink)] no-underline hover:bg-[var(--rd-card-2)]"
               >

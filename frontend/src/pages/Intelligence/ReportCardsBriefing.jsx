@@ -5,6 +5,22 @@ import { cardsBriefing } from './reportCardsBriefingModel';
 export default function ReportCardsBriefing({ cards, subject, onGrade }) {
   const summary = cardsBriefing(cards);
   const noun = subject === 'driver' ? 'drivers' : 'trucks';
+  const gradeBreakdown = [
+    ['EXCELLENT', 'Excellent', '#15803d'],
+    ['GOOD', 'Good', '#2563eb'],
+    ['FAIR', 'Fair', '#b45309'],
+    ['FALLING', 'Falling off', '#b91c1c'],
+    ['NOT_ENOUGH_DATA', 'Insufficient data', '#64748b'],
+  ].filter(([grade]) => summary.grades[grade]);
+  let start = 0;
+  const gradient = gradeBreakdown
+    .map(([grade, , color]) => {
+      const end = start + (summary.grades[grade] / summary.total) * 100;
+      const stop = `${color} ${start}% ${end}%`;
+      start = end;
+      return stop;
+    })
+    .join(', ');
   return (
     <section
       className="intel-assessment-briefing"
@@ -45,6 +61,27 @@ export default function ReportCardsBriefing({ cards, subject, onGrade }) {
           the average. Trends describe recorded assessments; no next-week forecast is available.
         </small>
       </div>
+      {subject === 'vehicle' && gradeBreakdown.length ? (
+        <div className="intel-grade-distribution" aria-label="Truck grades">
+          <div
+            className="intel-grade-donut"
+            aria-hidden="true"
+            style={{ background: `conic-gradient(${gradient})` }}
+          />
+          <ul>
+            {gradeBreakdown.map(([grade, label, color]) => (
+              <li key={grade}>
+                <button type="button" onClick={() => onGrade(grade)}>
+                  <span aria-hidden="true" style={{ color }}>
+                    ●
+                  </span>{' '}
+                  {label} · {summary.grades[grade]}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="intel-assessment-brief-kpis">
         {[
           [
@@ -70,45 +107,10 @@ export default function ReportCardsBriefing({ cards, subject, onGrade }) {
   );
 }
 
-export function ScoreSparkline({ history = [], trend }) {
-  const points = history.filter((point) => Number.isFinite(point.score) && point.day).slice(-7);
-  if (points.length < 2)
-    return (
-      <span className="intel-assessment-trend-missing">
-        {trend === 'UP'
-          ? 'Improving ↑'
-          : trend === 'DOWN'
-            ? 'Declining ↓'
-            : trend === 'FLAT'
-              ? 'Steady'
-              : '—'}
-      </span>
-    );
-  const times = points.map((point) => Date.parse(point.day));
-  const first = Math.min(...times),
-    span = Math.max(1, Math.max(...times) - first);
-  const path = points
-    .map(
-      (point, index) =>
-        `${((times[index] - first) / span) * 58 + 1},${19 - (Math.max(0, Math.min(100, point.score)) / 100) * 18}`,
-    )
-    .join(' ');
-  return (
-    <svg
-      width="60"
-      height="20"
-      viewBox="0 0 60 20"
-      role="img"
-      aria-label={`Recorded score history: ${points.map((point) => `${point.day}: ${point.score}`).join(', ')}`}
-    >
-      <polyline
-        points={path}
-        fill="none"
-        stroke={points.at(-1).score < points[0].score ? '#dd3030' : '#187a32'}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+export function ScoreChange({ history = [], score }) {
+  const previous = history.filter((point) => Number.isFinite(point.score) && point.day).at(0);
+  if (!previous || !Number.isFinite(score)) return '—';
+  const change = score - previous.score;
+  if (change === 0) return 'No change';
+  return `${formatNumber(Math.abs(change))} points ${change > 0 ? 'up' : 'down'}`;
 }

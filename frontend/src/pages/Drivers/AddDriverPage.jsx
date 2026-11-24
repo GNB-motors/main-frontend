@@ -271,7 +271,7 @@ const AddDriverPage = () => {
           // a branch it's implied by the active location, so omit it when empty
           // rather than sending null (the create validator wants a string or nothing).
           ...(formData.location ? { location: formData.location } : {}),
-          password: formData.password || null,
+          ...(chosenRole?.baseRole !== 'DRIVER' && { password: formData.password }),
           // Explicit enum role (from the chosen RBAC role's baseRole).
           role: chosenRole?.baseRole || undefined,
           // Explicit owning location for this employee (the active branch).
@@ -319,9 +319,11 @@ const AddDriverPage = () => {
       if (!formData.firstName?.trim()) missing.push('First name');
       if (!formData.lastName?.trim()) missing.push('Last name');
       if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
-      if (!formData.password) missing.push('Password');
-      if (!formData.enterpriseRoleId && !formData.branchRoleId)
-        missing.push('a Role (Enterprise or Branch)');
+      const chosenRole = roles.find(
+        (r) => r._id === (formData.branchRoleId || formData.enterpriseRoleId),
+      );
+      if (chosenRole?.baseRole !== 'DRIVER' && !formData.password) missing.push('Password');
+      if (!formData.enterpriseRoleId && !formData.branchRoleId) missing.push('a role');
       if (missing.length) {
         toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
         return;
@@ -433,7 +435,7 @@ const AddDriverPage = () => {
                 : initialFormData.firstName || 'Employee'
               : null
           }
-          title="Employee Details"
+          title={isEdit ? 'Edit employee' : 'Add employee'}
           description={
             isEdit
               ? 'Update employee information including personal details, contact information, and role assignment.'

@@ -27,7 +27,7 @@ export default function ReplayHud({ frame, limitKmh, erpTripId }) {
       <div>
         <div className="k">Covered</div>
         <div className="v">
-          {frame ? frame.km.toFixed(0) : '—'}{' '}
+          {frame?.km != null ? frame.km.toFixed(0) : '—'}{' '}
           <span style={{ fontSize: 11, color: 'var(--fg-secondary)', fontWeight: 500 }}>km</span>
         </div>
       </div>

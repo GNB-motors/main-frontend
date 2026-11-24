@@ -133,3 +133,15 @@ export function documentRows(documents = [], now = Date.now()) {
     };
   });
 }
+
+/** Present recorded names and addresses without exposing coordinate-only labels. */
+export function vehicleLocationName(position) {
+  for (const value of [position?.address, position?.area]) {
+    if (typeof value !== 'string' || !value.trim()) continue;
+    if (/^\s*\(?\s*[+-]?\d+(?:\.\d+)?\s*[, ]\s*[+-]?\d+(?:\.\d+)?\s*\)?\s*$/.test(value)) continue;
+    return value.trim();
+  }
+  return position?.latitude != null && position?.longitude != null
+    ? 'Location not named'
+    : 'Position unavailable';
+}

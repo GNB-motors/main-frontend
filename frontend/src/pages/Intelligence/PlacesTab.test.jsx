@@ -76,7 +76,7 @@ describe('PlacesTab', () => {
     ).toHaveAttribute('href', '/auto-trips/trip-88213');
     expect(screen.getByRole('link', { name: /See all/ })).toHaveAttribute(
       'href',
-      '/auto-trips?tab=questions',
+      '/auto-trips?tab=questions&range=custom&from=2026-10-27&to=2026-11-02',
     );
   });
 
@@ -151,7 +151,10 @@ describe('PlacesTab', () => {
   it('says the trips stay open when the answer named the place but closed no trip', async () => {
     // The new backend labels a dhaba or a yard and leaves its trips open, so
     // `tripsUpdated: 0` is a normal result and must not read as a failure.
-    IntelligenceService.answerPlaceQuestion.mockResolvedValue({ placeId: 'site-1', tripsUpdated: 0 });
+    IntelligenceService.answerPlaceQuestion.mockResolvedValue({
+      placeId: 'site-1',
+      tripsUpdated: 0,
+    });
     render(
       <MemoryRouter>
         <PlacesTab from="2026-10-27" to="2026-11-02" />

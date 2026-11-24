@@ -50,6 +50,7 @@ export const MileageService = {
       from: query.from,
       to: query.to,
       manufacturer: query.manufacturer,
+      telemetry: query.telemetry,
     });
     try {
       const res = await apiClient.get('/api/fleet-view/mileage', { params, signal });

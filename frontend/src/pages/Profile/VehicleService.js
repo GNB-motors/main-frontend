@@ -33,7 +33,7 @@ const getAllVehicles = async (
   businessRefId,
   page = 1,
   limit = 10,
-  { signal, manufacturer, search, view } = {},
+  { signal, manufacturer, search, view, status, account, missingDocs } = {},
 ) => {
   try {
     const response = await apiClient.get('/api/vehicles', {
@@ -42,6 +42,9 @@ const getAllVehicles = async (
         limit,
         manufacturer: manufacturer || undefined,
         search: search || undefined,
+        ...(status ? { status } : {}),
+        ...(account ? { account } : {}),
+        ...(missingDocs ? { missingDocs: true } : {}),
         ...(view && view !== 'ALL' ? { view } : {}),
       },
       signal,

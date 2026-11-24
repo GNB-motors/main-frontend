@@ -39,6 +39,8 @@ const FLEET_ROUTES = [
   '/refuel-advisory',
   '/driving-dna',
   '/fleet-coverage',
+  '/challans',
+  '/tolls',
   '/approvals',
   '/trip-management',
   '/trip-management/trip/:id',

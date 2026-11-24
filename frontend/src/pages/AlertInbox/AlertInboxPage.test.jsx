@@ -323,3 +323,40 @@ it('shows bill checks and source updates directly in the details instead of open
   expect(within(dialog).queryByRole('link', { name: 'Review alert' })).not.toBeInTheDocument();
   expect(within(dialog).getByRole('button', { name: 'Mark as reviewed' })).toBeInTheDocument();
 });
+
+it('links a fuel-only view to the truck evidence without showing a bulk action for every alert', async () => {
+  getInbox.mockResolvedValue({
+    items: [
+      {
+        ...fuel,
+        condition: 'LEVEL_DROP_PARKED',
+        sources: [
+          {
+            source: 'ownerAlerts',
+            refId: 'parked',
+            detail: 'The fuel level falls ~2.81 L a day while parked.',
+          },
+        ],
+      },
+      ticket,
+    ],
+  });
+  render(
+    <MemoryRouter initialEntries={['/alert-inbox?inboxTopic=fuel']}>
+      <AlertInboxPage />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText(/2.81 L\/day while parked/)).toBeInTheDocument();
+  expect(screen.queryByText('Support waiting')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Mark all reviewed' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText(/2.81 L\/day while parked/).closest('tr'));
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByRole('link', { name: 'Open truck fuel tab' })).toHaveAttribute(
+    'href',
+    `/vehicles/${fuel.subjectKey}?tab=fuel`,
+  );
+  expect(within(dialog).getByRole('link', { name: 'Open Fuel checks' })).toHaveAttribute(
+    'href',
+    expect.stringContaining('fuelView=drain'),
+  );
+});

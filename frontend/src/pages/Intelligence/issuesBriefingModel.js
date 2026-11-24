@@ -1,4 +1,4 @@
-import { groupIssuesByKind, issueSubjects } from './intelligenceModel';
+import { groupIssuesByKind, isAccountIssue, issueSubjects } from './intelligenceModel';
 
 /** One definition of affected subjects across the overview, briefing and filters. */
 export function briefingFromIssues(items) {
@@ -9,6 +9,7 @@ export function briefingFromIssues(items) {
     subjects: issueSubjects(group.items).size,
     vehicles: new Set(
       group.items
+        .filter((issue) => !isAccountIssue(issue))
         .map((issue) => issue.registrationNumber?.replace(/\s/g, '').toUpperCase())
         .filter(Boolean),
     ).size,
@@ -21,12 +22,13 @@ export function briefingFromIssues(items) {
     ),
     vehicles: new Set(
       items
+        .filter((issue) => !isAccountIssue(issue))
         .map((issue) => issue.registrationNumber?.replace(/\s/g, '').toUpperCase())
         .filter(Boolean),
     ).size,
     accounts: new Set(
       items
-        .filter((issue) => !issue.registrationNumber)
+        .filter((issue) => isAccountIssue(issue) || !issue.registrationNumber)
         .map((issue) => issue.accountName)
         .filter(Boolean),
     ).size,

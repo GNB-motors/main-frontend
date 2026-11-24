@@ -111,7 +111,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'alert',
       l: 'Open — please review',
-      v: summary?.open ?? 0,
+      v: summary?.open ?? '—',
       s: 'detours nobody has looked at yet',
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
@@ -120,7 +120,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'split',
       l: 'Detours',
-      v: summary?.total ?? 0,
+      v: summary?.total ?? '—',
       s: !summary
         ? 'in this period'
         : summary.trips
@@ -132,7 +132,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'truck',
       l: 'While loaded',
-      v: summary?.byLeg?.LADEN ?? 0,
+      v: summary?.byLeg?.LADEN ?? '—',
       s: 'detours with goods on board',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',

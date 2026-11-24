@@ -83,6 +83,20 @@ describe('DetoursTab', () => {
     });
   });
 
+  it('passes the selected truck and dates to the audit count source', async () => {
+    render(
+      <MemoryRouter>
+        <DetoursTab from="2026-11-05" to="2026-11-06" vehicle="WB11A" />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(RouteHubService.getDeviationEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ q: 'WB11A', from: expect.any(String), to: expect.any(String) }),
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
   it('renders "Route deviation audit" by default with DeviationView', async () => {
     render(
       <MemoryRouter>

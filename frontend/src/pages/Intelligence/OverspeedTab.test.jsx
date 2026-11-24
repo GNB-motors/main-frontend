@@ -6,6 +6,10 @@ import RouteHubService from '../../services/RouteHubService';
 
 const mockNavigate = vi.fn();
 
+vi.mock('../LiveTracking/LiveTrackingService', () => ({
+  LiveTrackingService: { getPositions: vi.fn().mockResolvedValue([]) },
+}));
+
 vi.mock('./IntelligenceService', () => ({
   default: {
     getInstances: vi.fn().mockResolvedValue({ summary: { count: 3, totalMin: 15 }, total: 3 }),
@@ -155,13 +159,20 @@ describe('OverspeedTab', () => {
 
     await waitFor(() => {
       expect(RouteHubService.getOverspeedEvents).toHaveBeenCalledWith(
-        expect.objectContaining({ vehicleId: 'v1' }),
+        expect.objectContaining({
+          vehicleId: 'v1',
+          from: '2026-11-04T18:30:00.000Z',
+          to: '2026-11-06T18:29:59.999Z',
+        }),
+        expect.any(AbortSignal),
       );
     });
 
     const replayBtn = await screen.findByRole('button', { name: /Replay/i });
     fireEvent.click(replayBtn);
 
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringMatching(/\/live-tracking\?.*v=v1/));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringMatching(/\/live-tracking\?.*v=KA01AB1234/),
+    );
   });
 });

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { modelLabel } from '../../LiveTracking/vehiclePanelModel.js';
 import RouteHubService from '../../../services/RouteHubService';
 import { L, useLeafletMap } from '../routeHubMap';
 import { dkey } from '../routeHubFormat';
@@ -60,7 +61,7 @@ export default function ReplayView({ params, toast }) {
     const ac = new AbortController();
     RouteHubService.getVehicles(ac.signal)
       .then((list) => {
-        setVehicles(list);
+        setVehicles(list.map((item) => ({ ...item, model: modelLabel(item.model) })));
         const wanted = params.get('v');
         const match = list.find((v) => v._id === wanted || v.registrationNumber === wanted);
         setReg((r) => r || match?.registrationNumber || list[0]?.registrationNumber || '');
@@ -370,7 +371,11 @@ export default function ReplayView({ params, toast }) {
             <div className={`persp ${persp === 'flat' ? '' : persp}`}>
               <div className="lmap" ref={containerRef} />
               {loading ? <div className="ov ovs-notice">Loading replay…</div> : null}
-              <ReplayHud frame={frame} limitKmh={limitKmh} erpTripId={erpTripId} />
+              <ReplayHud
+                frame={frame && trip?.km == null ? { ...frame, km: null } : frame}
+                limitKmh={limitKmh}
+                erpTripId={erpTripId}
+              />
             </div>
 
             <ReplayPlayer

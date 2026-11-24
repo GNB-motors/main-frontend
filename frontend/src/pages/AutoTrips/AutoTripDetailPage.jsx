@@ -1,3 +1,4 @@
+import { predictionConfidence } from '../LiveTracking/whereNextModel';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -202,19 +203,22 @@ export default function AutoTripDetailPage() {
   const open = notReachedYet(trip);
   // "Heading to <place> · ~<km> km · ETA <time>" — parts the prediction lacks
   // are omitted; nothing renders without a candidate place.
-  const nextDest = open ? (whereNext?.destinations?.[0] ?? null) : null;
-  const nextLine = nextDest?.place?.name
-    ? [
-        `Heading to ${nextDest.place.name}`,
-        nextDest?.route?.km != null ? `~${Math.round(Number(nextDest.route.km))} km` : null,
-        // An ETA already in the past is a prediction from stale data, not a time to show.
-        nextDest?.eta?.at && new Date(nextDest.eta.at).getTime() > Date.now()
-          ? `ETA ${fmtDayTime(nextDest.eta.at)}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : null;
+  const nextDest = open && !whereNext?.held ? (whereNext?.destinations?.[0] ?? null) : null;
+  const destinationName = nextDest?.place?.name?.trim();
+  const nextLine =
+    destinationName && !/^unnamed\b/i.test(destinationName)
+      ? [
+          `Probably heading to ${destinationName}`,
+          predictionConfidence(nextDest),
+          nextDest?.route?.km != null ? `~${Math.round(Number(nextDest.route.km))} km` : null,
+          // An ETA already in the past is a prediction from stale data, not a time to show.
+          nextDest?.eta?.at && new Date(nextDest.eta.at).getTime() > Date.now()
+            ? `ETA ${fmtDayTime(nextDest.eta.at)}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : null;
   const answerHref = answerPlaceHref(trip);
   const plantMin = trip.durations?.plantMin;
   // A summary group is only worth a divider when at least one of its rows has
@@ -241,7 +245,7 @@ export default function AutoTripDetailPage() {
     (tolls?.status === 'OK'
       ? 'No toll plazas on this run'
       : tolls?.status === 'FALLBACK'
-        ? 'None found yet — road not matched'
+        ? 'Toll coverage unavailable for this route'
         : null);
 
   const setDrop = (stop, markPlaceAsDrop) =>
@@ -353,7 +357,7 @@ export default function AutoTripDetailPage() {
             <dd className={lastDrop?.arrivedAt && !open ? '' : 'is-quiet'}>
               {lastDrop?.arrivedAt && !open ? fmtDayTime(lastDrop.arrivedAt) : '—'}
             </dd>
-            <small>
+            <small className={open && nextLine ? 'atx-trip-destination-estimate' : undefined}>
               {open
                 ? nextLine || 'still on the way'
                 : lastDrop?.arrivedAt
@@ -538,7 +542,7 @@ export default function AutoTripDetailPage() {
                     <Field label="To first drop">{fmtDuration(trip.durations.transitMin)}</Field>
                   ) : null}
                   {trip.durations?.approachMin != null ? (
-                    <Field label="Time to loading point (elapsed)">
+                    <Field label="Elapsed time before loading">
                       {fmtDuration(trip.durations.approachMin)}
                       <small className="atx-measure-note">
                         Before this loading; includes waits between recorded movements.

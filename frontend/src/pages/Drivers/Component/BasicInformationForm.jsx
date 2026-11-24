@@ -66,6 +66,10 @@ const BasicInformationForm = forwardRef(
       onSubmit(formData);
     };
 
+    const chosenRole = roles.find(
+      (role) => role._id === (formData.branchRoleId || formData.enterpriseRoleId),
+    );
+    const passwordRequired = chosenRole?.baseRole !== 'DRIVER';
     return (
       <div className="basic-info-wrapper">
         <div className="basic-info-outer-container">
@@ -181,28 +185,30 @@ const BasicInformationForm = forwardRef(
               {/* Row 4: Password paired with the scope's role selector, aligned
                 directly below the row above. */}
               <div className="basic-info-form-row">
-                <div className="basic-info-form-field">
-                  <label className="basic-info-label" htmlFor={`${fieldId}-password`}>
-                    Password {!isEdit && '*'}
-                  </label>
-                  <input
-                    id={`${fieldId}-password`}
-                    aria-label="Password"
-                    type="password"
-                    autoComplete="new-password"
-                    className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required={!isEdit}
-                    disabled={isEdit}
-                    placeholder={isEdit ? 'Cannot be edited' : 'Enter password'}
-                  />
-                </div>
+                {passwordRequired && (
+                  <div className="basic-info-form-field">
+                    <label className="basic-info-label" htmlFor={`${fieldId}-password`}>
+                      Password {!isEdit && '*'}
+                    </label>
+                    <input
+                      id={`${fieldId}-password`}
+                      aria-label="Password"
+                      type="password"
+                      autoComplete="new-password"
+                      className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      required={!isEdit}
+                      disabled={isEdit}
+                      placeholder={isEdit ? 'Cannot be edited' : 'Enter password'}
+                    />
+                  </div>
+                )}
 
                 {insideBranch ? (
                   <div className="basic-info-form-field">
                     <label className="basic-info-label" htmlFor={`${fieldId}-branchRoleId`}>
-                      Branch Role
+                      Role at this location
                     </label>
                     <EmployeeSelect
                       id={`${fieldId}-branchRoleId`}
@@ -217,7 +223,7 @@ const BasicInformationForm = forwardRef(
                 ) : (
                   <div className="basic-info-form-field">
                     <label className="basic-info-label" htmlFor={`${fieldId}-enterpriseRoleId`}>
-                      Enterprise Role
+                      Enterprise role
                     </label>
                     <EmployeeSelect
                       id={`${fieldId}-enterpriseRoleId`}
@@ -234,9 +240,7 @@ const BasicInformationForm = forwardRef(
 
               {!isEdit && (
                 <div className="basic-info-form-row">
-                  <span className="basic-info-hint">
-                    * Select at least one role (Enterprise or Branch) to create the employee.
-                  </span>
+                  <span className="basic-info-hint">* Select a role to create the employee.</span>
                 </div>
               )}
 

@@ -1,3 +1,4 @@
+import OpenTripPrediction from './OpenTripPrediction';
 import { REPOSITION_INFO } from './tripLegModel';
 import { formatEtaClock, matchKnownEta } from '../../lib/knownEta';
 import {
@@ -59,10 +60,9 @@ export function RouteCell({ trip, knownEtas }) {
   const dest = destinationOf(trip);
   const eta = dest.state === 'moving' ? matchKnownEta(knownEtas, trip.registrationNumber) : null;
   const etaClock = eta?.destination?.label ? formatEtaClock(eta.p50) : null;
-  const destText =
-    eta?.destination?.label
-      ? `to ${titleCasePlace(eta.destination.label)}${etaClock ? ` · ETA ${etaClock}` : ''}`
-      : dest.text;
+  const destText = eta?.destination?.label
+    ? `to ${titleCasePlace(eta.destination.label)}${etaClock ? ` · ETA ${etaClock}` : ''}`
+    : dest.text;
   const title = `${from || 'Pickup not recorded'} → ${dest.title || destText}`;
   return (
     <span className="atx-route" title={title}>
@@ -73,7 +73,21 @@ export function RouteCell({ trip, knownEtas }) {
         →
       </span>
       <span className="atx-sr">to</span>
-      <span className={`atx-route-to atx-route-to--${dest.state}`}>{destText}</span>
+      <span className={`atx-route-to atx-route-to--${dest.state}`}>
+        {dest.state === 'moving' && !eta?.destination?.label && trip.registrationNumber ? (
+          <OpenTripPrediction
+            reg={trip.registrationNumber}
+            onPrediction={({ name, confidence }) => (
+              <span title={`Suggested destination: ${name}`}>
+                Probably {titleCasePlace(name)}
+                {confidence ? ` · ${confidence}` : ''}
+              </span>
+            )}
+          />
+        ) : (
+          destText
+        )}
+      </span>
       {/* A plant-to-plant run is normal: plants work like warehouses. Badged, never flagged. */}
       {trip.leg === 'REPOSITION' ? (
         <span className="atx-route-tag" title={REPOSITION_INFO}>
@@ -97,4 +111,3 @@ export function TimeCell({ trip, now }) {
     );
   return <span className="atx-cell-quiet">—</span>;
 }
-

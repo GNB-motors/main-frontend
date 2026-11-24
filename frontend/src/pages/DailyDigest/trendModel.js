@@ -52,7 +52,7 @@ export default function trendModel(numbers = {}, { day, pending = false } = {}) 
     !pending && {
       key: 'tripsChange',
       label: 'Trips vs last 7 days',
-      raw: num(numbers.tripsVsPrev7Pct),
+      raw: num(numbers.trips) === 0 ? null : num(numbers.tripsVsPrev7Pct),
       change: true,
     },
     {
@@ -93,6 +93,23 @@ export default function trendModel(numbers = {}, { day, pending = false } = {}) 
 
   return {
     known,
+    comparisons: [
+      {
+        title: 'Trips',
+        today: num(numbers.trips),
+        week: num(numbers.tripsPrev7Avg),
+        weekday: num(numbers.tripsSameWeekdayAvg),
+        unit: 'trips',
+      },
+      {
+        title: 'Loaded distance',
+        today: num(numbers.km),
+        week: num(numbers.kmPrev7Avg),
+        weekday: num(numbers.kmSameWeekdayAvg),
+        unit: 'km',
+      },
+    ],
+    weekdayLabel: `Usual on ${weekdays}`,
     unknown,
     partial: Boolean(numbers.kmAveragesPartial),
     pendingNote: pending ? 'The change vs last 7 days shows once the day is over.' : null,

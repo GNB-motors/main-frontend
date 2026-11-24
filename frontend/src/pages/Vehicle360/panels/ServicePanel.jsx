@@ -21,8 +21,15 @@ export default function ServicePanel({ prediction, health, vehicleId, livePositi
   const basis = prediction?.basis
     ? String(prediction.basis).replace(/_/g, ' ').toLowerCase()
     : null;
+  const fromTelemetry = prediction?.basis === 'TELEMETRY_START';
   const rows = [
-    ['', 'Last service odometer', date(prediction?.lastServiceAt), 'Recorded', km(last)],
+    [
+      '',
+      fromTelemetry ? 'First telemetry odometer' : 'Last service odometer',
+      date(prediction?.lastServiceAt),
+      fromTelemetry ? 'Telemetry baseline' : 'Recorded',
+      km(last),
+    ],
     [
       '+',
       'Distance driven since',
@@ -129,7 +136,10 @@ export default function ServicePanel({ prediction, health, vehicleId, livePositi
           <div className="vsvc-scale">
             <span>
               <b>{km(last)}</b>
-              <small>Last service · {date(prediction?.lastServiceAt)}</small>
+              <small>
+                {fromTelemetry ? 'Telemetry baseline' : 'Last service'} ·{' '}
+                {date(prediction?.lastServiceAt)}
+              </small>
             </span>
             <span>
               <b>{km(current)}</b>
@@ -141,67 +151,29 @@ export default function ServicePanel({ prediction, health, vehicleId, livePositi
             </span>
           </div>
         </section>
-        <div className="vsvc-middle">
-          <section className="vdo-card vsvc-calculation">
-            <h3>
-              How{' '}
-              {remaining != null
-                ? `${km(Math.abs(remaining))} ${remaining < 0 ? 'overdue' : 'remaining'}`
-                : 'the forecast'}{' '}
-              was worked out
-            </h3>
-            <p className="vsvc-subtitle">
-              {prediction?.computedAt
-                ? `Computed ${formatDateTimeIST(prediction.computedAt)}`
-                : 'Forecast timestamp unavailable'}
-              {basis ? ` · ${basis}` : ''}
-            </p>
-            <div>
-              {rows.map(([op, label, source, certainty, value]) => (
-                <div
-                  className={`vsvc-calc-row${op === '=' ? ' vsvc-calc-row--total' : ''}`}
-                  key={label}
-                >
-                  <span>{op}</span>
-                  <span>
-                    {label}
-                    <small>{source}</small>
-                  </span>
-                  <em className={certainty === 'Predicted' ? 'vsvc-purple' : ''}>○ {certainty}</em>
-                  <b>{value}</b>
-                </div>
-              ))}
+        <details className="vdo-card vsvc-calculation">
+          <summary>How is this worked out?</summary>
+          <p className="vsvc-subtitle">
+            {prediction?.computedAt
+              ? `Updated ${formatDateTimeIST(prediction.computedAt)}`
+              : 'Forecast timestamp unavailable'}
+            {basis ? ` · ${basis}` : ''}
+          </p>
+          {rows.map(([op, label, source, certainty, value]) => (
+            <div
+              className={`vsvc-calc-row${op === '=' ? ' vsvc-calc-row--total' : ''}`}
+              key={label}
+            >
+              <span>{op}</span>
+              <span>
+                {label}
+                <small>{source}</small>
+              </span>
+              <em className={certainty === 'Predicted' ? 'vsvc-purple' : ''}>{certainty}</em>
+              <b>{value}</b>
             </div>
-          </section>
-          <section className="vdo-card vsvc-explanation">
-            <span className="vsvc-eyebrow">✧ About this estimate</span>
-            <p className="vsvc-explanation-lead">
-              {current != null
-                ? `The forecast uses an odometer reading of ${km(current)}${basis ? ` with a ${basis} baseline` : ''}.`
-                : 'A current odometer reading is needed to calculate distance remaining.'}
-            </p>
-            <p>
-              The remaining distance is the next service odometer minus the current reading. The due
-              date uses the running pace and any available engine-hours limit.
-            </p>
-            <p>
-              GPS replacement distance and the last engine-reading timestamp are not supplied by
-              this forecast. An additional GPS estimate is not assumed.
-            </p>
-            <div className="vsvc-comparison">
-              <div>
-                <small>Current reading</small>
-                <strong>{km(current)}</strong>
-                <small>Reported by forecast</small>
-              </div>
-              <div>
-                <small>Remaining distance</small>
-                <strong>{km(remaining)}</strong>
-                <small>Calculated from service interval</small>
-              </div>
-            </div>
-          </section>
-        </div>
+          ))}
+        </details>
         <div className="vsvc-bottom">
           <ServiceCentreCard vehicleId={vehicleId} livePosition={livePosition} />
           <section className="vdo-card">

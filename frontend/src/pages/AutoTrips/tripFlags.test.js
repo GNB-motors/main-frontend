@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flagLabel, flagReason, flagReasons, staleDetail } from './tripFlags';
+import { checkFlagsOf, flagLabel, flagReason, flagReasons, staleDetail } from './tripFlags';
 
 // OLD: the server sends no explanation with the flags.
 const oldTrip = { status: 'OPEN', flags: ['GPS_GAP'] };
@@ -49,4 +49,14 @@ describe('a flag the server has no label for', () => {
   it('keeps the label for a flag it knows', () => {
     expect(flagLabel('OPEN_AT_DATA_END')).toBe('Still open when the data ended');
   });
+});
+
+it('hides stale-open flags and reasons when the trip is already delivered', () => {
+  const delivered = {
+    status: 'COMPLETE',
+    flags: ['STALE_OPEN'],
+    staleReason: { detail: 'Open for a day' },
+  };
+  expect(staleDetail(delivered)).toBeNull();
+  expect(checkFlagsOf(delivered)).toEqual([]);
 });

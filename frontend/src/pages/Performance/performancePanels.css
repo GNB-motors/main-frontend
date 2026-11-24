@@ -166,7 +166,8 @@
   white-space: nowrap;
 }
 .pf-table td .psrc-value {
-  font: 12.5px var(--ui-font-mono);
+  font: 12.5px var(--ui-font);
+  font-variant-numeric: tabular-nums;
 }
 .pf-table th {
   white-space: nowrap;

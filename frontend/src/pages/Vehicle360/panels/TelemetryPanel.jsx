@@ -1,9 +1,9 @@
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
 import useApi from '../../../hooks/useApi';
 import FleetDataService from '../../../services/FleetDataService';
-import DataTooltip from '../../../components/ui/DataTooltip';
 import { formatNum, timeAgo } from '../../../utils/formatters';
-import { formatDateIST, formatDateTimeIST } from '../../../utils/dateUtils';
+import { formatDateTimeIST } from '../../../utils/dateUtils';
+import TelemetryHistory from './TelemetryHistory';
 import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
 import './overview/referenceOverview.css';
 import './vehicleTelemetry.css';
@@ -60,54 +60,12 @@ export default function TelemetryPanel({ registrationNumber, assignedDriver }) {
             <OverviewCardSkeleton />
           </div>
         ) : telemetry.error ? (
-          <>
-            <section className="vdo-card">
-              <div className="vtelemetry-head">
-                <h3>Data connection</h3>
-                <span className="vtelemetry-badge">Data unavailable</span>
-              </div>
-              <div className="vtelemetry-age">
-                <strong>0</strong>
-                <span>observations available</span>
-              </div>
-              <p>
-                Telemetry could not be retrieved. Values below are placeholders until data is
-                available.
-              </p>
-              <button className="vtelemetry-button" onClick={telemetry.refetch}>
-                Refresh
-              </button>
-            </section>
-            <section className="vdo-card">
-              <div className="vtelemetry-head">
-                <h3>Engine &amp; electrical · readings</h3>
-                <span className="vtelemetry-badge">Data unavailable</span>
-              </div>
-              <div className="vtelemetry-readings">
-                {[
-                  ['Odometer', 'km'],
-                  ['Engine hours', 'h'],
-                  ['Engine speed', 'rpm'],
-                  ['Gear', ''],
-                  ['Coolant temperature', '°C'],
-                  ['Exhaust temperature', '°C'],
-                  ['Battery voltage', 'V'],
-                  ['Diesel tank', 'L'],
-                  ['DEF level', '%'],
-                  ['Vehicle speed', 'km/h'],
-                ].map(([label, unit]) => (
-                  <div key={label}>
-                    <span>{label}</span>
-                    <div>
-                      <strong className="vtelemetry-muted">0</strong>
-                      <span>{unit}</span>
-                    </div>
-                    <small>Data unavailable</small>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
+          <section className="vdo-card" role="alert">
+            <h3>Could not load telemetry</h3>
+            <button type="button" className="vtelemetry-button" onClick={telemetry.refetch}>
+              Try again
+            </button>
+          </section>
         ) : (
           <>
             <div className="vtelemetry-top">
@@ -150,47 +108,25 @@ export default function TelemetryPanel({ registrationNumber, assignedDriver }) {
                 <div className="vtelemetry-channel-table">
                   <div className="vtelemetry-channel-heading">
                     <span>Channel</span>
-                    <span>Stored observations · last 30 days</span>
                     <span>Last data</span>
                   </div>
                   {channels.map((channel) => (
                     <div className="vtelemetry-channel-row" key={channel.key}>
-                      <span>
-                        <b>{channel.name}</b>
-                        <small>{channel.via}</small>
-                      </span>
-                      <span className="vtelemetry-cells">
-                        {channel.days.map((day, index) => (
-                          <button
-                            key={day.day}
-                            className={day.received ? 'vtelemetry-cell--received' : ''}
-                            aria-label={`${channel.name} · ${day.day} · ${day.received ? 'Observation recorded' : 'No observation recorded'}`}
-                          >
-                            <DataTooltip
-                              className={`vtelemetry-tooltip${index > 15 ? ' vtelemetry-tooltip--end' : ''}`}
-                              aria-hidden="true"
-                              label={channel.name}
-                              details={[
-                                formatDateIST(`${day.day}T12:00:00+05:30`),
-                                day.received ? 'Observation recorded' : 'No observation recorded',
-                              ]}
-                            />
-                          </button>
-                        ))}
-                      </span>
+                      <b>{channel.name}</b>
                       <span className="vtelemetry-last">
-                        {stamp(channel.at) != null ? formatDateIST(channel.at) : 'Not available'}
+                        {stamp(channel.at) != null ? (
+                          <time
+                            dateTime={new Date(channel.at).toISOString()}
+                            title={dateTime(channel.at)}
+                          >
+                            {timeAgo(new Date(channel.at))}
+                          </time>
+                        ) : (
+                          'No reading recorded'
+                        )}
                       </span>
                     </div>
                   ))}
-                </div>
-                <div className="vtelemetry-legend">
-                  <span>
-                    <i /> Observation recorded
-                  </span>
-                  <span>
-                    <i /> No observation recorded
-                  </span>
                 </div>
                 <p>{telemetry.data?.coverageNote}</p>
               </section>
@@ -248,7 +184,6 @@ export default function TelemetryPanel({ registrationNumber, assignedDriver }) {
                         ? dateTime(reading.at)
                         : 'No recorded reading returned'}
                     </small>
-                    <small>{reading.source?.replace(/_/g, ' ') || 'Source unavailable'}</small>
                   </div>
                 ))}
               </div>
@@ -259,6 +194,7 @@ export default function TelemetryPanel({ registrationNumber, assignedDriver }) {
             </section>
           </>
         )}
+        <TelemetryHistory key={registrationNumber} registrationNumber={registrationNumber} />
       </div>
     </PanelErrorBoundary>
   );

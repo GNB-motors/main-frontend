@@ -62,17 +62,23 @@ describe('WhereNextSection', () => {
     await waitFor(() => expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument());
   });
 
-  it('never shows a held guess in the header, and says why it is held', async () => {
+  it('hides held predictions, including the empty disclosure control', async () => {
     getWhereNext.mockResolvedValue({
       held: true,
       destinations: [destination],
       basis: { text: "Last fix is not near any of this org's places." },
     });
-    render(<WhereNextSection registrationNumber="WB11J8562" />);
-    expect(await screen.findByText('Where next · not sure yet')).toBeInTheDocument();
-    expect(screen.queryByText(/→/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
-    expect(await screen.findByText(/On the road between places/)).toBeInTheDocument();
+    const onPrediction = vi.fn();
+    const { container } = render(
+      <WhereNextSection registrationNumber="WB11J8562" onPrediction={onPrediction} />,
+    );
+    await waitFor(() => expect(getWhereNext).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+    expect(onPrediction).toHaveBeenLastCalledWith({
+      registrationNumber: 'WB11J8562',
+      data: null,
+      open: false,
+    });
   });
 
   it('prints the reason the API gave, in words', async () => {
@@ -131,16 +137,6 @@ describe('WhereNextSection', () => {
     expect(screen.queryByText(/ETA passed/)).not.toBeInTheDocument();
   });
 
-  it('says the answer is not ready when the backend holds it', async () => {
-    getWhereNext.mockResolvedValue({
-      held: true,
-      why: { text: 'Still being checked.', basis: '122 of 196 rows' },
-    });
-    render(<WhereNextSection registrationNumber="WB11L8862" />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
-    await waitFor(() => expect(screen.getByText('Still being checked.')).toBeInTheDocument());
-  });
-
   // The endpoint is not on prod yet: a failed request, or no guess, is
   // nothing real to say — the section is not drawn at all (it used to print a
   // sentence under a truck that was plainly moving).
@@ -151,16 +147,10 @@ describe('WhereNextSection', () => {
     await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
-  it('says why when there is no guess', async () => {
-    getWhereNext.mockResolvedValue({
-      destinations: [],
-      basis: null,
-      computedAt: null,
-      noPredictionWhy: { text: 'We do not have enough of this truck’s history to guess.' },
-    });
+  it('shows the probability reported for a real prediction', async () => {
+    getWhereNext.mockResolvedValue({ destinations: [{ ...destination, probability: 0.78 }] });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    expect(await screen.findByText(/do not have enough of this truck/)).toBeInTheDocument();
-    expect(screen.getByText('Where next · no guess')).toBeInTheDocument();
+    expect(await screen.findByText(/DANKUNI SIDING.*78%/)).toBeInTheDocument();
   });
 
   it('draws nothing when there is no guess and no reason', async () => {

@@ -45,6 +45,7 @@ export function buildEvents(fills, windows, pricePerL) {
     at: f.at,
     lat: f.lat,
     lng: f.lng,
+    locationName: f.fuelPumpName || f.locationName || null,
     confirmationStatus: f.confirmationStatus,
     billFlag: f.billFlag,
     billVarianceL: f.billVarianceL,
@@ -291,7 +292,10 @@ export function buildBanner(lossL, billCount, pricePerL) {
 // Clean long dealer/pump names into concise, human-readable station names
 export function cleanStationName(raw) {
   if (!raw) return { displayName: 'Unknown Station', brand: '', location: '' };
-  const str = String(raw).trim();
+  const str = String(raw)
+    .trim()
+    .replace(/^\(\s*cash oil\s*\)\s*/i, '')
+    .trim();
   let brand = '';
   if (/reliance|bp\s*mobility/i.test(str)) brand = 'Reliance BP';
   else if (/indian\s*oil|iocl/i.test(str)) brand = 'Indian Oil';

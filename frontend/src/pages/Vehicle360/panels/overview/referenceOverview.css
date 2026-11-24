@@ -74,7 +74,7 @@
 }
 .vdo-overview button:focus-visible,
 .vdo-overview a:focus-visible,
-.vdo-map [role='button']:focus-visible {
+.vdo-road-map button:focus-visible {
   outline: 2px solid #2a4fd6;
   outline-offset: 3px;
 }
@@ -260,17 +260,8 @@
   width: 100%;
   background: #f8f8fb;
 }
-.vdo-map > svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  font-family: 'Vehicle Overview Inter', Inter, sans-serif;
-}
-.vdo-map [role='button'] {
-  cursor: pointer;
-}
-.vdo-map [role='button'] > text {
-  pointer-events: none;
+.vdo-road-map {
+  height: clamp(260px, 38vh, 420px);
 }
 .vdo-map-legend {
   display: flex;
@@ -288,22 +279,11 @@
   gap: 5px;
 }
 .vdo-map-key {
+  background: #315be1;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-.vdo-map-key--position {
-  border: 1.5px solid #213ea7;
-  background: #4469f0;
-}
-.vdo-map-key--stops {
-  border: 1.5px solid #747476;
-  background: rgba(147, 147, 154, 0.22);
-}
-.vdo-map-clusters {
-  margin-left: auto;
-  color: #93939a;
 }
 .vdo-card-grid {
   display: grid;
@@ -640,4 +620,30 @@
   .vdo-loading-card [data-slot='skeleton'] {
     animation: none;
   }
+}
+
+.vdo-truck-activity > header,
+.vdo-truck-activity > header > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.vdo-truck-activity > header {
+  justify-content: space-between;
+}
+.vdo-truck-activity button[aria-pressed='true'] {
+  border-color: #315be1;
+}
+.vdo-truck-activity > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr));
+  gap: 10px;
+}
+.vdo-truck-activity a {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--rd-line, #e5e7eb);
+  border-radius: 8px;
 }

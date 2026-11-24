@@ -78,6 +78,23 @@ function leftAtOf(endAt, startAt, stayMin) {
     : null;
 }
 
+function pickupStop(stop, pickup) {
+  if (stop._id != null && pickup.stopIds?.some((id) => String(id) === String(stop._id)))
+    return true;
+  const site = stop.place?.orgSiteId || stop.place?._id || stop.orgSiteId;
+  if (site && pickup.orgSiteId && String(site) === String(pickup.orgSiteId)) return true;
+  const from = toDate(stop.startAt)?.getTime();
+  const pickupFrom = toDate(pickup.arrivedAt)?.getTime();
+  const depart = toDate(pickup.departedAt)?.getTime();
+  return (
+    Number.isFinite(from) &&
+    Number.isFinite(pickupFrom) &&
+    Number.isFinite(depart) &&
+    from >= pickupFrom &&
+    from <= depart
+  );
+}
+
 /**
  * One row per step of the trip, in time order: loading at the plant, every stop after
  * it, and each drop. Row kinds: loading | drop | stop | unknown.
@@ -102,11 +119,22 @@ export function timelineRows(trip) {
     });
   }
 
-  const drops = [trip.drop, ...(trip.extraDrops || [])].filter((d) => d && toDate(d.arrivedAt));
+  const drops = [trip.drop, ...(trip.extraDrops || [])].filter(
+    (d) =>
+      d &&
+      toDate(d.arrivedAt) &&
+      !(
+        d.source === 'INFERRED_TURNAROUND' &&
+        d.orgSiteId &&
+        pickup.orgSiteId &&
+        String(d.orgSiteId) === String(pickup.orgSiteId)
+      ),
+  );
   const dropAt = new Map(drops.map((d) => [toDate(d.arrivedAt).getTime(), d]));
   const shown = new Set();
 
   (trip.routeStops || []).forEach((s) => {
+    if (pickupStop(s, pickup)) return;
     const t = toDate(s.startAt)?.getTime();
     const drop = t == null ? null : dropAt.get(t);
     if (drop) {
@@ -170,7 +198,7 @@ export const TIMELINE_SPANS = [
   { kind: 'drive', label: 'Driving' },
   { kind: 'unknown', label: 'Unknown stop' },
   { kind: 'stop', label: 'Other stops' },
-  { kind: 'drop', label: 'Unloading' },
+  { kind: 'drop', label: 'At the drop' },
 ];
 
 function minutesBetween(a, b) {

@@ -1,17 +1,17 @@
 import { IntelligenceViewSwitcher, IntelligenceAuditWorkspace } from './IntelligenceWorkspace.jsx';
 import { useMemo, useState } from 'react';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Gauge, Zap } from 'lucide-react';
 import OverspeedView from '../RouteHub/views/OverspeedView.jsx';
 import InstancesTab from './InstancesTab.jsx';
-import DrivingBriefing from './DrivingPeriodRead';
 import './drivingReference.css';
 import { trackLink } from '../../utils/redesign/links.js';
 import '../RouteHub/routeHubDesign.css';
 import './IntelligencePage.css';
 
 export default function OverspeedTab({ from, to, vehicle = '', driver = '' }) {
-  const [subView, setSubView] = useState('audit'); // 'audit' | 'instances'
+  const [subView, setSubView] = useUrlFilter('overspeedSubview', 'audit', ['audit', 'instances']); // 'audit' | 'instances'
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [toastMsg, setToastMsg] = useState(null);
@@ -44,9 +44,6 @@ export default function OverspeedTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-driving-tab intel-overspeed-tab">
-      {subView === 'audit' ? (
-        <DrivingBriefing kind="overspeed" from={from} to={to} vehicle={vehicle} driver={driver} />
-      ) : null}
       <IntelligenceViewSwitcher label="Overspeed views">
         <button
           type="button"
@@ -81,6 +78,9 @@ export default function OverspeedTab({ from, to, vehicle = '', driver = '' }) {
       ) : (
         <IntelligenceAuditWorkspace label="Overspeed audit">
           <OverspeedView
+            key={`${from}:${to}:${vehicle}`}
+            fromDay={from}
+            toDay={to}
             params={overspeedParams}
             toast={handleToast}
             setBadge={() => {}}

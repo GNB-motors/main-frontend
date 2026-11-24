@@ -26,6 +26,7 @@ const KEYS = {
   profileOwnerEmail: 'profile_owner_email',
   profileCompanyName: 'profile_company_name',
   profileGstin: 'profile_gstin',
+  profileNavigation: 'profile_navigation',
 };
 
 function get(key) {
@@ -133,6 +134,28 @@ export const setUiTheme = (value) => set(UI_THEME_KEY, value);
 // --- Generic UI preferences ---
 // Escape hatch for non-auth persisted UI state (graph theme, panel collapse,
 // etc.). Do NOT store auth/user/profile data through these.
+
+/** The last known menu grants for this exact account and location. */
+export function readNavigationProfile() {
+  try {
+    const stored = JSON.parse(get(KEYS.profileNavigation));
+    const scope = navigationScope();
+    return scope && stored?.scope === scope ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+export function cacheNavigationProfile({ flags, permissions }) {
+  const scope = navigationScope();
+  if (scope) set(KEYS.profileNavigation, JSON.stringify({ scope, flags, permissions }));
+}
+
+function navigationScope() {
+  const user = get(KEYS.userId);
+  const org = get(KEYS.orgId);
+  return user && org ? JSON.stringify([user, org, get(KEYS.branchId)]) : null;
+}
 
 export const getPref = (key) => get(key);
 export const setPref = (key, value) => set(key, value);

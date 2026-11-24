@@ -12,9 +12,24 @@ const TRACK_GROUP_IDS = ['warehouse', 'zone', 'trade', 'road', 'other'];
 export const TRACK_PLACE_GROUPS = PLACE_GROUPS.filter((g) => TRACK_GROUP_IDS.includes(g.id));
 
 export function confirmedPlaces({ warehouses = [], zones = [], sites = [] } = {}) {
-  return mergePlaces({ warehouses, zones, sites }).filter(
+  const confirmed = mergePlaces({ warehouses, zones, sites }).filter(
     (p) => p.status === 'CONFIRMED' && TRACK_GROUP_IDS.includes(p.group),
   );
+  const placeName = (place) => place.name.trim().replace(/\s+/g, ' ').toUpperCase();
+  const yardsByName = new Map();
+  for (const yard of confirmed.filter((p) => p.source === 'warehouse' && p.raw?.name)) {
+    const name = placeName(yard);
+    if (!yardsByName.has(name)) yardsByName.set(name, []);
+    yardsByName.get(name).push(yard);
+  }
+  return confirmed.filter((place) => {
+    if (place.source !== 'site' || place.type !== 'LOADING' || !place.raw?.name || place.risk) {
+      return true;
+    }
+    return !(yardsByName.get(placeName(place)) || []).some(
+      (yard) => metresBetween(yard.lat, yard.lng, place.lat, place.lng) <= 50,
+    );
+  });
 }
 
 export function countPlacesByGroup(places) {

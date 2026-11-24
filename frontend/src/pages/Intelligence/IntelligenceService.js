@@ -96,7 +96,8 @@ const IntelligenceService = {
   },
 
   /** GET /api/fleet-view/places/questions — the places waiting for a name. */
-  getPlaceQuestions: ({ signal } = {}) => fleetViewService.getPlaceQuestions({ signal }),
+  getPlaceQuestions: ({ signal, from, to } = {}) =>
+    fleetViewService.getPlaceQuestions({ signal, from, to }),
   answerPlaceQuestion: (id, answer) => fleetViewService.answerPlaceQuestion(id, answer),
 
   /** GET /api/intelligence/report-cards — one card per truck or driver. */
@@ -107,6 +108,14 @@ const IntelligenceService = {
       schema: 'ReportCardsResponseSchema',
       importer: importIntelligence,
     }),
+
+  getCruiseShare: async ({ from, to, vehicle, signal }) => {
+    const response = await apiClient.get('/api/intelligence/cruise-share', {
+      params: { from, to, vehicle },
+      signal,
+    });
+    return bodyOf(response);
+  },
 
   /** GET /api/intelligence/instances — the moments behind one kind of event. */
   getInstances: ({ kind, from, to, vehicle, driver, page, limit, signal } = {}) =>
@@ -120,7 +129,7 @@ const IntelligenceService = {
   /** GET /api/fleet-view/mileage — km/L and DEF for the period that was asked for. */
   getMileage: ({ from, to, vehicle, signal } = {}) =>
     get('/api/fleet-view/mileage', {
-      params: { groupBy: 'truck', from, to, vehicle },
+      params: { groupBy: 'truck', from, to, vehicle, telemetry: true },
       signal,
       schema: 'MileageResponseSchema',
       importer: importMileage,

@@ -38,6 +38,20 @@
   text-transform: uppercase;
   color: #6a43d8;
 }
+.intel-runs-share {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+}
+.intel-runs-share > span {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--rd-leg-empty) var(--empty-share), #e6eaf2 0);
+  mask-image: radial-gradient(circle, transparent 48%, black 50%);
+}
 .intel-runs-brief-copy > p {
   margin: 0;
   font:

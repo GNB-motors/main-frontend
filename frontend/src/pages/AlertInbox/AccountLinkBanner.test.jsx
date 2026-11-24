@@ -26,17 +26,17 @@ describe('AccountLinkBanner', () => {
     expect(screen.getByText(/4 trucks have no live data/)).toBeInTheDocument();
   });
 
-  it('does not print 0 trucks when the count is unknown', () => {
+  it.each([null, 0])('omits the truck-impact claim for %s trucks', (trucks) => {
     renderBanner({
       accountId: 'acc-2',
       accountName: 'FL-9',
       state: 'NEEDS_RELINK',
       lastDataAt: null,
-      trucks: null,
+      trucks,
       action: null,
     });
 
-    expect(screen.getByText(/Its trucks have no live data/)).toBeInTheDocument();
+    expect(screen.queryByText(/no live data/)).not.toBeInTheDocument();
     expect(screen.queryByText(/0 trucks/)).not.toBeInTheDocument();
   });
 

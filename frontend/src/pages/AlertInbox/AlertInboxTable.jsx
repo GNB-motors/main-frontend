@@ -2,7 +2,7 @@ import { Check } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/button';
 import { formatDateTimeIST } from '../../utils/dateUtils';
-import { SOURCE_LABELS, sinceLabel, subjectTitle } from './inboxModel';
+import { SOURCE_LABELS, fuelReadingLabel, sinceLabel, subjectTitle } from './inboxModel';
 
 export default function AlertInboxTable({ items, total, pending, onSelect, onReview }) {
   const columns = [
@@ -27,21 +27,25 @@ export default function AlertInboxTable({ items, total, pending, onSelect, onRev
     {
       key: 'issue',
       label: 'Issue and next step',
-      render: (item) => (
-        <div className="ai-table-issue">
-          <strong>{item.label}</strong>
-          <p>{item.wants || 'Check the reports below and confirm with your team.'}</p>
-          <span>
-            {[
-              ...new Set(
-                (item.sources || []).map(
-                  (source) => SOURCE_LABELS[source.source] || 'Other source',
+      render: (item) => {
+        const fuel = fuelReadingLabel(item);
+        return (
+          <div className="ai-table-issue">
+            <strong>{item.label}</strong>
+            {fuel ? <p>{fuel}</p> : null}
+            <p>{item.wants || 'Check the reports below and confirm with your team.'}</p>
+            <span>
+              {[
+                ...new Set(
+                  (item.sources || []).map(
+                    (source) => SOURCE_LABELS[source.source] || 'Other source',
+                  ),
                 ),
-              ),
-            ].join(' · ')}
-          </span>
-        </div>
-      ),
+              ].join(' · ')}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'priority',

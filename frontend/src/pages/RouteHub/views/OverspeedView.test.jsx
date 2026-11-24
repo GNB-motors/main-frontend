@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import OverspeedView from './OverspeedView.jsx';
 import RouteHubService from '../../../services/RouteHubService';
 
+vi.mock('../../LiveTracking/LiveTrackingService', () => ({
+  LiveTrackingService: { getPositions: vi.fn().mockResolvedValue([]) },
+}));
+
 vi.mock('../../../services/RouteHubService', () => ({
   default: { getVehicles: vi.fn(), getOverspeedEvents: vi.fn(), getTrail: vi.fn() },
 }));

@@ -54,24 +54,25 @@ it('shows full-day backend counts even when the five recent alerts contain no sa
     })),
   });
   expect(countFor('Harsh braking')).toHaveTextContent('12');
-  expect(countFor('Harsh acceleration')).toHaveTextContent('0');
+  expect(screen.queryByText('Harsh acceleration')).not.toBeInTheDocument();
   expect(screen.getByText('12 recorded events')).toBeInTheDocument();
   expect(screen.getByText(/Recorded native safety telemetry today/)).toBeInTheDocument();
 });
 
-it('shows recorded zero as zero, including overspeed', () => {
+it('shows one zero total when no safety event was recorded', () => {
   renderPanel({ safetyToday: summary() });
-  expect(countFor('Harsh braking')).toHaveTextContent('0');
-  expect(countFor('Overspeed alerts')).toHaveTextContent('0');
+  expect(screen.queryByText('Harsh braking')).not.toBeInTheDocument();
+  expect(screen.queryByText('Overspeed alerts')).not.toBeInTheDocument();
   expect(screen.getByText('0 recorded events')).toBeInTheDocument();
 });
 
 it('does not infer daily totals from recent returned events when the summary is missing', () => {
   renderPanel({ recentAlerts: [{ id: 'b', type: 'HarshBraking', eventDateTime: now }] });
-  expect(countFor('Harsh braking')).toHaveTextContent('—');
+  expect(screen.queryByText('Harsh braking')).not.toBeInTheDocument();
   expect(screen.getByText('Daily counts unavailable')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /HarshBraking/ })).toBeInTheDocument();
-  expect(screen.getByText(/dots show returned alerts/)).toBeInTheDocument();
+  expect(screen.getByRole('list', { name: 'Recent safety alerts' })).toHaveTextContent(
+    'HarshBraking',
+  );
 });
 
 it('displays the unavailable reason instead of zero for unsupported or failed reads', () => {
@@ -82,7 +83,7 @@ it('displays the unavailable reason instead of zero for unsupported or failed re
       reason: 'Native safety alerts are not available for this provider.',
     },
   });
-  expect(countFor('Harsh braking')).toHaveTextContent('—');
+  expect(screen.queryByText('Harsh braking')).not.toBeInTheDocument();
   expect(screen.getByText(/not available for this provider/)).toBeInTheDocument();
 });
 
@@ -90,7 +91,7 @@ it('does not relabel a previous-day summary as today after midnight', () => {
   const data = summary({ total: 12, harshBraking: 12 });
   data.window.day = '2026-11-08';
   renderPanel({ safetyToday: data });
-  expect(countFor('Harsh braking')).toHaveTextContent('—');
+  expect(screen.queryByText('Harsh braking')).not.toBeInTheDocument();
   expect(screen.getByText('Refresh to load today’s safety counts.')).toBeInTheDocument();
 });
 
@@ -101,9 +102,9 @@ it('discloses undated arrivals and excludes their receipt times from the event t
       { id: 'undated', type: 'HarshBraking', eventDateTime: now, eventTimeKnown: false },
     ],
   });
-  expect(countFor('Harsh braking')).toHaveTextContent('0');
+  expect(screen.queryByText('Harsh braking')).not.toBeInTheDocument();
   expect(
     screen.getByText(/2 overspeed alerts received today have no event timestamp/),
   ).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: /HarshBraking/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('list', { name: 'Recent safety alerts' })).not.toBeInTheDocument();
 });

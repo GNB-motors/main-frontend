@@ -94,7 +94,7 @@ export default function TruckMileageView({ range, searchQuery = '' }) {
       total={rows.length}
       onRowClick={(t) => navigate(`/mileage-tracking/vehicle/${t.vehicleId}`)}
       emptyTitle="No full-tank rounds in these dates"
-      emptyHint="A truck shows up once it has two full-tank fills in the range."
+      emptyHint="Model comparisons use completed full-tank cycles. Open By truck for mileage from distance and diesel readings."
     />
   );
 }

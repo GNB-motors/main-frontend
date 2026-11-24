@@ -1,3 +1,4 @@
+import PlaceLabel from '../../components/ui/PlaceLabel';
 import { useState } from 'react';
 import Link from '@/components/redesign/FleetLink';
 import { useApi } from '@/hooks/useApi';
@@ -14,15 +15,6 @@ import {
 } from '@/utils/placeQuestions';
 import '../Vehicle360/panels/overview/referenceOverview.css';
 import './runsPlacesReference.css';
-
-const QUESTIONS_PATH = '/auto-trips?tab=questions';
-const coords = (point) =>
-  point?.lat != null &&
-  point?.lng != null &&
-  Number.isFinite(Number(point.lat)) &&
-  Number.isFinite(Number(point.lng))
-    ? `${Number(point.lat).toFixed(3)}, ${Number(point.lng).toFixed(3)}`
-    : null;
 
 function QuestionAnswer({ question }) {
   const [editing, setEditing] = useState(false);
@@ -105,20 +97,22 @@ function QuestionAnswer({ question }) {
       ) : (
         <>
           <span className="intel-place-guess-label">
-            {question.suggestion?.name || 'No suggestion'}
+            {question.suggestion?.name || 'No suggested name yet'}
             {question.suggestion?.confidence != null
               ? ` · ${formatProbability(question.suggestion.confidence)}`
               : ''}
           </span>
-          <button
-            className="intel-place-action intel-place-action--primary"
-            disabled={busy || !question.suggestion?.name}
-            onClick={() => save('CONFIRM')}
-          >
-            {busy ? 'Saving…' : 'Confirm'}
-          </button>
+          {question.suggestion?.name ? (
+            <button
+              className="intel-place-action intel-place-action--primary"
+              disabled={busy || !question.suggestion?.name}
+              onClick={() => save('CONFIRM')}
+            >
+              {busy ? 'Saving…' : 'Confirm'}
+            </button>
+          ) : null}
           <button className="intel-place-action" disabled={busy} onClick={() => setEditing(true)}>
-            Something else
+            {question.suggestion?.name ? 'Something else' : 'Name this stop'}
           </button>
         </>
       )}
@@ -134,7 +128,13 @@ export default function PlacesTab({ from, to }) {
     loading: questionsLoading,
     error: questionsError,
     refetch: refetchQuestions,
-  } = useApi((signal) => IntelligenceService.getPlaceQuestions({ signal }), []);
+  } = useApi((signal) => IntelligenceService.getPlaceQuestions({ from, to, signal }), [from, to], {
+    scopeKey: `${from}:${to}`,
+  });
+  const questionsPath = `/auto-trips?${new URLSearchParams({
+    tab: 'questions',
+    ...(from && to ? { range: 'custom', from, to } : {}),
+  })}`;
   const {
     data: history,
     loading: historyLoading,
@@ -168,7 +168,7 @@ export default function PlacesTab({ from, to }) {
               reviewing the trip.
             </small>
           </div>
-          <Link to={QUESTIONS_PATH}>{`See all ${formatNumber(questionTotal)} and answer`}</Link>
+          <Link to={questionsPath}>{`See all ${formatNumber(questionTotal)} and answer`}</Link>
         </header>
         <IntelligenceDataState
           loading={questionsLoading}
@@ -193,7 +193,7 @@ export default function PlacesTab({ from, to }) {
               <tbody>
                 {questionItems.map((question) => {
                   const firstTrip = question.sampleTrips?.find((trip) => trip.to);
-                  const label = question.suggestion?.name || 'Unnamed point';
+                  const label = question.suggestion?.name || 'Unnamed stop';
                   // The new backend's optional fields; absent on the old one.
                   const headline = questionHeadline(question);
                   const kmAtStake = kmAtStakeText(question);
@@ -208,7 +208,17 @@ export default function PlacesTab({ from, to }) {
                         ) : (
                           <b>{label}</b>
                         )}
-                        <small>{coords(question.point) || 'Coordinates unavailable'}</small>
+                        {!question.suggestion?.name &&
+                        Number.isFinite(question.point?.lat) &&
+                        Number.isFinite(question.point?.lng) ? (
+                          <small>
+                            <PlaceLabel
+                              lat={question.point.lat}
+                              lng={question.point.lng}
+                              fallbackText="Open stop location"
+                            />
+                          </small>
+                        ) : null}
                       </td>
                       <td>
                         {headline ? <small>{headline}</small> : null}
@@ -217,8 +227,8 @@ export default function PlacesTab({ from, to }) {
                         {kmAtStake ? <small>{kmAtStake}</small> : null}
                         {suspicious ? (
                           <small>
-                            {suspicious} {suspicious === 1 ? 'trip' : 'trips'} here look unusual — worth a
-                            look
+                            {suspicious} {suspicious === 1 ? 'trip' : 'trips'} here look unusual —
+                            worth a look
                           </small>
                         ) : null}
                         {question.suggestion?.category ? (

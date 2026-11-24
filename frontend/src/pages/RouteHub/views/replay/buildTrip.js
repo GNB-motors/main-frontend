@@ -32,14 +32,17 @@ export default function buildTrip(
     matched && Array.isArray(road.timeline) && road.timeline.length > 1 ? road.timeline : null;
   const base = timeline ? distanceAtTime(timeline, fixes[0].at.getTime()) : 0;
   let acc = 0;
+  let knownIntervals = 0;
   fixes.forEach((f, i) => {
     if (timeline) acc = (distanceAtTime(timeline, f.at.getTime()) - base) / 1000;
     // Straight-line fallback: never chord across a classified signal-loss
     // silence. The leg into an `inter_trip` break (two trips in the window) or a
     // `moving` gap (the vehicle drove through a reporting silence, real path
     // unknown) is a guess, not observed road — summing it inflates the distance.
-    else if (i > 0 && f.gapType !== 'inter_trip' && f.gapType !== 'moving')
+    else if (i > 0 && f.gapType !== 'inter_trip' && f.gapType !== 'moving') {
       acc += haversineKm(fixes[i - 1].ll, f.ll);
+      knownIntervals += 1;
+    }
     f.km = acc;
   });
 
@@ -184,7 +187,7 @@ export default function buildTrip(
     pieces: pathPieces(fixes),
     events,
     overspeed: overspeedEvents || [],
-    km: acc,
+    km: timeline || knownIntervals > 0 ? acc : null,
     distanceSource: timeline ? 'road' : 'straight-line',
     roadLayers: matched ? toLayers(road) : [],
     durationMin: span / 60000,

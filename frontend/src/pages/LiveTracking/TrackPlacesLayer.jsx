@@ -14,7 +14,7 @@ import {
 /* Place Hub's own pins, shapes and clusters, so a place looks the same on both
    pages. Drawn under the fleet: place pins sit at zIndex 10, trucks at 100+. */
 export default function TrackPlacesLayer({ places, selectedId, onSelect, dark, zoom = 5 }) {
-  const { labels, markerPlaces } = usePlaceAreaLabels(places, zoom, false, selectedId);
+  const { labels, markerPlaces } = usePlaceAreaLabels(places, zoom, zoom >= 11, selectedId);
   if (!places.length) return null;
   const styles = dark ? CLUSTER_STYLES_DARK : CLUSTER_STYLES_LIGHT;
   // Places drawn as a pin let the marker own the hover card; the shape shows its

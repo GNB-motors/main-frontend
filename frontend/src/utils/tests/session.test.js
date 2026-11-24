@@ -26,6 +26,8 @@ import {
   getUiTheme,
   setUiTheme,
   getPref,
+  cacheNavigationProfile,
+  readNavigationProfile,
   setPref,
   getProfileField,
   setProfileField,
@@ -288,4 +290,17 @@ describe('session.js — the sole localStorage gateway', () => {
       expect(sessionStorage.length).toBe(0);
     });
   });
+});
+
+it('keeps the cached navigation isolated by account and location', () => {
+  setSession({ token: 'test-token', user: { id: 'user-1', orgId: 'org-1' } });
+  setBranchId('branch-1');
+  cacheNavigationProfile({ flags: { reports: true }, permissions: { reports: true } });
+  expect(readNavigationProfile()?.permissions.reports).toBe(true);
+  setBranchId('branch-2');
+  expect(readNavigationProfile()).toBeNull();
+  setBranchId('branch-1');
+  expect(readNavigationProfile()?.flags.reports).toBe(true);
+  clearSession();
+  expect(readNavigationProfile()).toBeNull();
 });

@@ -8,119 +8,16 @@ import { trackLink } from '../../utils/redesign/links';
 import { serviceState } from './vehicle360Logic';
 import { vehicleAxles } from './vehicleAxles';
 import { fluidLevels, numeric } from './panels/overview/referenceOverviewModel';
+import { formatDuration } from '../../utils/redesign/format';
+import { toISTDateString } from '../../utils/dateUtils';
 import { Skeleton } from '../../components/ui/skeleton';
+import VehiclePositionLabel from './VehiclePositionLabel';
 import OpenChallanBadge from '../Compliance/OpenChallanBadge';
 import './panels/overview/referenceOverview.css';
 import './vehicleHeaderCard.css';
 
 const VehicleMiniMap = lazy(() => import('./VehicleMiniMap'));
 const AddBillPhotoDialog = lazy(() => import('../Mileage/AddBillPhotoDialog'));
-
-function TruckIllustration({ reg, axles, fuelPercent }) {
-  // One visible wheel per axle in side elevation. Unknown configuration stays illustrative.
-  const count = axles || 2;
-  const rear = Array.from({ length: count - 1 }, (_, index) =>
-    count <= 3 ? 130 + index * 64 : 80 + index * (340 / Math.max(1, count - 2)),
-  );
-  return (
-    <svg
-      viewBox="0 0 680 230"
-      role="img"
-      aria-label={
-        axles ? `${axles}-axle truck, ${reg}` : `Illustrative truck, axle count unavailable, ${reg}`
-      }
-    >
-      <ellipse cx="330" cy="206" rx="300" ry="9" fill="#121214" fillOpacity=".06" />
-      <line x1="0" y1="200" x2="680" y2="200" stroke="#dfdfe2" />
-      <rect
-        x="40"
-        y="44"
-        width="420"
-        height="114"
-        rx="6"
-        fill="#fff"
-        stroke="#c6c6c9"
-        strokeWidth="1.5"
-      />
-      {Array.from({ length: 16 }, (_, index) => (
-        <line
-          key={index}
-          x1={58 + index * 25}
-          y1="50"
-          x2={58 + index * 25}
-          y2="152"
-          stroke="#ececee"
-          strokeWidth="1.5"
-        />
-      ))}
-      <rect x="40" y="44" width="420" height="10" rx="5" fill="#ececee" />
-      <path
-        d="M470 62 H566 Q586 62 596 82 L626 132 Q632 142 632 152 V170 H470 Z"
-        fill="#fff"
-        stroke="#93939a"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M520 74 H562 Q574 74 580 86 L604 128 H520 Z"
-        fill="#4469f01f"
-        stroke="#b9c6f5"
-        strokeWidth="1.2"
-      />
-      <rect
-        x="478"
-        y="74"
-        width="34"
-        height="54"
-        rx="4"
-        fill="#4469f014"
-        stroke="#b9c6f5"
-        strokeWidth="1.2"
-      />
-      <rect x="618" y="148" width="18" height="10" rx="3" fill="#eecf7f" />
-      <rect x="34" y="158" width="604" height="12" rx="3" fill="#5d5d5e" />
-      <rect
-        x="300"
-        y="170"
-        width="66"
-        height="18"
-        rx="5"
-        fill="#fff"
-        stroke="#c6c6c9"
-        strokeWidth="1.2"
-      />
-      {fuelPercent != null ? (
-        <rect
-          x="300"
-          y="170"
-          width={(66 * Math.max(0, Math.min(100, fuelPercent))) / 100}
-          height="18"
-          rx="5"
-          fill="#4469f0"
-          fillOpacity=".22"
-        />
-      ) : null}
-      {[...rear, 566].map((x, index) => (
-        <g key={index}>
-          <circle cx={x} cy="176" r={count > 6 ? 18 : 24} fill="#2e2e30" />
-          <circle cx={x} cy="176" r="11" fill="#c6c6c9" />
-          <circle cx={x} cy="176" r="3" fill="#5d5d5e" />
-        </g>
-      ))}
-      <text
-        x="250"
-        y="108"
-        textAnchor="middle"
-        fontFamily="monospace"
-        fontSize="15"
-        letterSpacing="3"
-        fill="#b9b9ba"
-      >
-        {reg}
-      </text>
-    </svg>
-  );
-}
 
 export default function VehicleHeaderCard({
   reg,
@@ -163,17 +60,28 @@ export default function VehicleHeaderCard({
     fleetEdge?.fuelType,
     ialert?.emissionNorm || fleetEdge?.emissionNorm,
   ].filter(Boolean);
-  const location =
-    livePosition?.address ||
-    livePosition?.area ||
-    (livePosition?.latitude != null && livePosition?.longitude != null
-      ? `${Number(livePosition.latitude).toFixed(4)}, ${Number(livePosition.longitude).toFixed(4)}`
-      : 'Position unavailable');
+  const day = toISTDateString(new Date());
+  const dailyDistance = overviewData?.days?.find((entry) => entry.day === day);
+  const today = overviewData?.today?.day === day ? overviewData.today : null;
+  const distance = numeric(dailyDistance?.engineKm) ?? numeric(dailyDistance?.gpsKm);
+  const facts = [
+    ['Distance today', distance == null ? 'Not measured' : formatKm(distance)],
+    [
+      'Idling today',
+      numeric(today?.idleMin) == null ? 'Not measured' : formatDuration(today.idleMin),
+    ],
+    [
+      'Diesel used today',
+      numeric(today?.dieselUsedL) == null ? 'Not measured' : formatLitres(today.dieselUsedL),
+    ],
+    ['Assigned driver', profile.assignedDriver?.name || 'Not assigned'],
+  ];
   const motion =
     { moving: 'Moving', stopped: 'Parked', idling: 'Idling', offline: 'Offline' }[view.status] ||
     'Status unavailable';
   const docs = vehicle?.documents;
   const specs = [
+    ['Fleet availability', vehicle?.status ? String(vehicle.status).replace(/_/g, ' ') : null],
     ['Chassis / VIN', vehicle?.chassisNumber || fleetEdge?.vin],
     ['Axles', axles],
     ['Axle class', vehicle?.axleClass],
@@ -244,9 +152,6 @@ export default function VehicleHeaderCard({
         <div>
           <div className="vhcard-identity">
             <h1>{reg}</h1>
-            {vehicle?.status ? (
-              <span className="vhcard-pill">{String(vehicle.status).replace(/_/g, ' ')}</span>
-            ) : null}
             <span className="vhcard-pill">
               {motion}
               {view.ignition != null ? ` · ignition ${view.ignition ? 'on' : 'off'}` : ''}
@@ -294,18 +199,17 @@ export default function VehicleHeaderCard({
         <button onClick={() => onGoTab('telemetry')}>Telemetry →</button>
       </div>
       <div className="vhcard-visuals">
-        <div className="vhcard-truck">
-          <TruckIllustration reg={reg} axles={axles} fuelPercent={fuel.percent} />
-          <div className="vhcard-truck-caption">
-            <span>
-              {axles
-                ? `${axles} axles · recorded configuration`
-                : 'Illustration · axle count not recorded'}
-            </span>
-            {vehicle?.bodyType ? <span>Body · {vehicle.bodyType}</span> : null}
-            {fuel.capacityL > 0 ? <span>Tank · {formatNum(fuel.capacityL)} L</span> : null}
-          </div>
-        </div>
+        <section className="vhcard-day" aria-label="Today’s truck activity">
+          <h2>Today</h2>
+          <dl>
+            {facts.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
         <div className="vhcard-map">
           <div className="vhcard-map-canvas">
             <Suspense fallback={<Skeleton style={{ height: '100%', width: '100%' }} />}>
@@ -314,7 +218,9 @@ export default function VehicleHeaderCard({
           </div>
           <div className="vhcard-map-caption">
             <div>
-              <b>{location}</b>
+              <b>
+                <VehiclePositionLabel position={livePosition} />
+              </b>
               <span>
                 {motion}
                 {view.lastFixAt ? ` · ${timeAgo(view.lastFixAt)}` : ''}

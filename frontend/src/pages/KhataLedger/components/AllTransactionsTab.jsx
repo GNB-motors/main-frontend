@@ -1,7 +1,7 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import useUrlFilter from '@/hooks/useUrlFilter';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, Pencil, BookOpen, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
@@ -80,7 +80,10 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   // Filters
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  const [searchParams] = useSearchParams();
+  const [category, setCategory] = useState(() =>
+    searchParams.get('category') === 'TOLL' ? 'TOLL' : '',
+  );
   const [source, setSource] = useState('');
   const [status, setStatus] = useUrlFilter('expenseStatus');
   const [vehicleId, setVehicleId] = useState('');

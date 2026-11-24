@@ -441,7 +441,7 @@ const LiveTrackingPage = () => {
 
   // The live control room: idling, alerts and destinations, all from the
   // stream. The new map layers are asked for only when they are switched on.
-  const { idling: idlingRows, error: idlingError } = useLiveIdling({ enabled: true });
+  const { idling: idlingRows } = useLiveIdling({ enabled: true });
   const { alerts } = useLiveAlerts({ enabled: true });
   const { intents } = useLiveIntents({ enabled: Boolean(selectedId) });
   // Destinations we actually know, with the arrival band (refreshed every 5 min).
@@ -1445,7 +1445,7 @@ const LiveTrackingPage = () => {
                         : routes.error
                           ? null
                           : routes.lines.length,
-                      idling: idlingError ? null : idlingRows.length,
+                      idling: counts.idling ?? null,
                     }}
                   />
                 ) : null

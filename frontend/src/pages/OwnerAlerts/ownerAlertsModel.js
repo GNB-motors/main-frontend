@@ -1,3 +1,4 @@
+import { intelligenceLink, trackLink } from '../../utils/redesign/links';
 import { formatInIST } from '../../utils/dateUtils';
 import { timeAgo } from '../../utils/formatters';
 import { ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
@@ -157,4 +158,39 @@ export function countsOf(data) {
       counts.trucksCritical ?? counts.vehiclesCritical ?? counts.trucks ?? counts.vehicles,
     ),
   };
+}
+
+/** Keep the alert's truck and day on its evidence screen. */
+export function ownerAlertDestination(alert) {
+  const vehicle = alert?.vehicleNumber;
+  if (!vehicle) return null;
+  const type = String(alert.type || '');
+  const day = alert.at ? formatInIST(alert.at, 'YYYY-MM-DD') : null;
+  const options = { vehicle, from: day, to: day };
+  if (type.includes('FUEL') || type === 'RECONCILE_GAP')
+    return { to: intelligenceLink({ ...options, tab: 'fuel' }), label: 'Review fuel evidence' };
+  if (type.includes('IDLING'))
+    return { to: intelligenceLink({ ...options, tab: 'idling' }), label: 'Review idling' };
+  if (type.includes('OVERSPEED'))
+    return { to: intelligenceLink({ ...options, tab: 'overspeed' }), label: 'Review overspeed' };
+  if (type.includes('DEVIATION'))
+    return { to: intelligenceLink({ ...options, tab: 'detours' }), label: 'Review detour' };
+  if (type.startsWith('ADBLUE')) {
+    return {
+      to: `/vehicles/${encodeURIComponent(vehicle)}?tab=fuel`,
+      label: 'Review DEF readings',
+    };
+  }
+  if (type.includes('GEOFENCE') || type.includes('PLACE') || type.includes('SERVICE_VISIT')) {
+    return {
+      to: trackLink({
+        reg: vehicle,
+        from: day && `${day}T00:00:00+05:30`,
+        to: day && `${day}T23:59:59+05:30`,
+        at: alert.at,
+      }),
+      label: 'Review truck location',
+    };
+  }
+  return { to: `/vehicles/${encodeURIComponent(vehicle)}`, label: 'View vehicle' };
 }

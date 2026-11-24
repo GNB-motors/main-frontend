@@ -163,6 +163,13 @@ describe('IntelligencePage', () => {
     expect(glance).toHaveTextContent('Not available for this period');
   });
 
+  it('does not load the fleet overview or issue list when opening truck scores directly', async () => {
+    renderPage('/intelligence?tab=vehicles');
+    expect(await screen.findByRole('tabpanel', { name: 'Truck scores' })).toBeInTheDocument();
+    expect(IntelligenceService.getSummary).not.toHaveBeenCalled();
+    expect(IntelligenceService.getIssues).not.toHaveBeenCalled();
+  });
+
   it('draws no summary box at all while the summary endpoint is not deployed', async () => {
     IntelligenceService.getSummary.mockRejectedValue(
       Object.assign(new Error('Not found'), { status: 404 }),

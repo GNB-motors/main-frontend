@@ -8,9 +8,24 @@ import EmptyState from '../cluster/EmptyState';
  * The sidebar already hides it; this covers a typed or old link, which would
  * otherwise land on a raw "Not Found" or "Could not load" panel.
  */
-export default function FeatureGate({ flag, name, children }) {
-  const { isEnabled, ready } = useFeatureFlags();
+export default function FeatureGate({ flag, name, children, fallback }) {
+  const { isEnabled, ready, failed, loading, retry, profile } = useFeatureFlags();
+  if (failed && !profile) {
+    return (
+      <EmptyState
+        className="min-h-[60vh]"
+        title="Account settings unavailable"
+        hint={`Reload your account to check access to ${name}.`}
+        action={
+          <button type="button" className="btn btn--sm" onClick={retry} disabled={loading}>
+            Retry account
+          </button>
+        }
+      />
+    );
+  }
   if (!ready || isEnabled(flag)) return children;
+  if (fallback) return fallback;
   return (
     <EmptyState
       className="min-h-[60vh]"

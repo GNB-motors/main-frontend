@@ -48,7 +48,7 @@ export const DRIVER_EXPORT_COLUMNS = [
   { key: 'totalDistanceKm', label: 'Distance in cycles (km)', type: 'number' },
   { key: 'cycleCount', label: 'Cycles used', type: 'number' },
   { key: 'excludedCycleCount', label: 'Cycles excluded', type: 'number' },
-  { key: 'avgMileageKmPerL', label: 'km/L', type: 'number' },
+  { key: 'avgMileageKmPerL', label: 'Full-tank km/L', type: 'number' },
   { key: 'costPerKm', label: '₹/km', type: 'currency' },
   { key: 'lastRefuelAt', label: 'Last bill', type: 'date' },
 ];
@@ -69,4 +69,5 @@ export const VEHICLE_EXPORT_COLUMNS = [
   { key: 'averageEfficiencyKmpl', label: 'km/L', type: 'number' },
   { key: 'costPerKm', label: '₹/km', type: 'currency' },
   { key: 'lastRefuelAt', label: 'Last bill', type: 'date' },
+  { key: 'telemetryKmPerL', label: 'Telemetry km/L', type: 'number' },
 ];

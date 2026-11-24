@@ -546,7 +546,7 @@
 }
 .atx-place-review-map-wrap {
   position: relative;
-  height: 190px;
+  height: clamp(260px, 42vh, 420px);
   margin-bottom: 12px;
   border-radius: 8px;
   overflow: hidden;
@@ -690,4 +690,16 @@
   .atx-place-review-banner .atx-skel {
     animation: none;
   }
+}
+
+.atx-place-sample-trips,
+.atx-place-sample-trips label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+  align-items: center;
+}
+.atx-place-sample-trips {
+  padding-bottom: 0.5rem;
+  font-size: 0.82rem;
 }

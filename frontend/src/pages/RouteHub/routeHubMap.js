@@ -1,3 +1,4 @@
+import { ROAD_TILE_URL, ROAD_TILE_OPTIONS } from '../../components/map/leafletRoadTiles.js';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -5,7 +6,6 @@ import { icoHTML } from './routeHubIconPaths';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import '../../components/map/replayTruck.css';
 
-const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 /** Leaflet never loads a single tile until it has a view (center+zoom) —
  *  the mockup always had 5 hardcoded corridors so fitBounds always ran and
  *  masked this. An org with no routes/events yet would otherwise get a
@@ -13,7 +13,7 @@ const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const INDIA_CENTER = [22.5937, 78.9629];
 const INDIA_ZOOM = 4;
 
-/** Esri light-grey canvas basemap + labels, exactly as the mockup builds it. */
+/** Labelled road tiles shared with the trip and place mini-maps. */
 export function makeMap(el, opts = {}) {
   const map = L.map(el, {
     zoomControl: false,
@@ -22,13 +22,7 @@ export function makeMap(el, opts = {}) {
     zoom: INDIA_ZOOM,
     ...opts,
   });
-  L.tileLayer(ESRI + 'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri · HERE, Garmin, © OpenStreetMap contributors',
-    maxZoom: 16,
-  }).addTo(map);
-  L.tileLayer(ESRI + 'Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16,
-  }).addTo(map);
+  L.tileLayer(ROAD_TILE_URL, ROAD_TILE_OPTIONS).addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   return map;
 }

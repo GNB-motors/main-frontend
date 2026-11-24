@@ -145,9 +145,9 @@ describe('VehiclesTab', () => {
     renderTab();
 
     const briefing = await screen.findByRole('region', { name: 'Truck performance read' });
-    expect(briefing.textContent).toContain('2 trucks in this read.');
+    expect(briefing.textContent).toContain('2 trucks on this page.');
     expect(briefing.textContent).toContain('5.26 km/L');
-    expect(within(briefing).getByText('Engine alerts')).toBeTruthy();
+    expect(within(briefing).getByText('Performance health findings')).toBeTruthy();
     expect(screen.getByText('2 alerts')).toBeTruthy();
   });
 
@@ -177,19 +177,23 @@ describe('VehiclesTab', () => {
     expect(within(drawer).getByRole('link', { name: 'Open in tracking →' })).toBeTruthy();
   });
 
-  it('says when the list may be cut off at the server page', async () => {
-    PerformanceApi.vehicles.mockResolvedValue({
+  it('loads trucks beyond the first page using the server offset', async () => {
+    PerformanceApi.vehicles.mockImplementation(async ({ offset }) => ({
       window: WINDOW,
-      vehicles: Array.from({ length: 50 }, (_, i) => truck(`WB${String(i).padStart(4, '0')}`)),
-    });
+      total: 51,
+      vehicles: offset
+        ? [truck('BR-LATER')]
+        : Array.from({ length: 50 }, (_, i) => truck(`WB${String(i).padStart(4, '0')}`)),
+    }));
     renderTab();
-
-    await screen.findByRole('table');
-    expect(screen.getByRole('region', { name: 'Truck performance read' }).textContent).toContain(
-      'This list stops at 50 trucks, ordered by plate',
+    fireEvent.click(await screen.findByRole('button', { name: 'Next trucks' }));
+    expect(await screen.findByRole('button', { name: 'Open BR-LATER' })).toBeInTheDocument();
+    expect(PerformanceApi.vehicles).toHaveBeenLastCalledWith(
+      { offset: 50 },
+      expect.any(AbortSignal),
     );
-    expect(screen.getByText('50 trucks')).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /^Open WB/ })).toHaveLength(50);
-    expect(screen.queryByRole('button', { name: 'Next page' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next trucks' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous trucks' }));
+    expect(await screen.findByRole('button', { name: 'Open WB0000' })).toBeInTheDocument();
   });
 });

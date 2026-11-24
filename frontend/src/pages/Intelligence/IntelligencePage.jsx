@@ -1,6 +1,6 @@
 import './reportCardsReference.css';
 import { lazy, Suspense } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import IntelligenceSkeleton from './IntelligenceSkeleton';
 import { useApi } from '@/hooks/useApi';
 import { useFullPageLayout } from '@/hooks/usePageLayout';
@@ -26,11 +26,11 @@ import {
 import './IntelligencePage.css';
 import './IntelligenceDesign.css';
 import '../Performance/performancePanels.css';
-import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
 const IssuesTab = lazy(() => import('./IssuesTab'));
 const ReportCardsTab = lazy(() => import('./ReportCardsTab'));
 const RunsTab = lazy(() => import('./RunsTab'));
+const CruiseTab = lazy(() => import('./CruiseTab'));
 const InstancesTab = lazy(() => import('./InstancesTab'));
 const MileageDefTab = lazy(() => import('./MileageDefTab'));
 const PlacesTab = lazy(() => import('./PlacesTab'));
@@ -160,7 +160,7 @@ function TabContent({ active, from, to, vehicle, driver, kind, headerControl, is
   if (active === 'perfVehicles') {
     return (
       <Suspense fallback={TAB_FALLBACK}>
-        <PerfVehiclesTab />
+        <PerfVehiclesTab key={`${from}:${to}`} from={from} to={to} />
       </Suspense>
     );
   }
@@ -175,6 +175,13 @@ function TabContent({ active, from, to, vehicle, driver, kind, headerControl, is
     return (
       <Suspense fallback={TAB_FALLBACK}>
         <LeaderboardsTab />
+      </Suspense>
+    );
+  }
+  if (active === 'cruise') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <CruiseTab from={from} to={to} vehicle={vehicle} driver={driver} />
       </Suspense>
     );
   }
@@ -224,15 +231,18 @@ export default function IntelligencePage() {
     setSearchParams(next);
   };
 
+  const showFleetOverview =
+    !requested || !['vehicles', 'drivers', ...PERFORMANCE_TABS].includes(requested);
   const { data: summary } = useApi(
     (signal) => IntelligenceService.getSummary({ from, to, signal }),
     [from, to],
+    { enabled: showFleetOverview, scopeKey: showFleetOverview ? `${from}:${to}` : null },
   );
 
   const issuesRead = useApi(
     (signal) => IntelligenceService.getIssues({ from, to, vehicle, signal }),
     [from, to, vehicle],
-    { scopeKey: `${from}:${to}:${vehicle}` },
+    { enabled: showFleetOverview, scopeKey: showFleetOverview ? `${from}:${to}:${vehicle}` : null },
   );
   const { data: issues, loading: issuesLoading, error: issuesError } = issuesRead;
 
@@ -277,19 +287,25 @@ export default function IntelligencePage() {
           />
         </div>
       </header>
-      <AlertPageGuide page="intelligence" />
 
-      <IntelligenceOverview
-        summary={summary?.held ? null : summary}
-        issues={issuesError ? null : issues}
-        issuesLoading={issuesLoading}
-        kind={kind}
-        from={from}
-        to={to}
-        vehicle={vehicle}
-        onOpenTab={openTab}
-      />
+      {showFleetOverview ? (
+        <IntelligenceOverview
+          summary={summary?.held ? null : summary}
+          issues={issuesError ? null : issues}
+          issuesLoading={issuesLoading}
+          kind={kind}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          onOpenTab={openTab}
+        />
+      ) : null}
 
+      {active === 'issues' ? (
+        <Link className="intel-inline-link" to="/alert-inbox">
+          Review open alerts in Alert Inbox
+        </Link>
+      ) : null}
       <nav className="intel-sections" aria-label="Intelligence sections">
         <div role="tablist" aria-label="Intelligence sections" className="intel-section-list">
           {INTELLIGENCE_SECTIONS.map((entry) => {

@@ -32,7 +32,8 @@ it('shows known pumps on both surfaces without claiming zero shortage or loss', 
   expect(screen.getAllByText('2 register entries · 1 sensor fills · 1 refuel alerts')).toHaveLength(
     2,
   );
-  expect(screen.getByText('Loss unknown')).toBeInTheDocument();
+  expect(screen.queryByText('Loss unknown')).not.toBeInTheDocument();
+  expect(screen.getByText(/Shortage and loss remain unknown/)).toBeInTheDocument();
   expect(screen.queryByText('₹0 Shortfall')).not.toBeInTheDocument();
   expect(screen.queryByText('Audited Refuels')).not.toBeInTheDocument();
   expect(screen.queryByText(/short ·.*lost/)).not.toBeInTheDocument();

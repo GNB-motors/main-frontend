@@ -7,7 +7,7 @@ import { applyThemeToRoot } from '../utils/colorTheme';
 import { clearAuthData } from '../utils/authUtils';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import useApprovalBadges from '../hooks/useApprovalBadges';
-import { getUserRole } from '../utils/session';
+import { getProfileField, getUserRole, readNavigationProfile } from '../utils/session';
 import { useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import NavHint from './redesign/NavHint';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -24,13 +24,14 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   // Accordion: at most one group open at a time, keyed by getNavGroupId().
   const [openGroupId, setOpenGroupId] = useState(null);
+  const [navQuery, setNavQuery] = useState('');
   // A broken/expired logo URL must not leave an empty header, so a load error
   // falls back to the default mark exactly like "no logo uploaded" does.
   const [logoFailed, setLogoFailed] = useState(false);
   // `canAccess` = org-entitled (feature flag) AND role-permitted (RBAC). A
   // module only appears when the user's assigned role grants it — so granting a
   // role e.g. CRM/insurance makes it visible to that user automatically.
-  const { canAccess, isEnabled, failed, retry } = useFeatureFlags();
+  const { canAccess, isEnabled, failed, retry, profile } = useFeatureFlags();
   const { organization } = useOrganization();
   const role = getUserRole();
   // The user controls desktop expansion with the navbar toggle.
@@ -38,7 +39,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const isRailCollapsed = isDesktop && !isSidebarOpen;
 
   const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
-  const logoAlt = organization?.companyName || 'Company logo';
+  const logoAlt = organization?.companyName || getProfileField('company_name') || 'Company logo';
 
   useEffect(() => {
     setLogoFailed(false);
@@ -46,10 +47,25 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
   // No usage profile: the menu is never folded by usage, every entry stays in
   // its own section. App Usage reports screen-open counts at /usage.
-  const { items: navItems } = useMemo(
-    () => computeVisibleNav(canAccess, role, null, isEnabled),
-    [canAccess, role, isEnabled],
-  );
+  const { items: navItems } = useMemo(() => {
+    const snapshot = failed && !profile ? readNavigationProfile() : null;
+    if (!snapshot) return computeVisibleNav(canAccess, role, null, isEnabled);
+    const entitled = (key) => snapshot.flags?.[key] === true;
+    const granted = (key) => !key || (entitled(key) && snapshot.permissions?.[key] === true);
+    return computeVisibleNav(granted, role, null, entitled);
+  }, [canAccess, role, isEnabled, failed, profile]);
+
+  const needle = isRailCollapsed ? '' : navQuery.trim().toLowerCase();
+  const filteredNav = !needle
+    ? navItems
+    : navItems.flatMap((item) => {
+        const matches = (entry) =>
+          `${entry.label || ''} ${entry.to || ''}`.toLowerCase().includes(needle);
+        if (item.type === 'section') return [];
+        if (matches(item)) return [item];
+        const children = (item.children || []).filter(matches);
+        return children.length ? [{ ...item, children }] : [];
+      });
 
   // Approval badges belong to the ERP "Approval Center". For an org without the
   // erpApprovals entitlement that nav group is hidden AND the backend routes
@@ -88,6 +104,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // Close the menu after navigation, including browser Back/Forward.
   useEffect(() => {
     setOpenGroupId(null);
+    setNavQuery('');
   }, [location.pathname, location.search]);
 
   // Opening a group collapses whichever one was open — the CSS grid-rows
@@ -166,13 +183,14 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     // Children already satisfy the feature, module and role access checks.
     const visibleChildren = item.children || [];
     const groupId = getNavGroupId(item);
-    const isOpen = openGroupId === groupId;
+    const isOpen = Boolean(needle) || openGroupId === groupId;
     return (
       <div className="nav-section" key={groupId}>
         <NavHint hint={item.hint} label={item.label} collapsed={isRailCollapsed}>
           <button
             className={`nav-link nav-parent ${isOpen || activeGroupId === groupId ? 'active-parent' : ''}`}
             onClick={() => toggleGroup(groupId)}
+            disabled={Boolean(needle)}
             aria-label={item.label}
             aria-expanded={isOpen}
           >
@@ -245,8 +263,21 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             </button>
           </div>
         ) : null}
+        {isSidebarOpen && (
+          <input
+            type="search"
+            className="nav-screen-search"
+            aria-label="Find a screen"
+            placeholder="Find a screen"
+            value={navQuery}
+            onChange={(event) => setNavQuery(event.target.value)}
+          />
+        )}
         <nav className="sidebar-nav" aria-label="Main navigation">
-          {navItems.map(renderNavItem)}
+          {filteredNav.map(renderNavItem)}
+          {needle && !filteredNav.length ? (
+            <p className="nav-search-empty">No matching screens</p>
+          ) : null}
         </nav>
       </div>
 

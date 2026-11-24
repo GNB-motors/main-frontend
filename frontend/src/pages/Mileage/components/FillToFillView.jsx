@@ -43,13 +43,14 @@ const matches = (row, needle) => {
  */
 export default function FillToFillView({ range, searchQuery = '', onOpenCycles = null }) {
   const { data, loading, error, refetch } = useApi(
-    (signal) =>
-      MileageService.getMileage({ groupBy: 'cycle', ...rangeToParams(range) }, signal),
+    (signal) => MileageService.getMileage({ groupBy: 'cycle', ...rangeToParams(range) }, signal),
     [range.from, range.to, range.manufacturer],
   );
 
   const rows = useMemo(() => {
-    const needle = String(searchQuery || '').trim().toLowerCase();
+    const needle = String(searchQuery || '')
+      .trim()
+      .toLowerCase();
     return rowsOf(data).filter((row) => matches(row, needle));
   }, [data, searchQuery]);
 
@@ -183,7 +184,7 @@ export default function FillToFillView({ range, searchQuery = '', onOpenCycles =
       total={rows.length}
       onRowClick={onOpenCycles ? (t) => onOpenCycles(t) : undefined}
       emptyTitle="No fill-to-fill cycles in these dates"
-      emptyHint="A cycle appears once a truck has filled up twice."
+      emptyHint="A cycle needs two full-tank fills for the same truck. Check Diesel fills for the recent fills or widen the date range."
     />
   );
 }

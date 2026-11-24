@@ -97,6 +97,8 @@ export const ReportCardSchema = z
         assignmentCount: z.number().int().nonnegative(),
         trucks: z.array(z.string()),
         measuredDays: z.number().int().nonnegative(),
+        completedTrips: z.number().int().nonnegative().nullable().optional(),
+        idleMinutes: z.number().nonnegative().nullable().optional(),
       })
       .nullable()
       .optional(),

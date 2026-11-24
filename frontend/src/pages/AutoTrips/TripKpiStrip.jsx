@@ -29,7 +29,7 @@ function KpiTab({ tabKey, label, count, sub, tone, selected, onSelect }) {
   );
 }
 
-function RunTile({ run, loading, failed }) {
+function RunTile({ run, loading, failed, onRetry }) {
   const known = run?.km != null;
   let sub;
   if (known) {
@@ -57,6 +57,11 @@ function RunTile({ run, loading, failed }) {
       </span>
       <span className="atx-kpi-value">{known ? fmtKm(run.km) : '—'}</span>
       <span className="atx-kpi-sub">{sub}</span>
+      {failed && !loading && onRetry ? (
+        <button type="button" className="atx-inline-link" onClick={onRetry}>
+          Retry delivered trips
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -70,6 +75,7 @@ export default function TripKpiStrip({
   run,
   runLoading,
   runFailed,
+  onRetryRun,
 }) {
   const { all = null, delivered = null, open = null, review = null } = counts || {};
   const tiles = [
@@ -122,7 +128,7 @@ export default function TripKpiStrip({
           />
         ))}
       </div>
-      <RunTile run={run} loading={runLoading} failed={runFailed} />
+      <RunTile run={run} loading={runLoading} failed={runFailed} onRetry={onRetryRun} />
     </section>
   );
 }

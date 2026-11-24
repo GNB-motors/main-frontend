@@ -18,6 +18,7 @@ export default function IdlingPanel({
   onView,
   live,
   liveTotals,
+  showSummary = true,
   spots,
   historyTotals,
   historyLabel = '7 days',
@@ -31,24 +32,26 @@ export default function IdlingPanel({
   const thresholdMin = idleSetting?.idleThresholdMin;
   return (
     <>
-      <div className="ph-kpis">
-        <Kpi
-          label="Idling now"
-          value={num(liveTotals.count)}
-          hint={`${num(liveTotals.excessCount)} outside a place`}
-        />
-        <Kpi
-          label="Burning now"
-          value={formatInrCompact(liveTotals.rupees)}
-          tone={liveTotals.excessRupees > 0 ? 'crit' : null}
-        />
-        <Kpi
-          label={`Excess · ${historyLabel}`}
-          value={formatInrCompact(historyTotals.excessRupees)}
-          tone="crit"
-        />
-        <Kpi label={`Idle hours · ${historyLabel}`} value={hoursLabel(historyTotals.hours)} />
-      </div>
+      {showSummary ? (
+        <div className="ph-kpis">
+          <Kpi
+            label="Idling now"
+            value={num(liveTotals.count)}
+            hint={`${num(liveTotals.excessCount)} outside a place`}
+          />
+          <Kpi
+            label="Burning now"
+            value={formatInrCompact(liveTotals.rupees)}
+            tone={liveTotals.excessRupees > 0 ? 'crit' : null}
+          />
+          <Kpi
+            label={`Excess · ${historyLabel}`}
+            value={formatInrCompact(historyTotals.excessRupees)}
+            tone="crit"
+          />
+          <Kpi label={`Idle hours · ${historyLabel}`} value={hoursLabel(historyTotals.hours)} />
+        </div>
+      ) : null}
       <div className="ph-filter">
         <Segmented
           label="Idling view"

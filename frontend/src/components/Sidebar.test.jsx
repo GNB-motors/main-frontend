@@ -11,7 +11,11 @@ vi.mock('../contexts/FeatureFlagsContext.jsx', () => ({
 }));
 vi.mock('../hooks/useApprovalBadges', () => ({ default: () => ({ approvals: 0, bills: 0 }) }));
 vi.mock('../hooks/useMediaQuery', () => ({ useMediaQuery: vi.fn(() => true) }));
-vi.mock('../utils/session', () => ({ getUserRole: () => 'OWNER', getThemeColor: () => null }));
+vi.mock('../utils/session', async (actual) => ({
+  ...(await actual()),
+  getUserRole: () => 'OWNER',
+  getThemeColor: () => null,
+}));
 vi.mock('../utils/colorTheme', () => ({ applyThemeToRoot: vi.fn() }));
 vi.mock('./redesign/NavHint', () => ({ default: ({ children }) => children }));
 
@@ -88,4 +92,13 @@ it('reopens an existing submenu when its group is selected after collapsing the 
     'true',
   );
   expect(screen.getByRole('link', { name: 'Access control' })).toBeInTheDocument();
+});
+
+it('finds a destination inside a collapsed group by its screen name', () => {
+  mount();
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Find a screen' }), {
+    target: { value: 'access control' },
+  });
+  expect(screen.getByRole('link', { name: 'Access control' })).toBeVisible();
+  expect(screen.queryByRole('link', { name: 'Daily Digest' })).not.toBeInTheDocument();
 });

@@ -4,7 +4,6 @@ import { formatDateIST, formatDateTimeIST, toISTDateString } from '../../../util
 import { timeAgo } from '../../../utils/formatters';
 import useApi from '../../../hooks/useApi';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
-import DataTooltip from '../../../components/ui/DataTooltip';
 import { initials } from './overview/initials';
 import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
 import './overview/referenceOverview.css';
@@ -119,12 +118,6 @@ export default function DriversPanel({
                             : 'Current assignment'}
                     </b>
                   </div>
-                  <div>
-                    <span>
-                      Driving score<small>No measured score supplied for this driver</small>
-                    </span>
-                    <b>Not available</b>
-                  </div>
                   {assignedDriver.group ? (
                     <div>
                       <span>Branch</span>
@@ -167,67 +160,36 @@ export default function DriversPanel({
                   : 'Daily counts unavailable'}
               </span>
             </div>
-            <div>
-              <div className="vdrivers-safety-timeline">
-                <span className="vdrivers-night vdrivers-night--early" />
-                <span className="vdrivers-night vdrivers-night--late" />
-                <span className="vdrivers-safety-track" />
-                {safety.map((alert, index) => {
-                  const left = ((stamp(alert.eventDateTime) - start) / 86400000) * 100;
-                  return (
-                    <button
-                      key={alert.id || index}
-                      style={{ left: `${left}%` }}
-                      aria-label={`${alert.type} · ${formatDateTimeIST(alert.eventDateTime)}`}
-                    >
-                      <DataTooltip
-                        className={`vdrivers-tooltip${left > 50 ? ' vdrivers-tooltip--end' : ''}`}
-                        aria-hidden="true"
-                        label={alert.type}
-                        details={[
-                          formatDateTimeIST(alert.eventDateTime),
-                          'Returned vehicle alert; driver attribution not verified',
-                        ]}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="vdrivers-ticks">
-                <span>12 am</span>
-                <span>6 am</span>
-                <span>12 pm</span>
-                <span>6 pm</span>
-                <span>12 am</span>
-              </div>
-              <p className="vdrivers-timeline-note">
-                Night window · 11 pm–5 am · dots show returned alerts
-              </p>
-            </div>
+            {safety.length ? (
+              <ul aria-label="Recent safety alerts">
+                {safety.map((alert, index) => (
+                  <li key={alert.id || index}>
+                    {formatDateTimeIST(alert.eventDateTime)} ·{' '}
+                    {String(alert.type || '').replace(/_/g, ' ')}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="vdrivers-safety-rows">
-              {counts.map(([label, key]) => {
-                const count = Number.isFinite(dailyCounts?.[key]) ? dailyCounts[key] : null;
-                return (
-                  <div key={label}>
-                    <span>{label}</span>
-                    <strong>{count ?? '—'}</strong>
-                    <small>
-                      {count != null ? 'Recorded today · IST' : 'Daily count unavailable'}
-                    </small>
-                  </div>
-                );
-              })}
-              <div>
-                <span>Night driving</span>
-                <strong>—</strong>
-                <small>Driving duration unavailable</small>
-              </div>
+              {dailyCounts
+                ? counts
+                    .filter(([, key]) => Number.isFinite(dailyCounts[key]) && dailyCounts[key] > 0)
+                    .map(([label, key]) => {
+                      const count = Number.isFinite(dailyCounts?.[key]) ? dailyCounts[key] : null;
+                      return (
+                        <div key={label}>
+                          <span>{label}</span>
+                          <strong>{count ?? '—'}</strong>
+                          <small>
+                            {count != null ? 'Recorded today · IST' : 'Daily count unavailable'}
+                          </small>
+                        </div>
+                      );
+                    })
+                : null}
             </div>
             <div className="vdrivers-insight">
-              Harsh-event and coasting counts are summed from stored native safety telemetry
-              (30-minute windows) in today’s IST window; overspeed is counted from native alerts.
-              Timeline dots show only recent returned alerts. No recorded event does not prove zero
-              incidents. Driver attribution is not verified.
+              These events are recorded for the truck. Driver attribution is unavailable.
               {safetyAvailable && safetyToday.undatedAlertsReceivedToday > 0
                 ? ` ${safetyToday.undatedAlertsReceivedToday} overspeed alerts received today have no event timestamp and are excluded from daily counts.`
                 : ''}

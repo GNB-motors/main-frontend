@@ -42,11 +42,10 @@ export default function AccountLinkBanner({ account }) {
         <strong>{account.accountName}</strong>:{' '}
         {isDisconnected ? (
           <>
-            account disconnected.{' '}
-            {trucks == null
-              ? 'Its trucks have'
-              : `${trucks} ${trucks === 1 ? 'truck has' : 'trucks have'}`}{' '}
-            no live data{since ? ` since ${since}` : ''}.
+            account disconnected.
+            {trucks > 0
+              ? ` ${trucks} ${trucks === 1 ? 'truck has' : 'trucks have'} no live data${since ? ` since ${since}` : ''}.`
+              : null}
           </>
         ) : (
           <>link expires soon; reconnect to avoid a gap.</>

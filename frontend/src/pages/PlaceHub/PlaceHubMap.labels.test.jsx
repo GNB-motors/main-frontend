@@ -110,3 +110,19 @@ describe('Place Hub area labels', () => {
     expect(PolygonF.mock.calls.at(-1)[0].options.clickable).toBe(false);
   });
 });
+
+it('offers a retry when overlays are ready but the basemap is delayed', () => {
+  vi.useFakeTimers();
+  try {
+    render(<PlaceHubMap {...base} />);
+    act(() => vi.advanceTimersByTime(12000));
+    expect(screen.getByRole('status')).toHaveTextContent('Road tiles are taking longer');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry map' }));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    act(() => GoogleMap.mock.calls.at(-1)[0].onTilesLoaded());
+    act(() => vi.advanceTimersByTime(12000));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
+});

@@ -232,9 +232,10 @@ export default function IncidentsTab() {
       </div>
 
       <section className="ai-panel" aria-label="Incident board" aria-busy={loading}>
-        <div className="ai-toolbar">
+        <div className="ai-toolbar ai-toolbar-controls">
           <SearchableSelect
             aria-label="Incident status"
+            className="ai-filter"
             value={status}
             onChange={(event) => setStatus(event.target.value)}
           >
@@ -248,6 +249,7 @@ export default function IncidentsTab() {
           </SearchableSelect>
           <SearchableSelect
             aria-label="Incident severity"
+            className="ai-filter"
             value={severity}
             onChange={(event) => setSeverity(event.target.value)}
           >

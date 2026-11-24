@@ -170,7 +170,7 @@ export function navLabels(catalog = []) {
 export function visibleUsageRows(
   surfaces,
   labels,
-  { query = '', disposition = '', sort = 'views' } = {},
+  { query = '', disposition = '', sort = 'views', menuLocations = new Map() } = {},
 ) {
   const needle = query.trim().toLowerCase();
   return buildSurfaceRows(surfaces)
@@ -185,7 +185,10 @@ export function visibleUsageRows(
     .filter(
       (row) =>
         (!disposition || row.disposition === disposition) &&
-        (!needle || `${row.label} ${row.surfaceKey}`.toLowerCase().includes(needle)),
+        (!needle ||
+          `${row.label} ${row.surfaceKey} ${menuLocations.get(row.surfaceKey) || ''}`
+            .toLowerCase()
+            .includes(needle)),
     )
     .sort((a, b) =>
       sort === 'name'

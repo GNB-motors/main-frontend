@@ -13,12 +13,18 @@ const STALE_FLAGS = new Set(['STALE_OPEN', 'OPEN_AT_DATA_END']);
 
 /** The flags the route line already says — they do not need a chip of their own. */
 const DROP_FLAGS = ['DROP_UNKNOWN', 'DROP_INFERRED'];
+const isDelivered = (trip) => ['COMPLETE', 'CONFIRMED'].includes(trip?.status);
 
 /** The checks a trip needs: the flags the route line does not already say. */
 export function checkFlagsOf(trip) {
   const flags = trip?.flags || [];
   const dropFlag = flags.some((f) => DROP_FLAGS.includes(f));
-  return flags.filter((f) => !DROP_FLAGS.includes(f) && !(dropFlag && f === 'PICKUP_TO_PICKUP'));
+  return flags.filter(
+    (f) =>
+      !DROP_FLAGS.includes(f) &&
+      !(dropFlag && f === 'PICKUP_TO_PICKUP') &&
+      !(isDelivered(trip) && STALE_FLAGS.has(f)),
+  );
 }
 
 /** The flag's own label, always something a person can read. */
@@ -26,7 +32,7 @@ export const flagLabel = (flag) => FLAG_LABEL[flag] || humanizeCode(flag);
 
 /** What the server wrote about a trip that stayed open. Null when it wrote nothing. */
 export function staleDetail(trip) {
-  const detail = trip?.staleReason?.detail;
+  const detail = isDelivered(trip) ? null : trip?.staleReason?.detail;
   return typeof detail === 'string' && detail.trim() ? detail.trim() : null;
 }
 
@@ -44,4 +50,7 @@ export function flagReason(trip, flag) {
 }
 
 /** Every flag's reason, in the order the server listed them — the row's tooltip. */
-export const flagReasons = (trip) => (trip?.flags || []).map((flag) => flagReason(trip, flag));
+export const flagReasons = (trip) =>
+  (trip?.flags || [])
+    .filter((flag) => !(isDelivered(trip) && STALE_FLAGS.has(flag)))
+    .map((flag) => flagReason(trip, flag));

@@ -87,6 +87,10 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     avg == null ? 'Not counted yet' : `Not counted yet · usually ${count(Math.round(avg))}${unit}`;
 
   // The ⓘ on each tile: what it shows, in the owner's words (digestExplain).
+  const tripsUnavailable =
+    work.trips == null ||
+    (Number(work.trips) === 0 &&
+      (byId.yesterdaysWork?.state === 'error' || work.tripsPartial === true));
   const countWhy = digestExplain.trips(isToday);
   const distanceWhy = digestExplain.loadedKm();
 
@@ -113,15 +117,15 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     {
       key: 'trips',
       label: isToday ? 'Trips started today' : 'Trips started',
-      value: notCounted(work.trips) ? null : work.trips,
-      context: notCounted(work.trips)
+      value: tripsUnavailable ? null : work.trips,
+      context: tripsUnavailable
         ? avgNote(trend.tripsPrev7Avg, '/day')
         : isToday
           ? tripsModule
             ? 'Includes trips still on the road'
             : 'Completed / confirmed · so far today'
           : null,
-      delta: notCounted(work.trips) ? null : delta(trend.tripsVsPrev7Pct),
+      delta: tripsUnavailable || Number(work.trips) === 0 ? null : delta(trend.tripsVsPrev7Pct),
       why: countWhy,
       to: tripsTo,
     },

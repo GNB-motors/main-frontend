@@ -86,7 +86,9 @@ export function TyreStatusCard({ vehicleId, registrationNumber }) {
               {facts.odometer == null
                 ? `${DASH} · ${facts.odometerReason}`
                 : formatKm(facts.odometer)}
-              {facts.source ? <span className="is-dim"> · {String(facts.source).toLowerCase()}</span> : null}
+              {facts.source ? (
+                <span className="is-dim"> · {String(facts.source).toLowerCase()}</span>
+              ) : null}
             </dd>
             <dt>Replacement projected</dt>
             <dd className={facts.projectedReplacementDate ? undefined : 'is-dim'}>
@@ -122,28 +124,19 @@ export function ServiceCentreCard({ vehicleId, livePosition }) {
   const rows = centreRows(centres$.data?.candidates);
   const uncosted = centreRows(centres$.data?.uncosted);
 
+  if (!hasFix || (!centres$.error && !rows.length && !uncosted.length)) return null;
+
   return (
     <section className="v360-card">
       <p className="v360-card-title">Nearest service centres</p>
 
-      {!hasFix ? (
-        <Empty
-          title="No live position"
-          hint="Road distance is measured from where the truck is standing, so it needs a live GPS fix."
-        />
-      ) : centres$.error ? (
-        <Empty
-          title="Couldn't load service centres"
-          hint={centres$.error?.message || 'The service-centres API did not answer.'}
-        />
-      ) : !rows.length && !uncosted.length ? (
-        <Empty
-          title="No service centre on file"
-          hint={
-            centres$.data?.coverage ||
-            'That is not the same as there being none on the ground — we only list the ones in our data.'
-          }
-        />
+      {centres$.error ? (
+        <div role="alert">
+          <p>Could not load service centres.</p>
+          <button type="button" className="v360-btn" onClick={centres$.refetch}>
+            Try again
+          </button>
+        </div>
       ) : (
         <>
           {centres$.data?.coverage ? (
@@ -173,7 +166,9 @@ export function ServiceCentreCard({ vehicleId, livePosition }) {
                     <td className="is-num">
                       {row.roadMinutes == null ? DASH : `${formatNum(row.roadMinutes)} min`}
                     </td>
-                    <td className="is-num">{row.detourKm == null ? DASH : formatKm(row.detourKm)}</td>
+                    <td className="is-num">
+                      {row.detourKm == null ? DASH : formatKm(row.detourKm)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -199,7 +194,9 @@ export function ServiceCentreCard({ vehicleId, livePosition }) {
                         {row.name || DASH}
                         {row.brand ? <span className="is-dim"> · {row.brand}</span> : null}
                       </td>
-                      <td className="is-dim">{row.reasons.join('; ') || 'no road distance on record'}</td>
+                      <td className="is-dim">
+                        {row.reasons.join('; ') || 'no road distance on record'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -214,10 +211,7 @@ export function ServiceCentreCard({ vehicleId, livePosition }) {
 
 /** The predictive sweep's row for this vehicle. */
 export function MaintenanceSweepCard({ registrationNumber }) {
-  const sweep$ = useApi(
-    (signal) => FleetDataService.getMaintenancePredictions({}, signal),
-    [],
-  );
+  const sweep$ = useApi((signal) => FleetDataService.getMaintenancePredictions({}, signal), []);
 
   const facts = predictionFacts(pickPrediction(sweep$.data?.records, registrationNumber));
 

@@ -9,6 +9,9 @@ import { VehicleService } from './VehicleService.js';
 vi.mock('./VehicleService.js', () => ({
   VehicleService: { getAllVehicles: vi.fn(), getManufacturerOptions: vi.fn() },
 }));
+vi.mock('../LiveTracking/LiveTrackingService', () => ({
+  LiveTrackingService: { getPositions: vi.fn().mockResolvedValue([]) },
+}));
 vi.mock('./FleetEdgeAccountService.js', () => ({ listAccounts: vi.fn(async () => []) }));
 vi.mock('../../contexts/fleetLinkContext', () => ({
   useFleetLink: () => ({ index: {}, data: { accounts: [] } }),
@@ -59,17 +62,18 @@ it('filters manufacturer on the server and resets pagination without stale rows'
   fireEvent.click(screen.getByLabelText('Manufacturer'));
   await screen.findByRole('option', { name: 'Ashok Leyland' });
   await waitFor(() => expect(VehicleService.getAllVehicles).toHaveBeenCalled());
-  expect(screen.getByText('Account')).toBeInTheDocument();
+  expect(screen.getByText('Live status')).toBeInTheDocument();
+  expect(screen.getByText('Details')).toBeInTheDocument();
   fireEvent.click(screen.getByTitle('Next page'));
   await waitFor(() =>
-    expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(null, 2, 10, expect.anything()),
+    expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(null, 2, 50, expect.anything()),
   );
   changeField(screen.getByLabelText('Manufacturer'), { target: { value: 'ASHOK LEYLAND' } });
   await waitFor(() =>
     expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(
       null,
       1,
-      10,
+      50,
       expect.objectContaining({ manufacturer: 'ASHOK LEYLAND' }),
     ),
   );
@@ -78,8 +82,28 @@ it('filters manufacturer on the server and resets pagination without stale rows'
     expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(
       null,
       1,
-      10,
+      50,
       expect.objectContaining({ manufacturer: 'ASHOK LEYLAND', search: 'WB11' }),
+    ),
+  );
+});
+
+it('applies document and account filters to the server page', async () => {
+  render(
+    <MemoryRouter>
+      <VehiclesPage />
+    </MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Vehicle filters' }));
+  fireEvent.click(screen.getByText('Missing required documents'));
+  changeField(screen.getByLabelText('Telematics account'), { target: { value: 'unlinked' } });
+  changeField(screen.getByLabelText('Vehicles per page'), { target: { value: '25' } });
+  await waitFor(() =>
+    expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(
+      null,
+      1,
+      25,
+      expect.objectContaining({ missingDocs: true, account: 'unlinked' }),
     ),
   );
 });

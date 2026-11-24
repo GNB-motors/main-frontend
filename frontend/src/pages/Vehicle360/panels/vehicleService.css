@@ -149,20 +149,18 @@
   font-weight: 400;
   margin-top: 3px;
 }
-.vsvc-middle,
 .vsvc-bottom {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
   align-items: stretch;
 }
-.vsvc-calculation {
-  flex: 3 1 520px;
-  min-width: 0;
+.vsvc-calculation > summary {
+  cursor: pointer;
+  font-weight: 600;
 }
-.vsvc-explanation {
-  flex: 2 1 360px;
-  min-width: 0;
+.vsvc-calculation[open] > summary {
+  margin-bottom: 16px;
 }
 .vsvc .vsvc-subtitle {
   font-size: 12px;
@@ -205,46 +203,6 @@
     linear-gradient(#fff, #fff) padding-box,
     linear-gradient(135deg, rgba(47, 88, 238, 0.28), rgba(106, 67, 216, 0.06)) border-box;
   box-shadow: 0 4px 14px rgba(30, 34, 56, 0.08);
-}
-.vsvc-eyebrow {
-  color: #6a43d8;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 10px;
-}
-.vsvc-explanation p {
-  font-size: 13px;
-  line-height: 1.55;
-  color: #5d5d5e;
-}
-.vsvc-explanation .vsvc-explanation-lead {
-  font:
-    400 16px/1.5 'Vehicle Overview DM Sans',
-    sans-serif;
-  color: #121214;
-}
-.vsvc-comparison {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid #ececee;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: auto;
-}
-.vsvc-comparison > div {
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.vsvc-comparison > div + div {
-  background: #f8f8fb;
-  border-left: 1px solid #ececee;
-}
-.vsvc-comparison strong {
-  font:
-    500 18px 'Vehicle Overview DM Sans',
-    sans-serif;
 }
 .vsvc-bottom > section {
   flex: 1 1 360px;

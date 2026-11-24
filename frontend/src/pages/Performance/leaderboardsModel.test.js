@@ -1,21 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sumLine, unknownKmNote } from './leaderboardsModel';
-
-describe('sumLine', () => {
-  it('names both sides of the board', () => {
-    expect(sumLine({ numerator: 'fuelKm', denominator: 'litres' })).toBe('Σ fuelKm ÷ Σ litres');
-  });
-
-  it('writes a dash for a side the server did not name', () => {
-    expect(sumLine({ numerator: null, denominator: 'litres' })).toBe('Σ — ÷ Σ litres');
-    expect(sumLine({ numerator: 'fuelKm', denominator: null })).toBe('Σ fuelKm ÷ Σ —');
-  });
-
-  it('says nothing when the board names neither side', () => {
-    expect(sumLine({})).toBeNull();
-    expect(sumLine(null)).toBeNull();
-  });
-});
+import { unknownKmNote } from './leaderboardsModel';
 
 describe('unknownKmNote', () => {
   it('counts the trips the server could not measure', () => {

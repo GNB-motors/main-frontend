@@ -83,7 +83,11 @@ export default function NetworkChip({ chip, setChip, go, first, routes }) {
             {routes.reduce((a, r) => a + (r.distanceKm || 0), 0).toLocaleString('en-IN')} km
           </div>
           <div style={{ fontSize: 11, color: 'var(--fg-secondary)', marginTop: 2 }}>
-            {routes.length ? 'Open the running cost view for details' : 'No detected routes yet'}
+            {routes.some((route) => route.path?.length > 1)
+              ? 'Select a route on the map'
+              : routes.length
+                ? 'Recorded paths are unavailable for these routes'
+                : 'No detected routes yet'}
           </div>
         </>
       )}

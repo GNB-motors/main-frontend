@@ -2,7 +2,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import PlaceReviewMap from './PlaceReviewMap';
 
-const { events, remove, off } = vi.hoisted(() => ({ events: {}, remove: vi.fn(), off: vi.fn() }));
+const { events, remove, off, fitBounds } = vi.hoisted(() => ({
+  events: {},
+  remove: vi.fn(),
+  off: vi.fn(),
+  fitBounds: vi.fn(),
+}));
 vi.mock('leaflet', () => ({
   default: {
     map: () => ({
@@ -10,6 +15,7 @@ vi.mock('leaflet', () => ({
         return this;
       },
       invalidateSize: vi.fn(),
+      fitBounds,
       remove,
     }),
     tileLayer: () => ({
@@ -23,6 +29,14 @@ vi.mock('leaflet', () => ({
       },
       addTo: vi.fn(),
       off,
+    }),
+    circle: () => ({
+      addTo: () => ({
+        getBounds: () => [
+          [22.49, 88.19],
+          [22.51, 88.21],
+        ],
+      }),
     }),
     circleMarker: () => ({ addTo: vi.fn() }),
   },
@@ -53,5 +67,16 @@ it('offers a location link when tiles fail or time out', () => {
   expect(screen.getByRole('link', { name: 'Open location in Google Maps' })).toHaveAttribute(
     'href',
     'https://www.google.com/maps?q=22.5,88.2',
+  );
+});
+
+it('fits the mapped area when the stop has a recorded radius', () => {
+  render(<PlaceReviewMap point={{ lat: 22.5, lng: 88.2, radiusM: 500 }} />);
+  expect(fitBounds).toHaveBeenCalledWith(
+    [
+      [22.49, 88.19],
+      [22.51, 88.21],
+    ],
+    { padding: [20, 20], maxZoom: 16 },
   );
 });

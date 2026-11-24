@@ -180,25 +180,28 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-driving-tab intel-idling-tab">
+      {vehicle ? <p className="intel-subtitle">Idling for {vehicle}</p> : null}
       {driver ? (
         <p role="status">
           Idling for the selected driver · only events with a recorded driver or an assignment
           covering the whole idle are included.
         </p>
       ) : null}
-      <IdlingPeriodRead
-        live={filteredLive}
-        history={filteredHistory}
-        loading={loading}
-        errors={errors}
-        truncated={truncated}
-        onLive={() => {
-          setView('live', { idleSubview: null });
-        }}
-        onHistory={() => {
-          setView('spots', { idleSubview: null });
-        }}
-      />
+      {subView === 'map' ? (
+        <IdlingPeriodRead
+          live={filteredLive}
+          history={filteredHistory}
+          loading={loading}
+          errors={errors}
+          truncated={truncated}
+          onLive={() => {
+            setView('live', { idleSubview: null });
+          }}
+          onHistory={() => {
+            setView('spots', { idleSubview: null });
+          }}
+        />
+      ) : null}
       <IntelligenceViewSwitcher label="Idling views">
         <button
           type="button"
@@ -246,6 +249,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
                 view={view}
                 onView={setView}
                 live={filteredLive}
+                showSummary={false}
                 liveTotals={liveTotals}
                 spots={filteredSpots}
                 historyTotals={historyTotals}
@@ -261,6 +265,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
           </div>
           <div className="ph-map-wrap">
             <RiskMapCanvas
+              key={vehicle || driver || 'fleet'}
               type="idling"
               idleLive={filteredLive}
               idleSpots={filteredSpots}

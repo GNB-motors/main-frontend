@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Building2, Shield, UserMinus, UserPlus } from 'lucide-react';
+import { MoreHorizontal, UserMinus, UserPlus } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import { activeFilterCount, footerSummary } from '../../lib/tableState';
@@ -97,7 +98,7 @@ const AssignedEmployeesPage = () => {
       label: 'Role',
       render: (r) => (
         <>
-          <Shield size={14} /> {r.roleName}
+          {r.roleName}
           {r.baseRoleLabel && <span className="ac-chip ac-chip--inherited">{r.baseRoleLabel}</span>}
         </>
       ),
@@ -105,27 +106,32 @@ const AssignedEmployeesPage = () => {
     {
       key: 'appliesTo',
       label: 'Applies to',
-      render: (r) =>
-        r.scope === 'BRANCH' ? (
-          <>
-            <Building2 size={14} /> {r.appliesTo}
-          </>
-        ) : (
-          r.appliesTo
-        ),
+      render: (r) => (r.scope === 'BRANCH' ? <>{r.appliesTo}</> : r.appliesTo),
     },
     {
       key: '_revoke',
       label: '',
       render: (r) => (
-        <button
-          type="button"
-          className="ff-btn ff-btn--ghost"
-          onClick={() => revoke(r)}
-          disabled={revokingId === r._id}
-        >
-          <UserMinus size={16} /> {revokingId === r._id ? 'Revoking…' : 'Revoke'}
-        </button>
+        <Popover>
+          <PopoverTrigger
+            type="button"
+            className="ff-btn ff-btn--ghost"
+            aria-label={`Actions for ${r.employeeNameText}`}
+          >
+            <MoreHorizontal size={16} aria-hidden="true" />
+          </PopoverTrigger>
+          <PopoverContent align="end">
+            <button
+              type="button"
+              className="ff-btn ff-btn--ghost"
+              onClick={() => revoke(r)}
+              disabled={revokingId === r._id}
+            >
+              <UserMinus size={16} aria-hidden="true" />{' '}
+              {revokingId === r._id ? 'Revoking…' : 'Revoke access'}
+            </button>
+          </PopoverContent>
+        </Popover>
       ),
     },
   ];

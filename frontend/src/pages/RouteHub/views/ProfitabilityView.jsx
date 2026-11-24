@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import useApi from '../../../hooks/useApi';
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
@@ -20,37 +21,27 @@ const kmFmt = (n) =>
   typeof n === 'number' && Number.isFinite(n) ? Math.round(n).toLocaleString('en-IN') : '—';
 
 export default function ProfitabilityView({ toast }) {
-  const [data, setData] = useState(null);
-  const [money, setMoney] = useState(null);
   const [selId, setSelId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [win, setWin] = useState(30);
+  const [anchor, setAnchor] = useState(Date.now);
+  const range = useMemo(
+    () => ({
+      from: new Date(anchor - win * 86400000).toISOString(),
+      to: new Date(anchor).toISOString(),
+    }),
+    [win, anchor],
+  );
+  const scopeKey = `${win}:${anchor}`;
+  const { data, loading, error } = useApi(
+    (signal) => RouteHubService.getAutoTripRunningCost(range, signal),
+    [scopeKey],
+    { scopeKey },
+  );
+  const cash = useApi((signal) => RouteHubService.getMoney(range, signal), [scopeKey], {
+    scopeKey,
+  });
   const first = loading && !data;
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const to = new Date();
-    const from = new Date(to.getTime() - win * 86400000);
-    const range = { from: from.toISOString(), to: to.toISOString() };
-    try {
-      const [cost, cash] = await Promise.all([
-        RouteHubService.getAutoTripRunningCost(range),
-        RouteHubService.getMoney(range).catch(() => null),
-      ]);
-      setData(cost);
-      setMoney(cash);
-    } catch (e) {
-      setError(e?.message || 'Could not load running cost.');
-    } finally {
-      setLoading(false);
-    }
-  }, [win]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const load = () => setAnchor(Date.now());
 
   const routes = useMemo(() => data?.routes || [], [data]);
   const trips = useMemo(() => data?.trips || [], [data]);
@@ -68,7 +59,7 @@ export default function ProfitabilityView({ toast }) {
       accent: 1,
       ic: 'route',
       l: 'Detected trips',
-      v: totals.tripCount ?? 0,
+      v: totals.tripCount ?? '—',
       s: `${windowLabel.toLowerCase()} · AutoTrip telemetry`,
     },
     {
@@ -149,7 +140,7 @@ export default function ProfitabilityView({ toast }) {
             </SearchableSelect>
           </span>
           <RefreshButton onClick={load} busy={loading} />
-          <button type="button" className="btn" onClick={exportCsv}>
+          <button type="button" className="btn" onClick={exportCsv} disabled={!routes.length}>
             <Ico n="download" />
             Export
           </button>
@@ -187,14 +178,23 @@ export default function ProfitabilityView({ toast }) {
               <Ico n="alert" s={28} />
             </span>
             <b>Running cost unavailable</b>
-            <span>{error}</span>
+            <span>{error.message || 'Try again to load route costs.'}</span>
           </div>
         </div>
       ) : null}
 
       <KpiRow items={kpis} loading={first} />
 
-      <MoneyStrip money={money} loading={loading && !money} />
+      {cash.error && !cash.data ? (
+        <p role="status">
+          Cost indicators could not load.{' '}
+          <button type="button" className="btn" onClick={cash.refetch}>
+            Retry cost indicators
+          </button>
+        </p>
+      ) : (
+        <MoneyStrip money={cash.data} loading={cash.loading && !cash.data} />
+      )}
 
       <div className="bento">
         <ProfitabilityTable

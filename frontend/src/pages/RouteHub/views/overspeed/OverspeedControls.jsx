@@ -1,4 +1,5 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import { modelLabel } from '../../../LiveTracking/vehiclePanelModel';
 import Ico from '../../routeHubIcons.jsx';
 import { WINDOWS } from './overspeedHelpers.js';
 
@@ -11,6 +12,7 @@ export default function OverspeedControls({
   dur,
   setDur,
   win,
+  fixedRange = false,
   setWin,
   run,
   loading,
@@ -30,7 +32,7 @@ export default function OverspeedControls({
             {vehicles.map((v) => (
               <option key={v._id} value={v._id}>
                 {v.registrationNumber}
-                {v.model ? ` · ${v.model}` : ''}
+                {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
               </option>
             ))}
           </SearchableSelect>
@@ -62,22 +64,26 @@ export default function OverspeedControls({
           />
         </span>
       </label>
-      <label className="flabel">
-        <span>Time window</span>
-        <span className="field">
-          <SearchableSelect
-            aria-label="Time window"
-            value={win}
-            onChange={(e) => setWin(Number(e.target.value))}
-          >
-            {WINDOWS.map((w) => (
-              <option key={w.value} value={w.value}>
-                {w.label}
-              </option>
-            ))}
-          </SearchableSelect>
-        </span>
-      </label>
+      {fixedRange ? (
+        <span>Uses the selected Intelligence period</span>
+      ) : (
+        <label className="flabel">
+          <span>Time window</span>
+          <span className="field">
+            <SearchableSelect
+              aria-label="Time window"
+              value={win}
+              onChange={(e) => setWin(Number(e.target.value))}
+            >
+              {WINDOWS.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {w.label}
+                </option>
+              ))}
+            </SearchableSelect>
+          </span>
+        </label>
+      )}
       <button type="button" className="btn btn--primary" style={{ height: 38 }} onClick={run}>
         <Ico n="gauge" />
         {loading ? 'Running…' : 'Run audit'}

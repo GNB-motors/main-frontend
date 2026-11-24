@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.js';
+import { loginReturnTo } from './returnTo';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 import { setSession, setOrgId, getOrgId, clearSession } from '../../utils/session.js';
 
@@ -39,6 +40,8 @@ const slideData = [
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const returnTo = loginReturnTo(state?.returnTo);
   const [emailOrMobile, setEmailOrMobile] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,10 +131,10 @@ const LoginPage = () => {
           }, 1500);
           return;
         } else if (isOnboarded) {
-          const landing = resolveLandingRoute(organization?.featureFlags);
+          const landing = returnTo || resolveLandingRoute(organization?.featureFlags);
           toast.success('Welcome back! Redirecting to dashboard...');
           setTimeout(() => {
-            navigate(landing);
+            navigate(landing, { replace: true });
           }, 1500);
         } else {
           toast.success('Login successful! Redirecting to onboarding...');

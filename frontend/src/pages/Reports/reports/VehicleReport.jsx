@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Fuel, Gauge, IndianRupee, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
@@ -23,6 +24,13 @@ const VehicleReport = () => {
   // filter state and a filtered view can be shared as a link.
   const { filters, range, requestParams, activeCount } = useReportFilterParams();
   const filterKey = JSON.stringify(requestParams);
+  const mileageParams = new URLSearchParams({
+    tab: 'mileage',
+    view: 'vehicles',
+    ...(range.from && { from: range.from }),
+    ...(range.to && { to: range.to }),
+    ...(filters.manufacturer && { manufacturer: filters.manufacturer }),
+  });
   const [page, setPage] = useReportPage(filterKey);
 
   const {
@@ -33,7 +41,7 @@ const VehicleReport = () => {
   } = useApi(
     (signal) =>
       ReportsService.getVehicleReports(
-        { ...requestParams, page, limit: FLEET_REPORT_PAGE_SIZE },
+        { ...requestParams, includeTelemetry: true, page, limit: FLEET_REPORT_PAGE_SIZE },
         signal,
       ),
     [filterKey, page],
@@ -109,7 +117,7 @@ const VehicleReport = () => {
     },
     {
       key: 'kmpl',
-      label: 'Mileage',
+      label: 'Full-tank mileage',
       align: 'right',
       render: (r) => (
         <KmplCell
@@ -120,6 +128,19 @@ const VehicleReport = () => {
         />
       ),
     },
+    ...(filters.loc
+      ? []
+      : [
+          {
+            key: 'telemetryKmPerL',
+            label: 'Telemetry km/L',
+            align: 'right',
+            render: (r) =>
+              r.telemetryKmPerL == null
+                ? '—'
+                : `${formatNum(r.telemetryKmPerL, { decimals: 2 })} km/L`,
+          },
+        ]),
     {
       key: 'costPerKm',
       label: 'Diesel ₹/km',
@@ -158,7 +179,7 @@ const VehicleReport = () => {
           tone: 'violet',
         },
         {
-          label: 'Fleet mileage',
+          label: 'Fleet full-tank mileage',
           value:
             summary.averageKmPerL != null
               ? `${formatNum(summary.averageKmPerL, { decimals: 2 })} km/L`
@@ -175,25 +196,34 @@ const VehicleReport = () => {
       subtitle="Fuel billed per vehicle, and mileage over completed full-tank cycles"
       filters={<ReportFilterBar searchPlaceholder="Search vehicle or model" showDriver={false} />}
       actions={
-        <ExportButton
-          rows={rows}
-          columns={VEHICLE_EXPORT_COLUMNS}
-          filename="vehicle-report"
-          buttonClass="rpt-btn"
-          fetchAll={() =>
-            ReportsService.fetchAllReportRows(ReportsService.getVehicleReports, requestParams)
-          }
-          meta={{
-            filters: exportFilterMeta({
-              manufacturer: filters.manufacturer,
-              from: range.from,
-              to: range.to,
-              entityLabel:
-                selectedVehicleLabel || (requestParams.search ? `“${requestParams.search}”` : null),
-            }),
-          }}
-          disabled={!rows.length}
-        />
+        <>
+          <Link className="rpt-btn" to={`/mileage?${mileageParams}`}>
+            Mileage by truck
+          </Link>
+          <ExportButton
+            rows={rows}
+            columns={VEHICLE_EXPORT_COLUMNS}
+            filename="vehicle-report"
+            buttonClass="rpt-btn"
+            fetchAll={() =>
+              ReportsService.fetchAllReportRows(ReportsService.getVehicleReports, {
+                ...requestParams,
+                includeTelemetry: true,
+              })
+            }
+            meta={{
+              filters: exportFilterMeta({
+                manufacturer: filters.manufacturer,
+                from: range.from,
+                to: range.to,
+                entityLabel:
+                  selectedVehicleLabel ||
+                  (requestParams.search ? `“${requestParams.search}”` : null),
+              }),
+            }}
+            disabled={!rows.length}
+          />
+        </>
       }
       notice={
         response && 'dataAsOf' in meta ? (
@@ -226,7 +256,7 @@ const VehicleReport = () => {
         total={meta.total}
         activeFilters={activeCount}
         emptyTitle="No vehicle fuel data"
-        emptyHint="Try widening the date range, clearing the search or choosing All vehicles."
+        emptyHint="This report includes vehicles with bills or completed cycles in the selected dates. Open Mileage by truck for telemetry coverage."
       />
     </ReportFrame>
   );

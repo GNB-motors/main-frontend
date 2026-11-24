@@ -4,7 +4,15 @@ import { OS_MAX_HOURS, OS_THRESHOLD } from './overviewConstants.js';
 import Gauge from './Gauge.jsx';
 import GaugeSkeleton from './GaugeSkeleton.jsx';
 
-export default function OverspeedModule({ go, first, hours, osTotals, overspeed, vehicles }) {
+export default function OverspeedModule({
+  go,
+  first,
+  hours,
+  osTotals,
+  overspeed,
+  vehicles,
+  auditWindow,
+}) {
   return (
     <div className="card">
       <div className="mhead" style={{ '--c': '#C56200', '--tint': 'rgba(240,170,72,.16)' }}>
@@ -21,7 +29,7 @@ export default function OverspeedModule({ go, first, hours, osTotals, overspeed,
           type="button"
           className="go"
           aria-label="Open overspeed audit"
-          onClick={() => go('overspeed')}
+          onClick={() => go('overspeed', auditWindow)}
         >
           <Ico n="arrowUR" s={15} />
         </button>
@@ -31,13 +39,15 @@ export default function OverspeedModule({ go, first, hours, osTotals, overspeed,
           <GaugeSkeleton />
           <RowsSkeleton n={3} />
         </>
-      ) : (
+      ) : osTotals.eventCount != null ? (
         <Gauge
           peak={osTotals.peakSpeedKmh || 0}
           eventCount={osTotals.eventCount || 0}
           flagged={osTotals.vehiclesFlagged || 0}
           vehicleCount={osTotals.vehicleCount || vehicles.length}
         />
+      ) : (
+        <p className="muted">Audit totals unavailable</p>
       )}
       <div className="rows">
         {(overspeed?.vehicles || [])

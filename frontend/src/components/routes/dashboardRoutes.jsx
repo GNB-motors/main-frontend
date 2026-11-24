@@ -1,4 +1,4 @@
-import { Route, Navigate } from 'react-router-dom';
+import { Link, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
@@ -156,7 +156,20 @@ const dashboardRoutes = (
     <Route
       path="/tolls"
       element={
-        <FeatureGate flag="tolls" name="Tolls">
+        <FeatureGate
+          flag="tolls"
+          name="Tolls"
+          fallback={
+            <section className="p-6">
+              <h1>Tolls</h1>
+              <p>
+                The crossing and plaza tools are unavailable for this organisation. Recorded toll
+                expenses can still be reviewed in Khata.
+              </p>
+              <Link to="/khata-ledger?tab=all&category=TOLL">Open recorded toll expenses</Link>
+            </section>
+          }
+        >
           <TollsPage />
         </FeatureGate>
       }

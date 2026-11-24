@@ -753,6 +753,9 @@ function BriefingPanel({
               key={`${day}:${report$.data?.generatedAt || ''}`}
               day={day}
               section={byId.exceptions}
+              idleCostRecorded={leakRows(brief$.data).some(
+                (row) => row.key === 'idling' && row.trucks.length > 0,
+              )}
               loading={reportLoading}
               onRetry={report$.refetch}
               isPendingDay={isPendingDay}

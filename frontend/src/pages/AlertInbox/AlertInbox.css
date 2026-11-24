@@ -1012,3 +1012,8 @@
   margin: 4px 0 0;
   white-space: pre-wrap;
 }
+
+.ai-detail .vtelemetry-chart {
+  min-width: 0;
+  height: 190px;
+}

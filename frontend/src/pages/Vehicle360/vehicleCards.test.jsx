@@ -11,12 +11,14 @@ import TelemetryPanel from './panels/TelemetryPanel';
 import TyresPanel from './panels/TyresPanel';
 import { getUserRole } from '@/utils/session';
 import { vehicleAxles } from './vehicleAxles';
+import { toISTDateString } from '../../utils/dateUtils';
 import { fluidLevels } from './panels/overview/referenceOverviewModel';
 
 vi.mock('../../services/FleetDataService', () => ({
   default: {
     getVehicleOverview: vi.fn(),
     getVehicleTelemetry: vi.fn(),
+    getVehicleHealth: vi.fn().mockResolvedValue({ history: [] }),
     getTyreStatus: vi.fn(),
     fitTyreSet: vi.fn(),
   },
@@ -24,6 +26,9 @@ vi.mock('../../services/FleetDataService', () => ({
 vi.mock('@/utils/session', async (importOriginal) => ({
   ...(await importOriginal()),
   getUserRole: vi.fn(() => 'OWNER'),
+}));
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: { getVehicleTrack: vi.fn().mockResolvedValue({ points: [] }) },
 }));
 vi.mock('../../services/billPhotoService', () => ({ default: { uploadBillPhoto: vi.fn() } }));
 vi.mock('./panels/ServiceInsights', () => ({ ServiceCentreCard: () => null }));
@@ -49,27 +54,42 @@ describe('recorded axle configuration', () => {
     expect(vehicleAxles({ axleClass: '4 axle' })).toBe(4);
     expect(vehicleAxles({ model: '2820' })).toBeNull();
   });
-  it('updates the truck drawing when the recorded axle count changes', async () => {
-    const { rerender } = mount(
+  it('shows measured daily activity and gives live motion its own status', async () => {
+    const day = toISTDateString(new Date());
+    mount(
       <VehicleHeaderCard
         reg="WB11T0662"
-        profile={{ fleetMaster: { axleCount: 3 } }}
+        profile={{
+          fleetMaster: { status: 'AVAILABLE', axleCount: 3 },
+          livePosition: {
+            eventDateTime: new Date().toISOString(),
+            speed: 30,
+            ignition: true,
+            latitude: 22,
+            longitude: 88,
+            address: '22.0000, 88.0000',
+            area: 'Dankuni',
+          },
+        }}
+        overview={{
+          days: [{ day, engineKm: 52 }],
+          today: { day, idleMin: 0, dieselUsedL: null },
+        }}
         onGoTab={vi.fn()}
       />,
     );
-    const drawing = screen.getByRole('img', { name: /3-axle truck/ });
-    expect(drawing.querySelectorAll('g')).toHaveLength(3);
-    rerender(
-      <MemoryRouter>
-        <VehicleHeaderCard
-          reg="WB11T0662"
-          profile={{ fleetMaster: { axleCount: 4 } }}
-          onGoTab={vi.fn()}
-        />
-      </MemoryRouter>,
-    );
-    expect(screen.getByRole('img', { name: /4-axle truck/ }).querySelectorAll('g')).toHaveLength(4);
-    await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalled());
+    expect(screen.getByText('Moving · ignition on')).toBeInTheDocument();
+    expect(screen.queryByText('AVAILABLE')).not.toBeInTheDocument();
+    expect(screen.getByText('Dankuni')).toBeInTheDocument();
+    expect(screen.queryByText('22.0000, 88.0000')).not.toBeInTheDocument();
+    const today = within(screen.getByRole('region', { name: 'Today’s truck activity' }));
+    expect(today.getByText('52 km')).toBeInTheDocument();
+    expect(today.getByText('0 min')).toBeInTheDocument();
+    expect(today.getByText('Not measured')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View specs' }));
+    expect(screen.getByText('AVAILABLE')).toBeInTheDocument();
+    expect(screen.getByText('Axles').nextElementSibling).toHaveTextContent('3');
+    await screen.findByText('Vehicle map');
   });
 });
 
@@ -120,13 +140,20 @@ describe('sensor cards', () => {
 });
 
 describe('telemetry availability', () => {
-  it('shows labelled placeholder zeroes when the backend is unavailable', async () => {
+  it('shows a retry instead of zero readings when telemetry fails', async () => {
     FleetDataService.getVehicleTelemetry.mockRejectedValue({ status: 404 });
     mount(<TelemetryPanel registrationNumber="WB11T0662" />);
-    await screen.findByText('Engine & electrical · readings');
-    expect(screen.getAllByText('0').length).toBeGreaterThan(1);
-    expect(screen.getAllByText('Data unavailable').length).toBeGreaterThan(1);
-    expect(screen.queryByText('Couldn’t load telemetry')).not.toBeInTheDocument();
+    expect(await screen.findByText('Could not load telemetry')).toBeInTheDocument();
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    FleetDataService.getVehicleTelemetry.mockResolvedValue({ channels: [], readings: [] });
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByText('Engine & electrical · last known readings');
+    fireEvent.click(screen.getByRole('button', { name: '7 days' }));
+    expect(FleetDataService.getVehicleHealth).toHaveBeenLastCalledWith(
+      'WB11T0662',
+      { days: 7, limit: 2000 },
+      expect.any(AbortSignal),
+    );
   });
   it('preserves a reported zero RPM and does not manufacture missing readings', async () => {
     FleetDataService.getVehicleTelemetry.mockResolvedValue({
@@ -147,7 +174,6 @@ describe('telemetry availability', () => {
     await screen.findByText('Engine & electrical · last known readings');
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('No data')).toBeInTheDocument();
-    expect(screen.getByText('IALERT CAN')).toBeInTheDocument();
   });
 });
 

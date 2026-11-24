@@ -1,7 +1,7 @@
 import { cardsBriefing } from './reportCardsBriefingModel';
 import { expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ReportCardsBriefing, { ScoreSparkline } from './ReportCardsBriefing';
+import ReportCardsBriefing, { ScoreChange } from './ReportCardsBriefing';
 
 it('averages measured grades only and does not turn missing scores into zero', () => {
   expect(
@@ -26,19 +26,17 @@ it('filters by the briefing action without manufacturing predictions', () => {
   expect(onGrade).toHaveBeenCalledWith('FALLING');
   expect(screen.queryByText(/will slip/)).not.toBeInTheDocument();
 });
-it('draws only recorded score points and leaves absent history unplotted', () => {
-  const { rerender } = render(<ScoreSparkline history={[]} />);
-  expect(screen.queryByRole('img')).not.toBeInTheDocument();
+it('describes the change from recorded score history', () => {
+  const { rerender } = render(<ScoreChange history={[]} score={80} />);
+  expect(screen.getByText('—')).toBeInTheDocument();
   rerender(
-    <ScoreSparkline
+    <ScoreChange
+      score={80}
       history={[
         { day: '2026-11-01', score: 70 },
         { day: '2026-11-03', score: 80 },
       ]}
     />,
   );
-  expect(screen.getByRole('img')).toHaveAccessibleName(/2026-11-01: 70, 2026-11-03: 80/);
-  expect(
-    screen.getByRole('img').querySelector('polyline').getAttribute('points').split(' '),
-  ).toHaveLength(2);
+  expect(screen.getByText('10 points up')).toBeInTheDocument();
 });

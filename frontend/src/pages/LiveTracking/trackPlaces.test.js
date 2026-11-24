@@ -21,6 +21,17 @@ const site = (id, status, extra = {}) => ({
 });
 
 describe('Places shown on Track', () => {
+  it('shows one pin for a same-name warehouse and nearby loading point', () => {
+    const places = confirmedPlaces({
+      warehouses: [{ _id: 'w1', name: 'JSW Salbani', lat: 22.5, lng: 88.3 }],
+      sites: [
+        site('near', 'CONFIRMED', { name: ' jsw SALBANI ', centroidLat: 22.5001 }),
+        site('far', 'CONFIRMED', { name: 'JSW Salbani', centroidLat: 22.6 }),
+      ],
+    });
+    expect(places.map((place) => place.id)).toEqual(['warehouse:w1', 'site:far']);
+  });
+
   it('keeps confirmed places only — never suggestions, low evidence or "not a place"', () => {
     const places = confirmedPlaces({
       warehouses: [{ _id: 'w1', name: 'Dankuni WH', lat: 22.7, lng: 88.2, geofenceRadiusM: 400 }],

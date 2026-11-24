@@ -3,10 +3,15 @@ import { isNum, toNum } from './placeGeometry.js';
 
 export function fromHotspot(h) {
   const provenance = provenanceOf(h);
+  const name = h.name?.replace(/\s*\(\s*-?\d+\.\d+\s*,\s*-?\d+\.\d+\s*\)\s*$/, '').trim();
+  const coordinateOnly = /^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/.test(name || '');
   return {
     id: `hotspot:${h._id}`,
     sourceId: String(h._id),
-    name: h.name || 'Fuel risk hotspot',
+    name:
+      !name || coordinateOnly || /^(?:siphoning|fuel risk|fuel drain) hotspot$/i.test(name)
+        ? 'Unnamed fuel hotspot'
+        : name,
     lat: toNum(h.centerLat),
     lng: toNum(h.centerLng),
     radiusM: Number(h.radiusM) || 500,

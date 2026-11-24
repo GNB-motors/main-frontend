@@ -11,6 +11,10 @@ export function cardsBriefing(cards) {
       : null,
     falling: cards.filter((card) => card.grade === 'FALLING').length,
     improving: scored.filter((card) => card.trend === 'UP').length,
-    grades: { EXCELLENT: cards.filter((card) => card.grade === 'EXCELLENT').length },
+    grades: cards.reduce((counts, card) => {
+      const grade = card.grade || 'NOT_ENOUGH_DATA';
+      counts[grade] = (counts[grade] || 0) + 1;
+      return counts;
+    }, {}),
   };
 }

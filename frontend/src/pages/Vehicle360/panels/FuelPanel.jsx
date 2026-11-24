@@ -1,3 +1,5 @@
+import PerformanceApi from '../../../api/performance';
+import { HistoryChart } from './TelemetryHistory';
 import { Link } from 'react-router-dom';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
 import useApi from '../../../hooks/useApi';
@@ -92,10 +94,28 @@ export default function FuelPanel({
     numeric(health?.defTankCapacityL) ??
     numeric(fleetMaster?.defCapacity) ??
     numeric(ialert?.defTankCapacityL);
-  const economy = numeric(kmPerLitre?.kmPerL) ?? numeric(kmPerLitre?.ecuKmPerL);
+  const performanceId = fleetMaster?.id || fleetMaster?._id;
+  const performance = useApi(
+    (signal) => PerformanceApi.vehicle(performanceId, {}, signal),
+    [performanceId],
+    { enabled: Boolean(performanceId), scopeKey: performanceId },
+  );
+  const performanceCell = performance.data?.vehicle?.kmPerL;
+  const economy = performanceCell
+    ? numeric(performanceCell.value)
+    : (numeric(kmPerLitre?.kmPerL) ?? numeric(kmPerLitre?.ecuKmPerL));
+  const fuelSeries = (overviewData?.fuelHistory || []).map(({ day, litres: value }) => ({
+    at: new Date(`${day}T12:00:00+05:30`).getTime(),
+    value,
+  }));
+  const detected = overviewData?.detectedRefuels || [];
   const range = fuel.litres != null && economy > 0 ? fuel.litres * economy : null;
-  const fuelToday = numeric(health?.today?.fuelBurnedL);
-  const todayAt = health?.today?.at ?? health?.canAt ?? health?.pulledAt;
+  const fuelToday =
+    numeric(overviewData?.today?.dieselUsedL) ?? numeric(health?.today?.fuelBurnedL);
+  const todayAt =
+    numeric(overviewData?.today?.dieselUsedL) != null
+      ? `${overviewData.today.day}T00:00:00+05:30`
+      : (health?.today?.at ?? health?.canAt ?? health?.pulledAt);
   const todayKnown = validDate(todayAt) && toISTDateString(todayAt) === toISTDateString(new Date());
   const logs = Array.isArray(recentFuelLogs) ? recentFuelLogs : [];
   const claimed = numeric(defBalance?.claimedAdblueL);
@@ -151,7 +171,9 @@ export default function FuelPanel({
               <div>
                 <span>Fuel economy</span>
                 <strong>{economy > 0 ? `${formatNum(economy)} km/L` : 'Not measured'}</strong>
-                <small>Reported vehicle economy; no assumed mileage</small>
+                <small>
+                  {performanceCell ? 'Truck measurements · last 30 days' : 'Vehicle fuel rollup'}
+                </small>
               </div>
             </div>
           </section>
@@ -186,6 +208,30 @@ export default function FuelPanel({
               needs matching distance, consumption and purchase records for the same period.
             </p>
           </section>
+          <HistoryChart
+            title="Diesel level · last 30 days"
+            unit=" L"
+            series={fuelSeries}
+            query={sharedOverview ? { data: sharedOverview } : overview}
+            from={fuelSeries[0]?.at}
+            to={fuelSeries.at(-1)?.at}
+            scale={[0, 'auto']}
+            note="Last valid tank reading each day."
+          />
+          {detected.length ? (
+            <section className="vdo-card">
+              <h3>Sensor-detected refuels</h3>
+              <p>Recent rises in the tank level. Fuel entries are listed separately below.</p>
+              <ul>
+                {detected.map((fill) => (
+                  <li key={fill._id || fill.at}>
+                    {formatDateIST(fill.at)} · {formatLitres(fill.litres)}
+                    {fill.fuelPumpName ? ` · ${fill.fuelPumpName}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <section className="vdo-card vfuel-refuels">
             <div className="vfuel-between">
               <h3>Refuels</h3>
@@ -200,7 +246,7 @@ export default function FuelPanel({
                 <span className="vfuel-empty-icon" aria-hidden="true">
                   ⛽
                 </span>
-                <h3>No recent refuels on record</h3>
+                <h3>No recent fuel entries on record</h3>
                 <p>Fuel receipts submitted by drivers or entered in the fuel ledger appear here.</p>
                 <Link
                   className="vfuel-button"

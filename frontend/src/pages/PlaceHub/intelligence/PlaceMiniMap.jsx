@@ -1,3 +1,4 @@
+import { ROAD_TILE_URL, ROAD_TILE_OPTIONS } from '../../../components/map/leafletRoadTiles.js';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -16,10 +17,7 @@ export default function PlaceMiniMap({ lat, lng, label }) {
   useEffect(() => {
     if (!hasCoords(lat, lng) || !ref.current) return undefined;
     const map = L.map(ref.current, { scrollWheelZoom: false, attributionControl: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer(ROAD_TILE_URL, ROAD_TILE_OPTIONS).addTo(map);
     const marker = L.circleMarker([lat, lng], {
       radius: 9,
       color: '#2563eb',

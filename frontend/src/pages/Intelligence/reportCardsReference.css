@@ -416,3 +416,49 @@
   text-decoration: none;
   color: #2a4fd6;
 }
+
+.intel-idle-chart {
+  min-width: 0;
+  margin: 12px;
+}
+.intel-idle-chart figcaption {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.intel-idle-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 12px;
+}
+.intel-idle-bar i {
+  height: 6px;
+  background: var(--rd-line);
+  border-radius: 4px;
+}
+.intel-idle-bar b {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #315be1;
+}
+
+.intel-grade-distribution {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.intel-grade-donut {
+  width: 5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  mask: radial-gradient(transparent 48%, #000 50%);
+  flex-shrink: 0;
+}
+
+.intel-grade-distribution button {
+  text-align: left;
+}

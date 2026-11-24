@@ -6,7 +6,7 @@ import { useActiveBranch } from '../contexts/BranchContext.jsx';
 import { useFeatureFlags, useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchService } from '../services/branchService';
 import { getFirstNavPath } from '../utils/sideNavUtils.js';
-import { getUserRole } from '../utils/session.js';
+import { getProfileField, getUserRole } from '../utils/session.js';
 import NewEnterpriseIcon from './Icons/NewEnterpriseIcon.jsx';
 import BranchIcon from './Icons/BranchIcon.jsx';
 import Chevron from './Icons/Chevron.jsx';
@@ -34,7 +34,7 @@ const branchAddress = (b) => [b.address, b.city, b.state, b.pincode].filter(Bool
  */
 const LocationSwitcher = () => {
   const { branchId, branches, activeBranch, loading, setBranch, refresh } = useActiveBranch();
-  const { canAccess } = useFeatureFlags();
+  const { canAccess, failed } = useFeatureFlags();
   const { organization } = useOrganization();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -65,11 +65,15 @@ const LocationSwitcher = () => {
     setQuery('');
   }, [open]);
 
+  const rememberedName = getProfileField('company_name');
+  if (failed && !organization && rememberedName && (loading || !branches?.length)) {
+    return <span className="location-switcher-fallback">{rememberedName}</span>;
+  }
   if (loading) return null;
   const hasBranches = Array.isArray(branches) && branches.length >= 1;
   if (!hasBranches) return null; // hidden until the enterprise has a location
 
-  const orgName = organization?.companyName || 'Enterprise';
+  const orgName = organization?.companyName || rememberedName || 'Enterprise';
   const currentLabel = activeBranch ? activeBranch.name : orgName;
   const isEnterprise = !branchId;
 

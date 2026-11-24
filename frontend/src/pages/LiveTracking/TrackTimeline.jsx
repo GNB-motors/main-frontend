@@ -548,8 +548,12 @@ export default function TrackTimeline({
       {summary ? (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-600 dark:text-slate-400 font-medium tabular-nums">
           <span className="flex flex-wrap items-center gap-1.5">
-            <strong>{summary.km} km</strong> · {formatDuration(summary.driveMin)} driving ·{' '}
-            {formatDuration(summary.stopMin)} stopped
+            <strong>
+              {summary.km != null ? `${summary.km} km recorded` : 'Distance unavailable'}
+            </strong>
+            {summary.driveMin != null ? ` · ${formatDuration(summary.driveMin)} driving` : ''}
+            {summary.stopMin != null ? ` · ${formatDuration(summary.stopMin)} stopped` : ''}
+            {summary.gpsGaps > 0 ? ` · ${summary.gpsGaps} GPS gaps excluded` : ''}
             {summary.maxKmh ? ` · top ${summary.maxKmh} km/h` : ''}
           </span>
           {tollStatus}

@@ -16,7 +16,7 @@ import {
 } from './performanceGaps';
 import { formatCellNumber } from './performanceCells';
 
-/** The server's default page; a full page means the fleet may be cut off. */
+/** Keep the first read aligned with the precomputed performance page. */
 const LIST_LIMIT = 50;
 
 function EngineAlerts({ count }) {
@@ -34,10 +34,16 @@ function EngineAlerts({ count }) {
  * A column no truck can fill is left out and explained once in the briefing;
  * a row opens the truck's drawer with its gear, health and drift.
  */
-export default function VehiclesTab() {
+export default function VehiclesTab({ from, to } = {}) {
+  const [offset, setOffset] = useState(0);
   const { data, loading, error, refetch } = useApi(
-    (signal) => PerformanceApi.vehicles({}, signal),
-    [],
+    (signal) =>
+      PerformanceApi.vehicles(
+        { ...(from && { from }), ...(to && { to }), ...(offset && { offset }) },
+        signal,
+      ),
+    [from, to, offset],
+    { scopeKey: `${from}:${to}:${offset}` },
   );
   const vehicles = useMemo(() => data?.vehicles ?? [], [data]);
   const [open, setOpen] = useState(null);
@@ -63,10 +69,9 @@ export default function VehiclesTab() {
   const days = data?.window?.days ?? 30;
   const range = windowLabel(data?.window);
   const count = vehicles.length;
-  const cutOff =
-    count >= LIST_LIMIT
-      ? `This list stops at ${LIST_LIMIT} trucks, ordered by plate; a bigger fleet is cut off here.`
-      : null;
+  const total = Number.isFinite(data?.total) ? data.total : null;
+  const canAdvance =
+    !error && !loading && (total == null ? count === LIST_LIMIT : offset + count < total);
 
   const columns = [
     {
@@ -95,7 +100,7 @@ export default function VehiclesTab() {
     })),
     {
       key: 'healthFindings',
-      label: 'Engine alerts',
+      label: 'Performance health findings',
       align: 'right',
       render: (v) => <EngineAlerts count={v.healthFindings} />,
     },
@@ -103,7 +108,7 @@ export default function VehiclesTab() {
 
   const lead = (
     <>
-      <b>{count.toLocaleString('en-IN')}</b> {count === 1 ? 'truck' : 'trucks'} in this read.
+      <b>{count.toLocaleString('en-IN')}</b> {count === 1 ? 'truck' : 'trucks'} on this page.
       {mileage.median !== null ? (
         <>
           {' '}
@@ -143,11 +148,7 @@ export default function VehiclesTab() {
               label="Truck performance read"
               eyebrow={`Fleet read · last ${days} days`}
               lead={lead}
-              notes={[
-                range ? `Readings from ${range}.` : null,
-                ...gaps.notes.map(hiddenLine),
-                cutOff,
-              ]}
+              notes={[range ? `Readings from ${range}.` : null, ...gaps.notes.map(hiddenLine)]}
               kpis={[
                 {
                   label: 'Trucks',
@@ -172,9 +173,11 @@ export default function VehiclesTab() {
                       : `of engine-on time · ${idle.known} of ${count} trucks`,
                 },
                 {
-                  label: 'Engine alerts',
+                  label: 'Performance health findings',
                   value: withAlerts.toLocaleString('en-IN'),
-                  note: withAlerts ? 'trucks with an engine alert' : 'No truck has an engine alert',
+                  note: withAlerts
+                    ? 'trucks with a performance health finding on this page'
+                    : 'No performance health findings on this page',
                 },
               ]}
             >
@@ -203,6 +206,37 @@ export default function VehiclesTab() {
         )}
       </IntelligenceDataState>
 
+      {offset > 0 || canAdvance ? (
+        <nav className="intel-tab-tools" aria-label="Truck performance pages">
+          <button
+            type="button"
+            className="intel-chip"
+            disabled={offset === 0 || loading}
+            onClick={() => {
+              setOpen(null);
+              setOffset(Math.max(0, offset - LIST_LIMIT));
+            }}
+          >
+            Previous trucks
+          </button>
+          <span>
+            {count
+              ? `${offset + 1}–${offset + count}${total != null ? ` of ${total}` : ''}`
+              : `Page ${offset / LIST_LIMIT + 1}`}
+          </span>
+          <button
+            type="button"
+            className="intel-chip"
+            disabled={!canAdvance}
+            onClick={() => {
+              setOpen(null);
+              setOffset(offset + LIST_LIMIT);
+            }}
+          >
+            Next trucks
+          </button>
+        </nav>
+      ) : null}
       <VehicleDrawer vehicle={open} window={data?.window} onClose={() => setOpen(null)} />
     </div>
   );

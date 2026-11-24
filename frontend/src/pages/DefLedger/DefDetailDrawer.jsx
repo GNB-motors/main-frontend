@@ -1,5 +1,5 @@
 import { AlertTriangle, Droplet, BadgeCheck, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SlideOver from '../../components/cluster/SlideOver';
 import { formatLitres, formatPct } from '../../utils/formatters';
 import { formatDateTimeIST, formatDateIST } from '../../utils/dateUtils';
@@ -119,6 +119,12 @@ function DefDetailDrawer({ vehicle, onClose }) {
               ' No AdBlue purchases are logged for this vehicle, so there is no balance to reconcile. DEF consumption and sensor findings are still shown.'}
           </p>
 
+          <Link
+            className="pshell-btn"
+            to={`/vehicles/${encodeURIComponent(vehicle.registrationNumber)}?tab=fuel`}
+          >
+            View latest DEF tank level
+          </Link>
           <button
             type="button"
             onClick={() => navigate(`/def-ledger/log?vehicleId=${vehicle.vehicleId}`)}

@@ -257,7 +257,11 @@ export default function PlaceQuestionsTab({ query = null, canAnswer: allowed, on
               >
                 <ArrowLeft size={15} aria-hidden="true" /> All places
               </button>
-              <PlaceReviewMap key={`map-${active.id}`} point={active.point} />
+              <PlaceReviewMap
+                key={`map-${active.id}`}
+                point={active.point}
+                sampleTrips={active.sampleTrips}
+              />
               <PlaceQuestionCard
                 key={active.id}
                 question={active}

@@ -1,13 +1,13 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import DriverCardsBriefing from './DriverCardsBriefing';
 import { cardsBriefing } from './reportCardsBriefingModel';
-import ReportCardsBriefing, { ScoreSparkline } from './ReportCardsBriefing';
+import ReportCardsBriefing, { ScoreChange } from './ReportCardsBriefing';
 import '../Vehicle360/panels/overview/referenceOverview.css';
 import './reportCardsReference.css';
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
-import { formatNumber } from '@/utils/redesign/format';
+import { formatDuration, formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
 import useUrlFilter from '@/hooks/useUrlFilter';
 import TripService from '@/pages/Trip/services/TripService';
@@ -20,6 +20,7 @@ import {
   humanizeDates,
   isInternalBasis,
   reportCardMakes,
+  periodRangeLabel,
   resolveDriverName,
 } from './intelligenceModel';
 const GRADES = [
@@ -144,6 +145,9 @@ export default function ReportCardsTab({
     cards.length > 0 &&
     cards.every((card) => card.grade === 'NOT_ENOUGH_DATA');
   const makes = subject === 'vehicle' ? reportCardMakes(cards) : [];
+  const truckFinding = (card) =>
+    card.problems?.[0] || card.strengths?.find((finding) => finding.key !== 'CRUISE');
+  const hasTruckFindings = subject === 'vehicle' && cards.some(truckFinding);
   const Briefing = subject === 'driver' ? DriverCardsBriefing : ReportCardsBriefing;
   const { buckets } = bucketReportCards(cards, {
     query,
@@ -155,6 +159,7 @@ export default function ReportCardsTab({
     make,
   });
   const rows = buckets.flatMap((bucket) => bucket.cards);
+  if (subject === 'vehicle') rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const totalPages = Math.max(1, Math.ceil(rows.length / 25));
   const currentPage = Math.min(page, totalPages);
   const gradeLabel = (card) =>
@@ -164,6 +169,9 @@ export default function ReportCardsTab({
   const bases = new Set(cards.map((card) => card.basis?.basis ?? ''));
   const sharedBasis =
     cards.length > 1 && bases.size === 1 && !isInternalBasis([...bases][0]) ? [...bases][0] : null;
+  const maxDriverKm = allUngraded
+    ? cards.reduce((max, card) => Math.max(max, card.kmInPeriod ?? 0), 0)
+    : 0;
   const columns = [
     {
       key: 'name',
@@ -206,7 +214,7 @@ export default function ReportCardsTab({
         </button>
       ),
     },
-    {
+    !allUngraded && {
       key: 'grade',
       label: 'Assessment',
       render: (card) => (
@@ -242,8 +250,8 @@ export default function ReportCardsTab({
     !allUngraded
       ? {
           key: 'trend',
-          label: '7-day trend',
-          render: (card) => <ScoreSparkline history={card.scoreHistory} trend={card.trend} />,
+          label: 'Score change (7 days)',
+          render: (card) => <ScoreChange history={card.scoreHistory} score={card.score} />,
         }
       : null,
     allUngraded
@@ -262,6 +270,21 @@ export default function ReportCardsTab({
           render: (card) => card.assignmentCoverage?.measuredDays ?? '—',
         }
       : null,
+    subject === 'driver' && {
+      key: 'completedTrips',
+      label: 'Recorded deliveries',
+      align: 'right',
+      render: (card) => card.assignmentCoverage?.completedTrips ?? '—',
+    },
+    subject === 'driver' && {
+      key: 'idleMinutes',
+      label: 'Recorded idling',
+      align: 'right',
+      render: (card) =>
+        card.assignmentCoverage?.idleMinutes == null
+          ? '—'
+          : formatDuration(card.assignmentCoverage.idleMinutes),
+    },
     {
       key: 'distance',
       label: 'Distance',
@@ -270,21 +293,31 @@ export default function ReportCardsTab({
         card.kmInPeriod == null ? (
           <span className="text-[var(--rd-ink-3)]">Not measured</span>
         ) : (
-          `${formatNumber(card.kmInPeriod)} km`
+          <span className="intel-score">
+            {maxDriverKm > 0 ? (
+              <span className="intel-score-bar" aria-hidden="true">
+                <span style={{ width: (card.kmInPeriod / maxDriverKm) * 100 + '%' }} />
+              </span>
+            ) : null}
+            {formatNumber(card.kmInPeriod)} km
+          </span>
         ),
     },
-    {
-      key: 'finding',
-      label: 'Key finding',
-      render: (card) => (
-        <span className="intel-cell-wrap">
-          {humanizeDates(card.headline) || 'No assessment available'}
-          {!sharedBasis && card.basis?.basis && !isInternalBasis(card.basis.basis) ? (
-            <small className="intelligence-table-basis">{humanizeDates(card.basis.basis)}</small>
-          ) : null}
-        </span>
-      ),
-    },
+    !allUngraded &&
+      (subject === 'driver' || hasTruckFindings) && {
+        key: 'finding',
+        label: 'Key finding',
+        render: (card) => (
+          <span className="intel-cell-wrap">
+            {subject === 'vehicle'
+              ? humanizeDates(truckFinding(card)?.label) || '—'
+              : humanizeDates(card.headline) || 'No assessment available'}
+            {!sharedBasis && card.basis?.basis && !isInternalBasis(card.basis.basis) ? (
+              <small className="intelligence-table-basis">{humanizeDates(card.basis.basis)}</small>
+            ) : null}
+          </span>
+        ),
+      },
   ].filter(Boolean);
   const title = subject === 'driver' ? 'Drivers' : 'Trucks';
   const what = subject === 'driver' ? 'The driver card' : 'The truck card';
@@ -382,7 +415,7 @@ export default function ReportCardsTab({
         <div className="intel-assessment-heading-right">
           {headerControl}
           <span>
-            {from && to ? `Based on ${from} → ${to} · ` : ''}
+            {data && from && to ? `${periodRangeLabel(from, to)} · ` : ''}
             {cardsBriefing(cards).graded} of {cards.length} graded
           </span>
         </div>

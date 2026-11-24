@@ -109,7 +109,7 @@ describe('IssueGroup', () => {
         ...issue,
         severity: 'act',
         kind: 'ACCOUNT_DISCONNECTED',
-        registrationNumber: null,
+        registrationNumber: 'BR44GB1162',
         accountName: 'GNB Buxar Fleet',
         action: {
           kind: 'RECONNECT',
@@ -125,6 +125,7 @@ describe('IssueGroup', () => {
     );
     expect(screen.getByText('Needs you')).toBeInTheDocument();
     expect(screen.getByText('GNB Buxar Fleet')).toBeInTheDocument();
+    expect(screen.queryByText('BR44GB1162')).not.toBeInTheDocument();
   });
 
   it('makes a call to the dealer a telephone link', () => {

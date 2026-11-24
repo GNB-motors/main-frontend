@@ -33,20 +33,20 @@ beforeEach(() => {
   FuelIntegrityService.getFills.mockResolvedValue({ records: [] });
   FuelIntegrityService.getWindows.mockResolvedValue({ records: [] });
 });
-it('shares a single scoped ledger between the pump card and tab and aborts it on unmount', async () => {
+it('uses one scoped pump ledger and shows each station only once', async () => {
   const { unmount } = render(
     <MemoryRouter initialEntries={['/?manufacturer=TATA']}>
       <FuelIntegrityPage />
     </MemoryRouter>,
   );
-  await screen.findByText('Chronic shortage');
+  await waitFor(() => expect(FuelIntegrityService.getPumpLedger).toHaveBeenCalled());
   expect(FuelIntegrityService.getPumpLedger).toHaveBeenCalledTimes(1);
   const [params, { signal }] = FuelIntegrityService.getPumpLedger.mock.calls[0];
   expect(params).toEqual({ manufacturer: 'TATA' });
   expect(signal).toBeInstanceOf(AbortSignal);
   fireEvent.click(screen.getByRole('tab', { name: 'Pumps' }));
   expect(await screen.findByText('Chronic Shortage')).toBeInTheDocument();
-  expect(screen.getAllByText('Fleet pumps · 1 Oct 2026 – 31 Oct 2026 IST')).toHaveLength(2);
+  expect(screen.getAllByText('Fleet pumps · 1 Oct 2026 – 31 Oct 2026 IST')).toHaveLength(1);
   expect(FuelIntegrityService.getPumpLedger).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
   await waitFor(() => expect(FuelIntegrityService.getPumpLedger).toHaveBeenCalledTimes(2));

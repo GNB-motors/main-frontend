@@ -12,8 +12,9 @@ vi.mock('../../services/AutoTripService', () => ({
 vi.mock('../../services/TripPlanService', () => ({
   default: { list: vi.fn(), cancel: vi.fn(), unlink: vi.fn(), resumeAutoMatch: vi.fn() },
 }));
-const { getPlaceQuestions, answerPlaceQuestion, getUserRole } = vi.hoisted(() => ({
+const { getPlaceQuestions, answerPlaceQuestion, getUserRole, getWhereNext } = vi.hoisted(() => ({
   getPlaceQuestions: vi.fn(),
+  getWhereNext: vi.fn(),
   answerPlaceQuestion: vi.fn(),
   getUserRole: vi.fn(),
 }));
@@ -22,7 +23,12 @@ vi.mock('../../utils/session', async (importOriginal) => ({
   getUserRole,
 }));
 vi.mock('../../services/fleetViewService', () => ({
-  fleetViewService: { getPlaceQuestions, answerPlaceQuestion, getTripsHistory: vi.fn() },
+  fleetViewService: {
+    getPlaceQuestions,
+    getWhereNext,
+    answerPlaceQuestion,
+    getTripsHistory: vi.fn(),
+  },
 }));
 vi.mock('../../components/ui/confirmContext', () => ({ useConfirm: () => vi.fn() }));
 vi.mock('../../hooks/useKnownEtas', () => ({ useKnownEtas: () => new Map() }));
@@ -100,6 +106,32 @@ it('shows unknown status counts when the trip reads fail', async () => {
   expect(screen.queryByText('nothing waiting')).not.toBeInTheDocument();
 });
 
+it('retries failed delivered trips and places alongside the list', async () => {
+  const failed = new Error('Temporarily unavailable');
+  let recover = false;
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (!recover && (params.limit === 50 || params.status === 'DELIVERED')) throw failed;
+    return {
+      items: [{ _id: 't1', registrationNumber: 'WB-RECOVERED', status: 'OPEN' }],
+      total: 1,
+      tabCounts: { OPEN: 1, NEEDS_REVIEW: 1 },
+    };
+  });
+  getPlaceQuestions.mockRejectedValueOnce(failed).mockResolvedValue({
+    items: [],
+    total: 1,
+    tripsAffected: 1,
+  });
+  open();
+  expect(await screen.findByRole('button', { name: 'Retry delivered trips' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Retry places' })).toBeInTheDocument();
+  recover = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByText('WB-RECOVERED')).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Review places' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Retry delivered trips' })).not.toBeInTheDocument();
+});
+
 it('falls back to the plain read when the backend does not know the flag', async () => {
   AutoTripService.list.mockImplementation(async (params) => {
     if (params.withCounts) {
@@ -160,7 +192,7 @@ it('badges a trip row the server flagged as a suspicious unload', async () => {
   open();
   // One line: the status and a "+1"; the tooltip (and the label) names the check.
   const badge = await screen.findByRole('button', { name: /Suspicious unload/ });
-  expect(screen.getByRole('link', { name: 'Trip approvals' })).toHaveAttribute(
+  expect(screen.getByRole('link', { name: 'Detour approvals' })).toHaveAttribute(
     'href',
     '/approvals?type=trips',
   );
@@ -613,4 +645,40 @@ it('does not reuse the counts of the previous filter when the list answers witho
   fireEvent.click(screen.getByRole('tab', { name: /More/ }));
   const reposition = await screen.findByRole('menuitem', { name: /Plant to plant/ });
   expect(reposition.textContent).toContain('—');
+});
+
+it('marks an implausibly short completed run for review without changing the trip status in storage', async () => {
+  AutoTripService.list.mockResolvedValue({
+    items: [
+      {
+        _id: 'short-run',
+        registrationNumber: 'WB-SHORT',
+        status: 'COMPLETE',
+        km: { laden: 7 },
+        durations: { ladenMin: 900 },
+      },
+    ],
+    total: 1,
+    tabCounts: { COMPLETE: 1 },
+  });
+  open('/auto-trips?status=COMPLETE');
+  const row = (await screen.findByText('WB-SHORT')).closest('tr');
+  expect(within(row).getByText('Short run · check')).toBeInTheDocument();
+  expect(within(row).queryByText('Delivered')).not.toBeInTheDocument();
+});
+
+it('shows a named destination and confidence only after a prediction is available', async () => {
+  getWhereNext.mockResolvedValue({
+    destinations: [{ place: { name: 'Nimpura' }, probability: 0.78 }],
+  });
+  listByStatus({
+    items: [{ _id: 'predictable', registrationNumber: 'WB11F5362', status: 'OPEN' }],
+    tabCounts: { OPEN: 1 },
+  });
+  open();
+  const action = await screen.findByRole('button', { name: 'Check destination' });
+  expect(getWhereNext).not.toHaveBeenCalled();
+  fireEvent.click(action);
+  expect(await screen.findByText('Probably Nimpura · 78%')).toBeInTheDocument();
+  expect(getWhereNext).toHaveBeenCalledWith('WB11F5362', { signal: expect.any(AbortSignal) });
 });

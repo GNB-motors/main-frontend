@@ -15,7 +15,7 @@ import {
   defPctTone,
   kmPerLReason,
   kmPerLTone,
-  rowsOf,
+  withTruckTelemetry,
   usualKmPerLReason,
 } from '../mileageVerdicts';
 import MileageVerdictBadge from './MileageVerdictBadge';
@@ -48,15 +48,17 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
   const { data, loading, error, refetch } = useApi(
     (signal) =>
       MileageService.getMileage(
-        { groupBy: 'truck', ...rangeToParams(range) },
+        { groupBy: 'truck', telemetry: true, ...rangeToParams(range) },
         signal,
       ),
     [range.from, range.to, range.manufacturer],
   );
 
   const rows = useMemo(() => {
-    const needle = String(searchQuery || '').trim().toLowerCase();
-    return rowsOf(data).filter((row) => matches(row, needle));
+    const needle = String(searchQuery || '')
+      .trim()
+      .toLowerCase();
+    return withTruckTelemetry(data).filter((row) => matches(row, needle));
   }, [data, searchQuery]);
 
   // No driver on any truck: say it once, on the column, not on every row.
@@ -109,11 +111,12 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
         label: 'km/L',
         align: 'right',
         render: (t) => {
-          const tone = kmPerLTone(t.kmPerL, t.usualKmPerL);
+          const tone = t.mileageFromTelemetry ? null : kmPerLTone(t.kmPerL, t.usualKmPerL);
           const reason = kmPerLReason(t);
           return (
             <span className="num">
               <span className={tone ? INK[tone] : ''}>{kmPerLText(t.kmPerL)}</span>
+              {t.mileageFromTelemetry && <small className="mhub-sub">Truck telemetry</small>}
               {reason ? <span className="mhub-sub">{reason}</span> : null}
             </span>
           );
@@ -157,9 +160,7 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
           const tone = defPctTone(t.defPctOfDiesel, t.defBand);
           return (
             <span className="inline-flex items-center gap-1.5">
-              <span className={`num ${tone ? INK[tone] : ''}`}>
-                {formatPct(t.defPctOfDiesel)}
-              </span>
+              <span className={`num ${tone ? INK[tone] : ''}`}>{formatPct(t.defPctOfDiesel)}</span>
               <InfoTip text={DEF_PCT_COPY} label="What DEF % of diesel means" />
             </span>
           );
@@ -168,7 +169,7 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
       {
         key: 'verdict',
         label: 'Verdict',
-        render: (t) => <MileageVerdictBadge item={t} />,
+        render: (t) => (t.verdict ? <MileageVerdictBadge item={t} /> : DASH),
       },
     ],
     [onOpenCycles, noDrivers],
@@ -196,7 +197,7 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
       total={rows.length}
       onRowClick={onOpenCycles ? (t) => onOpenCycles(t) : undefined}
       emptyTitle="No trucks in these dates"
-      emptyHint="A truck shows up once it has driven in the range."
+      emptyHint="Mileage requires paired distance and diesel readings or a completed full-tank cycle. Try a wider date range."
     />
   );
 }

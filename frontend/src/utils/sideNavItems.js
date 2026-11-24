@@ -288,6 +288,12 @@ export const SIDE_NAV_ITEMS = [
         hint: 'Checks that every litre is explained by driving.',
       },
       {
+        to: '/refuel-advisory',
+        label: 'Refuel Advisory',
+        key: 'refuelAdvisory',
+        hint: 'See which trucks are likely to need fuel soon.',
+      },
+      {
         to: '/def-ledger',
         label: 'DEF Ledger',
         key: 'fuelIntegrity',
@@ -301,8 +307,32 @@ export const SIDE_NAV_ITEMS = [
       '/fuel-comparison',
       '/fuel-integrity',
       '/def-ledger',
+      '/refuel-advisory',
       '/trip-management',
     ],
+  },
+  {
+    type: 'group',
+    groupId: 'drivingTools',
+    access: 'fleet',
+    label: 'Driving tools',
+    hint: 'Review driving patterns and fuel-efficient speeds.',
+    icon: Activity,
+    children: [
+      {
+        to: '/optimal-speed',
+        label: 'Optimal Speed',
+        key: 'optimalSpeed',
+        hint: 'See speed ranges associated with lower fuel use.',
+      },
+      {
+        to: '/driving-dna',
+        label: 'Driving DNA',
+        key: 'drivingDna',
+        hint: 'See how your trucks and drivers drive.',
+      },
+    ],
+    matchRoutes: ['/optimal-speed', '/driving-dna'],
   },
   // Route Hub — direct link (replaces the Fleet Intelligence dropdown)
   {

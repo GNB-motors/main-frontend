@@ -116,7 +116,7 @@ export default function ExpectedFuelView({ range }) {
         emptyTitle={vehicleId ? 'No driving for this truck in these dates' : 'Choose a truck'}
         emptyHint={
           vehicleId
-            ? 'Pick a wider date range.'
+            ? 'Expected fuel needs recorded driving and a truck or model baseline. Try a wider date range.'
             : 'See the diesel it used each day against what it should have used.'
         }
       />

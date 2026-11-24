@@ -166,7 +166,7 @@ function PlaceBars({ places }) {
       {places.map((p) => (
         <li key={p.orgSiteId} className="atx-cov-bar-row">
           <Link to={placeHubHref(p.orgSiteId)} className="atx-cov-bar-label">
-            {p.name || 'Unconfirmed place'}
+            {p.name || (p.locality ? `Stop near ${p.locality}` : 'Unconfirmed stop')}
           </Link>
           <span className="atx-cov-track" aria-hidden="true">
             <span

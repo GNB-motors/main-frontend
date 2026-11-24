@@ -112,14 +112,48 @@ export function reviewTarget(item) {
   return null;
 }
 
+const FUEL_CONDITIONS = new Set([
+  'FUEL_RISK',
+  'LEVEL_DROP_PARKED',
+  'GAUGE_FAULT',
+  'FUEL_DATA_REVIEW',
+]);
+
+export function isFuelIssue(item) {
+  return FUEL_CONDITIONS.has(item?.condition);
+}
+
+export function fuelReadingLabel(item) {
+  if (!isFuelIssue(item)) return null;
+  const reports = [...(item.sources || [])].reverse();
+  for (const { detail } of reports) {
+    const text = String(detail || '');
+    const rate = text.match(
+      /(?:falls?|drops?)\s*~?\s*(\d+(?:\.\d+)?)\s*L\s*(?:a day|per day|\/day)/i,
+    )?.[1];
+    const litres = text.match(/~?\s*(\d+(?:\.\d+)?)\s*L (?:of fuel )?unaccounted/i)?.[1];
+    const rupees = text.match(/₹\s*([\d,]+(?:\.\d+)?)/)?.[1];
+    if (rate || litres) {
+      return [
+        rate ? `≈ ${rate} L/day while parked` : `≈ ${litres} L unaccounted`,
+        rupees ? `₹${rupees} reported` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+    }
+  }
+  return null;
+}
+
 export function filterInbox(
   items,
-  { status = 'OPEN', query = '', severity = '', source = '' } = {},
+  { status = 'OPEN', query = '', severity = '', source = '', fuelOnly = false } = {},
 ) {
   const needle = query.trim().toLowerCase();
   return items.filter(
     (item) =>
-      item.status === status &&
+      (status === 'ALL' || item.status === status) &&
+      (!fuelOnly || isFuelIssue(item)) &&
       (!severity || item.severity === severity) &&
       (!source || item.sources?.some((s) => s.source === source)) &&
       (!needle ||

@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import useApi from '../hooks/useApi';
 import AuthService from '../services/AuthService';
-import { isAuthenticated } from '../utils/session.js';
+import { cacheNavigationProfile, isAuthenticated } from '../utils/session.js';
 import logger from '../utils/logger';
 
 const FeatureFlagsContext = createContext({
@@ -79,9 +79,12 @@ export const FeatureFlagsProvider = ({ children }) => {
   useEffect(() => {
     if (!payload) return;
     const org = payload?.organization ?? null;
+    const nextFlags = { ...DEFAULT_FEATURE_FLAGS, ...(org?.featureFlags ?? {}) };
+    const nextPermissions = payload?.permissions ?? {};
     setOrganization(org);
-    setFlags({ ...DEFAULT_FEATURE_FLAGS, ...(org?.featureFlags ?? {}) });
-    setPermissions(payload?.permissions ?? {});
+    setFlags(nextFlags);
+    setPermissions(nextPermissions);
+    cacheNavigationProfile({ flags: nextFlags, permissions: nextPermissions });
     setProfile(payload);
     // A good read resets the ladder, so the next failure starts at 1 s again.
     attemptRef.current = 0;

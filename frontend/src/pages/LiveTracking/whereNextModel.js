@@ -15,13 +15,11 @@ export function evidence(destination) {
   return `seen ${count} of ${match[2]} times${count >= 5 ? ' — strong guess' : ''}`;
 }
 
-export function heldReason(data) {
-  const basis = data?.basis?.text || '';
-  if (/last fix.*is not near any of this org.s places/i.test(basis)) {
-    return 'On the road between places — we’ll guess once it reaches or leaves a known place';
-  }
-  if (data?.heldWhy) return 'Learning this truck’s routes';
-  return data?.why?.text || data?.heldWhy?.text || basis || data?.noPredictionWhy?.text || 'Not enough information to guess yet.';
+export function predictionConfidence(destination) {
+  const probability = destination?.probability;
+  return Number.isFinite(probability) && probability >= 0 && probability <= 1
+    ? `${Math.round(probability * 100)}%`
+    : null;
 }
 
 export function destinationHeading(destination) {
@@ -35,13 +33,23 @@ export function routeLines(data, open, position) {
   if (!data || data.held || !Array.isArray(data.destinations)) return [];
   return data.destinations.slice(0, open ? 3 : 1).flatMap((destination, index) => {
     const points = destination.route?.polyline;
-    if (!Array.isArray(points) || points.length < 2 || !points.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))) return [];
+    if (
+      !Array.isArray(points) ||
+      points.length < 2 ||
+      !points.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))
+    )
+      return [];
     let start = 0;
     if (Number.isFinite(position?.lat) && Number.isFinite(position?.lng)) {
       let best = Infinity;
       points.forEach(([lat, lng], i) => {
-        const distance = (lat - position.lat) ** 2 + ((lng - position.lng) * Math.cos(position.lat * Math.PI / 180)) ** 2;
-        if (distance < best) { best = distance; start = i; }
+        const distance =
+          (lat - position.lat) ** 2 +
+          ((lng - position.lng) * Math.cos((position.lat * Math.PI) / 180)) ** 2;
+        if (distance < best) {
+          best = distance;
+          start = i;
+        }
       });
     }
     const path = points.slice(start).map(([lat, lng]) => ({ lat, lng }));

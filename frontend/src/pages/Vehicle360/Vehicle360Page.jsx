@@ -16,6 +16,7 @@ import TelemetryPanel from './panels/TelemetryPanel';
 import TyresPanel from './panels/TyresPanel';
 import TripsPanel from './panels/TripsPanel';
 import DriversPanel from './panels/DriversPanel';
+import { viewOf } from '../../utils/liveView';
 import './vehicle360.css';
 
 /**
@@ -92,8 +93,8 @@ export default function Vehicle360Page() {
   const TABS = [
     { id: 'overview', label: 'Dashboard' },
     { id: 'service', label: 'Service' },
-    { id: 'fuel', label: 'Fuel', count: p.recentFuelLogs?.length ?? null },
-    { id: 'documents', label: 'Documents', count: p.fleetMaster?.documents?.length ?? null },
+    { id: 'fuel', label: 'Fuel' },
+    { id: 'documents', label: 'Documents' },
     { id: 'trips', label: 'Trips' },
     { id: 'drivers', label: 'Drivers' },
     { id: 'telemetry', label: 'Telemetry' },
@@ -237,7 +238,11 @@ export default function Vehicle360Page() {
         />
       ) : null}
       {active === 'trips' ? (
-        <TripsPanel vehicleId={p.fleetMaster?.id} registrationNumber={reg} />
+        <TripsPanel
+          vehicleId={p.fleetMaster?.id}
+          registrationNumber={reg}
+          moving={viewOf(p.livePosition).status === 'moving'}
+        />
       ) : null}
       {active === 'drivers' ? (
         <DriversPanel

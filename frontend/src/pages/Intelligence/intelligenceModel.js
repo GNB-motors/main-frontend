@@ -117,8 +117,14 @@ function presetWindow(presetId, today) {
  */
 export function resolvePeriod(params = {}, now = new Date()) {
   const today = toISTDateString(now) ?? toISTDateString(new Date());
-  const from = params.from;
-  const to = params.to;
+  const resolveDay = (value) =>
+    isYmd(value)
+      ? value
+      : typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)
+        ? toISTDateString(value)
+        : null;
+  const from = resolveDay(params.from);
+  const to = resolveDay(params.to);
 
   if (isYmd(from) && isYmd(to) && from <= to) {
     const preset = PERIOD_PRESETS.find((p) => {
@@ -334,9 +340,7 @@ export function groupIssuesByKind(items = []) {
       sorted[0]?.severity ?? 'info',
     );
     const advices = new Set(sorted.map((issue) => issue?.advice).filter(Boolean));
-    const subjects = new Set(
-      sorted.map((issue) => issue?.registrationNumber || issue?.accountName || issue?.id),
-    );
+    const subjects = issueSubjects(sorted);
     const noun = meta.noun ?? 'truck';
     const days = sorted.map((issue) => daysIn(meta.columns?.[0]?.read?.(issue)));
     const knownDays = days.filter((d) => d !== null);
@@ -489,7 +493,8 @@ export function issueSubjects(items = []) {
   return new Set(
     items.map(
       (issue) =>
-        (issue.registrationNumber
+        (isAccountIssue(issue) && issue.accountName ? `account:${issue.accountName}` : null) ||
+        (!isAccountIssue(issue) && issue.registrationNumber
           ? `truck:${issue.registrationNumber.replace(/\s/g, '').toUpperCase()}`
           : null) ||
         (issue.accountName ? `account:${issue.accountName}` : null) ||

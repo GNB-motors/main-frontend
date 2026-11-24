@@ -210,14 +210,11 @@ describe('LeaderboardsTab', () => {
     expect(screen.queryByText(/trips not measured/)).toBeNull();
   });
 
-  it('writes a dash for a side of the sum the server did not name', async () => {
-    PerformanceApi.boards.mockResolvedValue({
-      ...BOARDS,
-      boards: BOARDS.boards.map((board) => ({ ...board, numerator: null })),
-    });
+  it('keeps raw formula fields out of the board', async () => {
     renderTab();
 
-    await waitFor(() => expect(screen.getByText('Σ — ÷ Σ litres')).toBeTruthy());
+    expect(await screen.findByText('km/L vs expected for this duty')).toBeInTheDocument();
+    expect(screen.queryByText(/Σ|fuelKm ÷/)).not.toBeInTheDocument();
   });
 
   it('shows one board at a time behind a tab per board', async () => {

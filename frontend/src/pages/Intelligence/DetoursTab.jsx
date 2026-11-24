@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GitFork, Zap } from 'lucide-react';
 import DeviationView from '../RouteHub/views/DeviationView.jsx';
 import InstancesTab from './InstancesTab.jsx';
-import DrivingBriefing from './DrivingPeriodRead';
 import './drivingReference.css';
 import { trackLink } from '../../utils/redesign/links.js';
 import '../RouteHub/routeHubDesign.css';
@@ -18,11 +17,11 @@ export default function DetoursTab({ from, to, vehicle = '', driver = '' }) {
 
   const deviationParams = useMemo(() => {
     const p = new URLSearchParams(searchParams);
-    if (vehicle && !p.get('v')) {
-      p.set('v', vehicle);
-    }
+    if (vehicle) p.set('q', vehicle);
+    if (from) p.set('from', from);
+    if (to) p.set('to', to);
     return p;
-  }, [searchParams, vehicle]);
+  }, [searchParams, vehicle, from, to]);
 
   const handleGo = (tab, extra = {}) => {
     if (tab === 'replay') {
@@ -44,9 +43,6 @@ export default function DetoursTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-driving-tab intel-detours-tab">
-      {subView === 'audit' ? (
-        <DrivingBriefing kind="detour" from={from} to={to} vehicle={vehicle} driver={driver} />
-      ) : null}
       <IntelligenceViewSwitcher label="Detour views">
         <button
           type="button"
@@ -81,6 +77,7 @@ export default function DetoursTab({ from, to, vehicle = '', driver = '' }) {
       ) : (
         <IntelligenceAuditWorkspace label="Route deviation audit">
           <DeviationView
+            key={`${from}:${to}:${vehicle}`}
             params={deviationParams}
             toast={handleToast}
             setBadge={() => {}}

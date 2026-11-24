@@ -30,6 +30,7 @@ import {
   filterInbox,
   subjectTitle,
 } from './inboxModel.js';
+import FuelAlertEvidence from './FuelAlertEvidence';
 import AccountLinkBanner from './AccountLinkBanner.jsx';
 import IncidentsTab from './IncidentsTab.jsx';
 import AlertInboxTable from './AlertInboxTable';
@@ -48,6 +49,7 @@ export default function AlertInboxPage() {
   const [query, setQuery] = useUrlFilter('inboxSearch');
   const [severity, setSeverity] = useUrlFilter('inboxSeverity');
   const [source, setSource] = useUrlFilter('inboxSource');
+  const [topic, setTopic] = useUrlFilter('inboxTopic', '', ['', 'fuel']);
   const [detailId, setDetailId] = React.useState(null);
   const [view, setView] = useUrlFilter('inboxView', 'ALERTS', ['ALERTS', 'INCIDENTS']);
   const [ackAllOpen, setAckAllOpen] = React.useState(false);
@@ -136,7 +138,10 @@ export default function AlertInboxPage() {
     }
   };
 
-  const all = data?.items || [];
+  const all =
+    topic === 'fuel'
+      ? filterInbox(data?.items || [], { status: 'ALL', fuelOnly: true })
+      : data?.items || [];
   const open = all.filter((item) => item.status === 'OPEN');
   const items = filterInbox(all, { status, query, severity, source });
   const detail = all.find((item) => item.id === detailId);
@@ -185,6 +190,21 @@ export default function AlertInboxPage() {
       }
     >
       <AlertPageGuide page="inbox" />
+      {topic === 'fuel' ? (
+        <div className="ai-toolbar-controls">
+          <span>Fuel reports</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setAckAllOpen(false);
+              setTopic('');
+            }}
+          >
+            Show all alert topics
+          </Button>
+        </div>
+      ) : null}
 
       {/* A vendor account that stopped sending data explains why the trucks
           went quiet, and carries the one button that fixes it (F6). */}
@@ -281,7 +301,7 @@ export default function AlertInboxPage() {
                     </option>
                   ))}
                 </SearchableSelect>
-                {ackAllOpen ? (
+                {topic === 'fuel' ? null : ackAllOpen ? (
                   <span
                     className="ai-confirm"
                     role="group"
@@ -500,6 +520,7 @@ export default function AlertInboxPage() {
                   );
                 })}
               </div>
+              <FuelAlertEvidence item={detail} />
               {detail.status === 'OPEN' && (
                 <p className="ai-review-explanation" id="ai-detail-review-help">
                   Finished checking the reports? Mark this alert as reviewed to move it out of To

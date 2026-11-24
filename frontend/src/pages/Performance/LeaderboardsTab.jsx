@@ -16,7 +16,6 @@ import {
   boardTabLabel,
   methodRows,
   rankLabel,
-  sumLine,
   unknownKmNote,
   vehicleCoverageRows,
   vsExpectedTone,
@@ -161,7 +160,6 @@ function DutyGroup({ group, board }) {
 
 function BoardCard({ board, id }) {
   const groups = board.groups || [];
-  const sum = sumLine(board);
   const title = board.title || humanizeCode(board.key);
 
   return (
@@ -171,7 +169,6 @@ function BoardCard({ board, id }) {
           <h3>{title}</h3>
           {board.doesNotMeasure ? <p>{board.doesNotMeasure}</p> : null}
           {board.measures ? <p>{`Measures: ${String(board.measures).toLowerCase()}`}</p> : null}
-          {sum ? <p className="pf-sum">{sum}</p> : null}
         </div>
         <div className="pf-card-meta">
           <span className="pf-pill">
@@ -284,9 +281,9 @@ export default function LeaderboardsTab() {
                 note: 'learned from this fleet’s own cycles',
               },
               {
-                label: 'Unranked rows',
+                label: 'Drivers without a rank',
                 value: stats.unranked.toLocaleString('en-IN'),
-                note: 'each says why beside it',
+                note: 'across all boards',
               },
             ]}
           />

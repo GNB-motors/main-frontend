@@ -40,14 +40,14 @@ export function legCosts(trip) {
   const legs = legsOf(trip);
   return {
     legs: legs.length,
-    fuel: sumKnown(legs.map((leg) => leg?.fuelInr)),
+    fuel: sumKnown(legs.map((leg) => (leg?.fuelBasis === 'UNKNOWN' ? null : leg?.fuelInr))),
     wear: sumKnown(legs.map((leg) => leg?.wearInr)),
   };
 }
 
 /** Prefer the full estimate; otherwise show only known fuel and wear as a subtotal. */
 export function runningCostAmount(trip) {
-  if (isMeasured(trip?.totalCostInr)) {
+  if (isMeasured(trip?.totalCostInr) && fuelBasis(trip) !== 'UNKNOWN') {
     return { inr: Number(trip.totalCostInr), partial: false };
   }
   const { fuel, wear } = legCosts(trip);

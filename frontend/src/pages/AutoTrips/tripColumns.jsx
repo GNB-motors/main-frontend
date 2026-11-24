@@ -127,6 +127,23 @@ export default function tripColumns({
       width: '172px',
       label: 'Status',
       render: (r) => {
+        const km = loadedKm(r);
+        const minutes = loadedMin(r);
+        const reviewShortRun =
+          ['COMPLETE', 'DELIVERED'].includes(r.status) &&
+          !r.kmPartial &&
+          km != null &&
+          (km === 0 || (km < 10 && minutes != null && minutes >= 360));
+        if (reviewShortRun) {
+          return (
+            <span
+              className="atx-chip atx-chip--watch"
+              title="The measured distance is unusually short for this completed trip."
+            >
+              Short run · check
+            </span>
+          );
+        }
         const reasons = flagReasons(r);
         if (!reasons.length) return <TripStatus status={r.status} />;
         // A suspicious unload is worth a person's attention, so the row shows a

@@ -101,12 +101,6 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
     setBranchId(initialBranchId);
   }, [initialBranchId]);
 
-  // No manual "select a branch" step when one is available — jump straight to
-  // the first branch. Only applies when nothing is locked in from outside.
-  useEffect(() => {
-    if (!locked && !branchId && branches.length > 0) setBranchId(branches[0]._id);
-  }, [locked, branchId, branches]);
-
   useEffect(() => {
     if (branchId) loadBranchRoles(branchId);
   }, [branchId, loadBranchRoles]);
@@ -218,6 +212,7 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
           >
+            <option value="">Choose a branch</option>
             {branches.map((b) => (
               <option key={b._id} value={b._id}>
                 {b.name}

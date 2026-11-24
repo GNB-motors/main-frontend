@@ -16,7 +16,8 @@ import { formatAgoText } from './minutesAgoFormat.js';
  */
 export default function VehicleNowCard({ now, vehicle = null, onOpenPlace = null }) {
   const activity = now?.activity ?? null;
-  const place = now?.place ?? null;
+  const moving = vehicle?.status === 'moving' || ['MOVING', 'DRIVING'].includes(activity?.kind);
+  const place = moving ? null : (now?.place ?? null);
   const trip = now?.trip ?? null;
 
   // No activity from the backend: say what the truck's last report proves,
@@ -36,22 +37,34 @@ export default function VehicleNowCard({ now, vehicle = null, onOpenPlace = null
           {reported.lastSeen ? (
             <span className="mb-0.5 block text-[12px] text-[var(--rd-ink-3)]">Last seen</span>
           ) : null}
-          <VehicleLocation vehicle={vehicle} fallback="Away from your named places" />
+          {moving ? (
+            vehicle?.area || 'On the road'
+          ) : (
+            <VehicleLocation vehicle={vehicle} fallback="Away from your named places" />
+          )}
         </div>
       </SectionCard>
     );
   }
 
-  const usual = activity.vsUsual ?? null;
+  const usual = moving ? null : (activity.vsUsual ?? null);
   const leg = legLabel(activity.kind, trip?.leg);
 
   return (
     <SectionCard
       icon={Activity}
       tone={activity.kind === 'OFFLINE' ? 'watch' : 'info'}
-      title={activity.label}
-      info={activity.why ? { text: activity.why.text, basis: activity.why.basis ?? null } : null}
-      meta={activity.durationMin != null ? formatDuration(activity.durationMin) : null}
+      title={
+        moving && vehicle?.status === 'moving'
+          ? `Now · ${reportedActivity(vehicle)?.title ?? 'Moving'}`
+          : activity.label
+      }
+      info={
+        !moving && activity.why
+          ? { text: activity.why.text, basis: activity.why.basis ?? null }
+          : null
+      }
+      meta={!moving && activity.durationMin != null ? formatDuration(activity.durationMin) : null}
     >
       <div className="flex flex-col gap-1">
         <p className="m-0 text-[13px] text-[var(--rd-ink-2)]">
@@ -73,6 +86,7 @@ export default function VehicleNowCard({ now, vehicle = null, onOpenPlace = null
           ) : null}
         </p>
 
+        {moving ? <span>{vehicle?.area || 'On the road'}</span> : null}
         {place?.at ? (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
             <PlaceName place={place.at} showCategory />

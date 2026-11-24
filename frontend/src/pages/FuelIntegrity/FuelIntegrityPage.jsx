@@ -19,7 +19,6 @@ import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
 import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
 import RefuelAdvisoryCard from './RefuelAdvisoryCard.jsx';
-import PumpsWatchCard from './PumpsWatchCard.jsx';
 import { formatRelativeIST } from './fiDates.js';
 import {
   buildEvents,
@@ -158,15 +157,26 @@ const FuelIntegrityPage = () => {
       }
       try {
         const params = buildParams();
-        const [summaryData, fillsData, windowsData] = await Promise.all([
-          FuelIntegrityService.getSummary(params, signal),
+        const [summaryRead, fillsRead, windowsRead] = await Promise.allSettled([
+          FuelIntegrityService.getSummary(params, signal).then((data) => {
+            if (!signal.aborted) setSummary(data);
+            return data;
+          }),
           FuelIntegrityService.getFills({ ...params, page: 1, limit: FEED_LIMIT }, signal),
           FuelIntegrityService.getWindows({ ...params, limit: WINDOWS_LIMIT }, signal),
         ]);
         if (signal.aborted) return;
+        if (windowsRead.status === 'fulfilled') {
+          setWindows(windowsRead.value.records || []);
+          setWindowsTotal(windowsRead.value.total ?? (windowsRead.value.records || []).length);
+        }
+        if (fillsRead.status === 'rejected') throw fillsRead.reason;
+        const fillsData = fillsRead.value;
         // Refresh every page already loaded, keeping the same window across
         // those pages. A background poll must not drop the owner's extra fills.
-        const fillWindow = fillsData.window || summaryData.window;
+        const fillWindow =
+          fillsData.window ||
+          (summaryRead.status === 'fulfilled' ? summaryRead.value.window : null);
         const scopedParams = {
           ...params,
           ...(fillWindow?.from ? { from: fillWindow.from } : {}),
@@ -188,7 +198,6 @@ const FuelIntegrityPage = () => {
         if (signal.aborted) return;
         fillsPageRef.current = pageCount;
         fillsWindowRef.current = fillWindow;
-        setSummary(summaryData);
         setFills([
           ...new Map(
             [fillsData, ...extraPages]
@@ -197,8 +206,8 @@ const FuelIntegrityPage = () => {
           ).values(),
         ]);
         setFillsTotal(totalFills);
-        setWindows(windowsData.records || []);
-        setWindowsTotal(windowsData.total ?? (windowsData.records || []).length);
+        if (summaryRead.status === 'rejected') throw summaryRead.reason;
+        if (windowsRead.status === 'rejected') throw windowsRead.reason;
         setLastSynced(new Date());
         setError(null);
       } catch (err) {
@@ -497,7 +506,7 @@ const FuelIntegrityPage = () => {
                 </div>
                 {fills.length < fillsTotal && (
                   <p className="text-xs text-slate-500">
-                    The summary covers the whole window. Load more fills to include them in events,
+                    Headline totals use the whole window. Load more fills to include them in events,
                     charts and exports.
                   </p>
                 )}
@@ -546,10 +555,7 @@ const FuelIntegrityPage = () => {
           />
 
           {/* ── Refuel advisory & pump honesty ─────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <RefuelAdvisoryCard />
-            <PumpsWatchCard ledger={pumpLedger} />
-          </div>
+          <RefuelAdvisoryCard />
 
           {/* ── Operational Mission Control Workspace ────────────────────────── */}
           <FuelIntegrityTables

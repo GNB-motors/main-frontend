@@ -89,7 +89,7 @@ export default function DefLedgerPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const { data, loading, refetch } = useApi(
+  const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getDefLedger(signal, manufacturer ? { manufacturer } : {}),
     [manufacturer],
     { scopeKey: manufacturer },
@@ -102,14 +102,26 @@ export default function DefLedgerPage() {
   const price = data?.defPriceInrPerL;
   const vehicles = useMemo(
     () =>
-      (data?.vehicles || []).map((v) => ({
-        ...v,
-        statusLabel: (STATUS[v.status] || STATUS.NO_DATA).label,
-        alertState: v.alertsSuppressed ? 'Held back' : 'Not held back',
-        telemetryAsOf: formatInIST(defFreshness(v).asOf, 'D MMM YYYY, h:mm a'),
-        freshnessLabel: FRESHNESS_LABEL[defFreshness(v).status],
-        calculatedAt: formatInIST(v.lastComputedAt, 'D MMM YYYY, h:mm a'),
-      })),
+      (data?.vehicles || []).map((v) => {
+        const burnUnavailable =
+          v.defReported === false ||
+          ['NOT_REPORTED', 'NOT_APPLICABLE', 'NO_DATA'].includes(v.status);
+        const telemetryDefL =
+          !burnUnavailable && Number.isFinite(v.telemetryDefL) && v.telemetryDefL >= 0
+            ? v.telemetryDefL
+            : null;
+        return {
+          ...v,
+          telemetryDefL,
+          expectedBalanceL: telemetryDefL == null ? null : v.expectedBalanceL,
+          dosingRatioPct: telemetryDefL == null ? null : v.dosingRatioPct,
+          statusLabel: (STATUS[v.status] || STATUS.NO_DATA).label,
+          alertState: v.alertsSuppressed ? 'Held back' : 'Not held back',
+          telemetryAsOf: formatInIST(defFreshness(v).asOf, 'D MMM YYYY, h:mm a'),
+          freshnessLabel: FRESHNESS_LABEL[defFreshness(v).status],
+          calculatedAt: formatInIST(v.lastComputedAt, 'D MMM YYYY, h:mm a'),
+        };
+      }),
     [data],
   );
   const staleCount = vehicles.filter((v) => freshnessBucket(v) === 'stale').length;
@@ -121,8 +133,11 @@ export default function DefLedgerPage() {
     () => vehicles.filter((v) => freshnessBucket(v) === 'fresh'),
     [vehicles],
   );
-  const freshDefBurnedL = round1(sumKey(freshVehicles, 'telemetryDefL'));
-  const freshDosed = freshVehicles.filter((v) => v.dosingRatioPct != null);
+  const measuredBurn = freshVehicles.filter((v) => v.telemetryDefL != null);
+  const freshDefBurnedL = measuredBurn.length
+    ? round1(sumKey(measuredBurn, 'telemetryDefL'))
+    : null;
+  const freshDosed = measuredBurn.filter((v) => v.dosingRatioPct != null && v.fuelUsedL > 0);
   const freshDosedFuelL = sumKey(freshDosed, 'fuelUsedL');
   const freshDosingPct =
     freshDosedFuelL > 0
@@ -209,6 +224,14 @@ export default function DefLedgerPage() {
           </div>
         }
       >
+        {error ? (
+          <div role="alert" className="px-4 py-3">
+            Could not load the DEF ledger.{' '}
+            <button type="button" className="pshell-btn" onClick={refetch}>
+              Try again
+            </button>
+          </div>
+        ) : null}
         {/* ── KPI Tiles ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiTile
@@ -239,11 +262,9 @@ export default function DefLedgerPage() {
             value={formatLitres(freshDefBurnedL)}
             valueClass="text-emerald-600 dark:text-emerald-400"
             note={
-              freshVehicles.length === 0
-                ? staleCount > 0
-                  ? `No fresh telemetry · ${staleCount} stale truck${staleCount === 1 ? '' : 's'} excluded`
-                  : 'Fleet dosing —'
-                : `Fleet dosing ${freshDosingPct != null ? formatPct(freshDosingPct, { decimals: 1 }) : '—'} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ''}${staleCount > 0 ? ` · ${staleCount} stale excluded` : ''}`
+              measuredBurn.length === 0
+                ? 'No current DEF consumption readings'
+                : `${measuredBurn.length} trucks with readings · Fleet dosing ${freshDosingPct != null ? formatPct(freshDosingPct, { decimals: 1 }) : '—'} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ''}${staleCount > 0 ? ` · ${staleCount} stale excluded` : ''}`
             }
             noteClass="text-emerald-600 dark:text-emerald-400 font-semibold"
           />
@@ -402,9 +423,11 @@ export default function DefLedgerPage() {
                 ) : paginatedVehicles.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-slate-400">
-                      {vehicles.length === 0
-                        ? 'No vehicles are registered to your organization yet.'
-                        : 'No vehicles found matching current filter.'}
+                      {error
+                        ? 'Ledger data unavailable.'
+                        : vehicles.length === 0
+                          ? 'No vehicles are registered to your organization yet.'
+                          : 'No vehicles found matching current filter.'}
                     </td>
                   </tr>
                 ) : (
@@ -460,15 +483,14 @@ export default function DefLedgerPage() {
                       <td className="py-3 px-4 text-center">
                         <button
                           type="button"
-                          aria-label={`Log AdBlue for ${v.registrationNumber}`}
+                          aria-label={`View DEF details for ${v.registrationNumber}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/def-ledger/log?vehicleId=${v.vehicleId}`);
+                            setSelectedVehicle(v);
                           }}
-                          className="pshell-btn pshell-btn--primary"
-                          style={{ height: 32, minHeight: 32, padding: '0 14px', fontSize: 12.5 }}
+                          className="pshell-btn"
                         >
-                          <Plus size={14} /> Log
+                          Details
                         </button>
                       </td>
                     </tr>

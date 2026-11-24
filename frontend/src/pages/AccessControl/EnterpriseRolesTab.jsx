@@ -277,7 +277,7 @@ const EnterpriseRolesTab = () => {
                 </span>
                 <span className="rbac-role__meta">
                   {role.baseRole} · {(role.permissionKeys || []).length} permission(s) ·{' '}
-                  {holdersByRole.get(String(role._id)) || 0} holder(s)
+                  {role.holderCount ?? (holdersByRole.get(String(role._id)) || 0)} holders
                 </span>
               </button>
             ))}

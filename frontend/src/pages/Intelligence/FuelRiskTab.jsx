@@ -5,7 +5,7 @@ import useUrlFilter from '@/hooks/useUrlFilter';
 import './intelFuelReference.css';
 import '../Vehicle360/panels/overview/referenceOverview.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { listHotspots, getDrainMap } from '../../services/HotspotService.js';
 import { fromHotspot, drainCellsOf, fuelTotals } from '../PlaceHub/model/fuelRisk.js';
@@ -82,7 +82,7 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
   const filteredCells = useMemo(() => {
     if (!vehicle) return drainCells;
     const v = vehicle.trim().toLowerCase();
-    return drainCells.filter((c) => c.vehicles?.some((veh) => veh.toLowerCase().includes(v)));
+    return drainCells.filter((c) => c.vehicles?.some((veh) => veh.toLowerCase() === v));
   }, [drainCells, vehicle]);
 
   const totals = useMemo(() => fuelTotals(hotspots, filteredCells), [hotspots, filteredCells]);
@@ -107,7 +107,9 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
       source === 'all' ||
       (source === 'network' ? hotspot.provenance === 'network' : hotspot.provenance !== 'network'),
   );
-  const moneyKnown = !loading && !errors['drain map'];
+  const sharedCells = Boolean(vehicle && filteredCells.some((cell) => cell.vehicles.length > 1));
+  const moneyKnown =
+    !loading && Array.isArray(drainMap?.buckets) && !sharedCells && !errors['drain map'];
   const hotspotKnown = !loading && !errors['fuel hotspots'];
   const validDate = (value) => value && Number.isFinite(new Date(value).getTime());
   const selectedTitle =
@@ -129,12 +131,14 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                 >
                   {formatNumber(totals.drainEvents)} parked fuel-drop events
                 </button>{' '}
-                were returned for this period
+                with mapped locations were returned for this period
                 {totals.drainRupees > 0
                   ? `, with an estimated value of ${formatInr(totals.drainRupees)}`
                   : ''}
                 .{' '}
               </>
+            ) : sharedCells ? (
+              'Some mapped locations include several trucks. A per-truck total is unavailable. '
             ) : (
               'Parked fuel-drop totals are unavailable. '
             )}
@@ -144,7 +148,9 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
           </p>
           <small>
             Hotspot records describe current marked or learned locations. Drain totals describe the
-            selected period. These findings require evidence review before attributing fuel loss.
+            selected period and require a recorded position. The Alert Inbox also includes open fuel
+            reports without mapped evidence.{' '}
+            <Link to="/alert-inbox?inboxTopic=fuel">Open fuel reports</Link>
           </small>
         </div>
         <div className="intel-fuel-brief-kpis">
@@ -152,7 +158,7 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
             [
               'Parked drops',
               moneyKnown ? formatNumber(totals.drainEvents) : '—',
-              'Returned period events',
+              'Only events with a mapped location',
               'drain',
             ],
             [

@@ -7,7 +7,7 @@ import TollTimelineRow from './TollTimelineRow';
 import TimelineEventIcon from './TimelineEventIcon';
 import { titleCasePlace } from './tripListModel';
 
-const TITLE = { loading: 'Loading at plant', drop: 'Unloading at drop', unknown: 'Unknown stop' };
+const TITLE = { loading: 'Loading at plant', drop: 'At the drop', unknown: 'Unknown stop' };
 /** "drop place" only repeats the title; an inferred or hand-set drop is worth saying. */
 const SHOWN_DROP_NOTES = ['inferred, needs your answer', 'set by a person'];
 
@@ -33,6 +33,7 @@ function StayPill({ step }) {
     <span className={`atx-tl-pill atx-tl-pill--${long ? 'long' : step.kind}`}>
       {fmtDuration(step.stayMin)}
       {long ? ' · long wait' : ''}
+      {step.kind === 'drop' ? ' parked' : ''}
     </span>
   );
 }

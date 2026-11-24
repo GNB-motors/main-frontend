@@ -79,22 +79,22 @@ export function boardStats(boards) {
   const drivers = new Set();
   const ranked = new Set();
   const groups = new Set();
-  let unranked = 0;
   (boards || []).forEach((board) => {
     (board?.groups || []).forEach((group) => {
       groups.add(group?.dutyGroup);
       (group?.rows || []).forEach((row) => {
         const id = row?.driverId || row?.key;
         if (id) drivers.add(id);
-        if (row?.rank != null) {
-          if (id) ranked.add(id);
-        } else {
-          unranked += 1;
-        }
+        if (id && row?.rank != null) ranked.add(id);
       });
     });
   });
-  return { drivers: drivers.size, ranked: ranked.size, groups: groups.size, unranked };
+  return {
+    drivers: drivers.size,
+    ranked: ranked.size,
+    groups: groups.size,
+    unranked: drivers.size - ranked.size,
+  };
 }
 
 /** The learned floor of a duty group, in words. */
@@ -153,22 +153,6 @@ export function methodRows(meta) {
     { label: 'Behaviour source', value: meta.behaviourSource || null },
     { label: 'Supersedes', value: meta.supersedes || null },
   ].filter((row) => row.value);
-}
-
-/**
- * The Σ line of a board: "Σ fuelKm ÷ Σ litres".
- *
- * A side the server did not name is a dash, never a blank — a board whose
- * numerator or denominator is missing must not read as if it had one. The line
- * is dropped only when the board names neither side.
- */
-export function sumLine(board) {
-  const numerator = board?.numerator;
-  const denominator = board?.denominator;
-  const hasNumerator = numerator !== null && numerator !== undefined && numerator !== '';
-  const hasDenominator = denominator !== null && denominator !== undefined && denominator !== '';
-  if (!hasNumerator && !hasDenominator) return null;
-  return `Σ ${hasNumerator ? numerator : DASH} ÷ Σ ${hasDenominator ? denominator : DASH}`;
 }
 
 /**

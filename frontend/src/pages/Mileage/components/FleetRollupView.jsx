@@ -1,3 +1,5 @@
+import { MileageService } from '../MileageService';
+import { rangeToParams } from '../mileageDates';
 import React from 'react';
 import DataTable from '../../../components/ui/DataTable';
 import { useApi } from '../../../hooks/useApi';
@@ -96,7 +98,48 @@ const TILE = ({ label, value, unit, foot, reason }) => (
   </div>
 );
 
+function FleetTelemetryMileage({ range }) {
+  const { data, loading, error, refetch } = useApi(
+    (signal) => MileageService.getMileage({ ...rangeToParams(range), telemetry: true }, signal),
+    [range.manufacturer, range.from, range.to],
+    { scopeKey: JSON.stringify(rangeToParams(range)) },
+  );
+  const readings = data?.telemetry ?? [];
+  const totals = readings.reduce(
+    (sum, row) => ({ km: sum.km + row.km, litres: sum.litres + row.dieselL }),
+    { km: 0, litres: 0 },
+  );
+  return (
+    <div className="mhub-box">
+      <h3>Fleet telemetry mileage</h3>
+      {loading ? (
+        <p>Loading truck measurements…</p>
+      ) : error ? (
+        <button type="button" className="pshell-btn" onClick={refetch}>
+          Retry truck measurements
+        </button>
+      ) : totals.litres > 0 ? (
+        <p>
+          <strong>{(totals.km / totals.litres).toFixed(2)} km/L</strong> · {readings.length}{' '}
+          measured trucks
+        </p>
+      ) : (
+        <p>No paired distance and diesel readings in these dates.</p>
+      )}
+    </div>
+  );
+}
+
 export default function FleetRollupView({ range }) {
+  return (
+    <>
+      <FleetTelemetryMileage range={range} />
+      <FullTankFleetRollup range={range} />
+    </>
+  );
+}
+
+function FullTankFleetRollup({ range }) {
   const scopeKey = JSON.stringify([range.manufacturer, range.from, range.to]);
   const rollup = useApi(
     (signal) => MileageApi.rollup(range, signal),
@@ -111,7 +154,7 @@ export default function FleetRollupView({ range }) {
     return (
       <div className="mhub">
         <div className="mhub-box">
-          <h3>Fleet mileage</h3>
+          <h3>Full-tank fleet mileage</h3>
           <p className="mhub-reason">Couldn&rsquo;t load the fleet mileage roll-up.</p>
           <div className="mhub-actions">
             <button type="button" className="pshell-btn" onClick={rollup.refetch}>
@@ -142,7 +185,7 @@ export default function FleetRollupView({ range }) {
     return (
       <div className="mhub">
         <div className="mhub-box">
-          <h3>Fleet mileage</h3>
+          <h3>Full-tank fleet mileage</h3>
           <p className="mhub-reason">
             No fleet mileage result was returned for these dates. Try refreshing.
           </p>
@@ -164,7 +207,7 @@ export default function FleetRollupView({ range }) {
     <div className="mhub">
       <div className="mhub-kpis">
         <TILE
-          label="Fleet km/L"
+          label="Full-tank fleet km/L"
           value={headline.text}
           foot={headline.foot}
           reason={headline.reason}

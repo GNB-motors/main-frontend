@@ -48,14 +48,13 @@ const TABS = [
     key: 'REPOSITION',
     label: 'Plant to plant',
     leg: 'REPOSITION',
-    hideWhenEmpty: true,
     inMore: true,
   },
-  { key: 'PLANNED', label: 'Planned trips', hideWhenEmpty: true, inMore: true },
+  { key: 'PLANNED', label: 'Planned trips', inMore: true },
   // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
   // so these stay hidden until someone has.
-  { key: 'CONFIRMED', label: 'Confirmed', hideWhenEmpty: true, inMore: true },
-  { key: 'DISMISSED', label: 'Rejected', hideWhenEmpty: true, inMore: true },
+  { key: 'CONFIRMED', label: 'Confirmed', inMore: true },
+  { key: 'DISMISSED', label: 'Rejected', inMore: true },
 ];
 
 const MORE_TABS = TABS.filter((t) => t.inMore);
@@ -226,6 +225,13 @@ export default function AutoTripsPage() {
     { scopeKey: `questions:${periodKey}` },
   );
 
+  const retryTripList = () => {
+    refetch();
+    [deliveredSample, waitingSample, today, questions].forEach((read) => {
+      if (read.error && !read.loading) read.refetch();
+    });
+  };
+
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   // The counts to show: the list's own, or the ones the other reads carry
@@ -251,14 +257,8 @@ export default function AutoTripsPage() {
           : key === 'REPOSITION'
             ? counts.reposition
             : counts.tab(key);
-  // A tab whose count nobody answered stays visible: hiding it would say
-  // "there are none" when the truth is "we do not know".
-  const moreTabs = MORE_TABS.filter(
-    (t) =>
-      !t.hideWhenEmpty || countFor(t.key) == null || countFor(t.key) > 0 || statusTab === t.key,
-  );
-  const activeMoreTab =
-    VIEWS.find((v) => viewTab === v.key) || moreTabs.find((t) => statusTab === t.key) || null;
+  const moreTabs = MORE_TABS;
+  const activeMoreTab = (!viewTab && moreTabs.find((t) => statusTab === t.key)) || null;
   const kpiTab = viewTab || moreTabs.some((t) => t.key === statusTab) ? null : statusTab;
   const todayCounts = today.data?.tabCounts;
   const todayCount = todayCounts ? actualTripCount(todayCounts) : null;
@@ -350,21 +350,6 @@ export default function AutoTripsPage() {
               <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
             </button>
           ))}
-          {moreTabs.length ? <span className="atx-more-rule" aria-hidden="true" /> : null}
-          {VIEWS.map((view) => (
-            <button
-              key={view.key}
-              type="button"
-              role="menuitem"
-              className={`atx-more-item${viewTab === view.key ? ' atx-more-item--active' : ''}`}
-              onClick={() => {
-                setMoreOpen(false);
-                changeView(view.key);
-              }}
-            >
-              {view.label}
-            </button>
-          ))}
         </div>
       ) : null}
     </div>
@@ -384,6 +369,20 @@ export default function AutoTripsPage() {
       ) : null}
       <span className="atx-tools-note">{note}</span>
       {moreMenu}
+      <div className="atx-tools" role="tablist" aria-label="Trip analysis views">
+        {VIEWS.map((view) => (
+          <button
+            key={view.key}
+            type="button"
+            role="tab"
+            aria-selected={viewTab === view.key}
+            className={viewTab === view.key ? 'atx-tool is-active' : 'atx-tool'}
+            onClick={() => changeView(view.key)}
+          >
+            {view.label}
+          </button>
+        ))}
+      </div>
       {showSap && !planned && !viewTab ? (
         <div className="atx-tool atx-tool--select" role="group" aria-label="SAP filter">
           <SearchableSelect
@@ -420,7 +419,7 @@ export default function AutoTripsPage() {
       ) : null}
       <Link className="atx-tool" to="/approvals?type=trips">
         <ShieldCheck size={14} aria-hidden="true" />
-        Trip approvals
+        Detour approvals
       </Link>
     </div>
   );
@@ -474,6 +473,7 @@ export default function AutoTripsPage() {
           run={run}
           runLoading={deliveredSample.loading}
           runFailed={Boolean(deliveredSample.error)}
+          onRetryRun={deliveredSample.refetch}
         />
 
         {showBanner ? (
@@ -484,6 +484,7 @@ export default function AutoTripsPage() {
             questionsTrips={questions.data?.tripsAffected}
             questionsLoading={questions.loading}
             questionsFailed={Boolean(questions.error)}
+            onRetryQuestions={questions.refetch}
             onAnswerPlaces={() => changeView('questions')}
             onShowTrips={() => changeTab(statusTab === 'NEEDS_REVIEW' ? '' : 'NEEDS_REVIEW')}
             showingTrips={statusTab === 'NEEDS_REVIEW'}
@@ -581,7 +582,7 @@ export default function AutoTripsPage() {
             rowKey={(r) => r._id}
             loading={loading}
             error={error}
-            onRetry={refetch}
+            onRetry={retryTripList}
             showing={items.length}
             total={total}
             pagination={pagination}

@@ -3,16 +3,13 @@ import './intelFuelReference.css';
 import Link from '@/components/redesign/FleetLink';
 import { useApi } from '@/hooks/useApi';
 import ToneBadge from '@/components/redesign/ToneBadge';
+import { withTruckTelemetry } from '../Mileage/mileageVerdicts';
 import IntelCard from './IntelCard';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { formatKm, formatPct } from '@/utils/redesign/format';
 import { trackLink } from '@/utils/redesign/links';
 import { DEF_COMPARISON_COPY, defComparisonLabel } from '../../utils/defComparison';
-
-// links.js has no helper for the Mileage page yet, so the path is written once,
-// here, instead of being repeated across the app.
-const MILEAGE_PATH = '/mileage?tab=live&subtab=completed';
 
 const DEF_TIP = DEF_COMPARISON_COPY;
 
@@ -54,7 +51,10 @@ function KmplTable({ rows, from, to }) {
                   {item.registrationNumber}
                 </Link>
               </td>
-              <td className="intel-num font-semibold">{kmPerL(item.kmPerL)}</td>
+              <td className="intel-num font-semibold">
+                {kmPerL(item.kmPerL)}
+                {item.mileageFromTelemetry && <small className="block">Truck telemetry</small>}
+              </td>
               <td className="intel-num intel-when">
                 {item.usualKmPerL !== null && item.usualKmPerL !== undefined
                   ? `usual ${kmPerL(item.usualKmPerL)}`
@@ -83,7 +83,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
   );
 
   const held = data?.held ? data.why : null;
-  const items = data?.items ?? [];
+  const items = withTruckTelemetry(data);
 
   const measured = items.filter((item) => item?.kmPerL !== null && item?.kmPerL !== undefined);
   const best = [...measured].sort((a, b) => b.kmPerL - a.kmPerL).slice(0, 10);
@@ -96,8 +96,15 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
     return value < band.min || value > band.max;
   });
 
+  const mileageParams = new URLSearchParams({
+    tab: 'mileage',
+    view: 'vehicles',
+    ...(from && { from }),
+    ...(to && { to }),
+    ...(vehicle && { search: vehicle }),
+  });
   const openMileage = (
-    <Link to={MILEAGE_PATH} className="intel-link">
+    <Link to={`/mileage?${mileageParams}`} className="intel-link">
       Open Mileage
     </Link>
   );
@@ -111,7 +118,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
         error={error}
         held={held}
         isEmpty={items.length === 0}
-        emptyMessage="No km/L figures for this period yet. The Mileage page has every fill and cycle."
+        emptyMessage="No paired distance and diesel readings or completed full-tank cycles for this period."
         what="The mileage of this period"
         onRetry={refetch}
       >

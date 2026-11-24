@@ -99,7 +99,7 @@ describe('MileageDefTab', () => {
 
     expect(await screen.findByRole('link', { name: /Open Mileage/ })).toHaveAttribute(
       'href',
-      '/mileage?tab=live&subtab=completed',
+      '/mileage?tab=mileage&view=vehicles&from=2026-10-27&to=2026-11-02',
     );
   });
 
@@ -114,4 +114,22 @@ describe('MileageDefTab', () => {
 
     await waitFor(() => expect(screen.getByText(/is being built/)).toBeInTheDocument());
   });
+});
+
+it('shows the truck measurement when the same dates have no full-tank cycles', async () => {
+  IntelligenceService.getMileage.mockResolvedValue({
+    items: [],
+    telemetry: [{ registrationNumber: 'WB12B1234', km: 427, dieselL: 100, kmPerL: 4.27 }],
+  });
+  render(
+    <MemoryRouter>
+      <MileageDefTab from="2026-10-27" to="2026-11-02" />
+    </MemoryRouter>,
+  );
+  expect(await screen.findAllByText('4.3 km/L')).not.toHaveLength(0);
+  expect(screen.getAllByText('Truck telemetry')).toHaveLength(2);
+  expect(screen.getByRole('link', { name: 'Open Mileage' })).toHaveAttribute(
+    'href',
+    '/mileage?tab=mileage&view=vehicles&from=2026-10-27&to=2026-11-02',
+  );
 });

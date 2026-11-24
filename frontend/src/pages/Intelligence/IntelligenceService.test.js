@@ -96,7 +96,13 @@ describe('IntelligenceService', () => {
     expect(apiClient.get).toHaveBeenCalledWith(
       '/api/fleet-view/mileage',
       expect.objectContaining({
-        params: { groupBy: 'truck', from: '2026-10-27', to: '2026-11-02', vehicle: undefined },
+        params: {
+          groupBy: 'truck',
+          from: '2026-10-27',
+          to: '2026-11-02',
+          vehicle: undefined,
+          telemetry: true,
+        },
       }),
     );
   });

@@ -176,7 +176,6 @@ export default function PumpHonestyPanel({ ledger = {} }) {
                   {/* Middle: Shortfall Progress Meter */}
                   {p.status === 'NOT_AUDITED' ? (
                     <div className="hidden md:flex flex-col gap-1 w-44 text-xs text-slate-500">
-                      <span>Shortage not assessed</span>
                       {p.registeredLitres != null && (
                         <span>Register fuel: {formatLitres(p.registeredLitres)}</span>
                       )}
@@ -209,9 +208,8 @@ export default function PumpHonestyPanel({ ledger = {} }) {
                   {/* Right: Est Loss & Honesty Pill */}
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <div className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
-                      {p.status === 'NOT_AUDITED' ? (
-                        <span className="text-slate-500">Loss unknown</span>
-                      ) : (p.totalRupeeLoss || 0) > 0 ? (
+                      {p.status === 'NOT_AUDITED' ||
+                      p.totalRupeeLoss == null ? null : p.totalRupeeLoss > 0 ? (
                         <span className="text-red-600 dark:text-red-400">
                           {formatINR(p.totalRupeeLoss)} lost
                         </span>

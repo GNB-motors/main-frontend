@@ -1,257 +1,132 @@
-import DataTooltip from '../../../../components/ui/DataTooltip';
-import { useMemo, useState } from 'react';
-import { haversineKm } from '../../../LiveTracking/geoMath';
-import { toISTDateString } from '../../../../utils/dateUtils';
+import { useEffect, useMemo, useState } from 'react';
+import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
+import { googleMapsLoaderOptions } from '../../../../utils/googleMapsLoader';
+import { LIGHT_MAP_STYLE } from '../../../LiveTracking/mapStyles';
+import { vehicleLocationName } from './referenceOverviewModel';
+import { fitMapToPositions } from '../../../LiveTracking/mapPlotting';
 
-// Geometry, city labels and stroke definitions from the supplied Intel Map.
-const REGION = { west: 82.5, east: 89, south: 21.3, north: 27.3 };
-const CITIES = [
-  ['Patna', 85.14, 25.6],
-  ['Kolkata', 88.36, 22.57],
-  ['Ranchi', 85.33, 23.34],
-  ['Kharagpur', 87.32, 22.34],
-  ['Dhanbad', 86.43, 23.8],
-  ['Durgapur', 87.31, 23.55],
-  ['Gaya', 85.0, 24.79],
-  ['Jamshedpur', 86.2, 22.8],
-  ['Muzaffarpur', 85.39, 26.12],
-  ['Bhagalpur', 87.0, 25.25],
-  ['Varanasi', 82.99, 25.32],
-];
-const inside = (point, bounds) =>
-  point.lng >= bounds.west &&
-  point.lng <= bounds.east &&
-  point.lat >= bounds.south &&
-  point.lat <= bounds.north;
+const mapStyle = { width: '100%', height: '100%' };
+const mapOptions = {
+  styles: LIGHT_MAP_STYLE,
+  disableDefaultUI: true,
+  zoomControl: true,
+  gestureHandling: 'cooperative',
+};
+const routeStyle = { strokeColor: '#315be1', strokeWeight: 3 };
 
-function mapData(track, livePosition, series) {
-  const fix =
-    livePosition?.latitude != null && livePosition?.longitude != null
-      ? { lat: livePosition.latitude, lng: livePosition.longitude }
-      : null;
-  const points = (track?.points || []).filter(
-    (point) => Number.isFinite(point.lat) && Number.isFinite(point.lng),
-  );
-  const locations = [...points, ...(fix ? [fix] : [])];
-  let bounds = REGION;
-  if (locations.some((point) => !inside(point, REGION))) {
-    const lats = locations.map((point) => point.lat),
-      lngs = locations.map((point) => point.lng);
-    const padLat = Math.max(0.3, (Math.max(...lats) - Math.min(...lats)) * 0.15);
-    const padLng = Math.max(0.3, (Math.max(...lngs) - Math.min(...lngs)) * 0.15);
-    bounds = {
-      west: Math.min(...lngs) - padLng,
-      east: Math.max(...lngs) + padLng,
-      south: Math.min(...lats) - padLat,
-      north: Math.max(...lats) + padLat,
-    };
-  }
-  const xy = (point) => [
-    Math.round(((point.lng - bounds.west) / (bounds.east - bounds.west)) * 600),
-    Math.round(((bounds.north - point.lat) / (bounds.north - bounds.south)) * 380),
-  ];
-  const routes = [];
+function coordinates(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+    ? { lat, lng }
+    : null;
+}
+
+function mapData(track, livePosition) {
+  const fix = coordinates(livePosition?.latitude, livePosition?.longitude);
   const gaps = (track?.segments || []).filter((segment) => segment.kind === 'GAP');
-  let current = null;
-  points.forEach((point, i) => {
-    const gpsOnly = series.find((day) => day.day === toISTDateString(point.t))?.engineKm == null;
-    const previous = points[i - 1];
-    const gap =
-      previous &&
-      gaps.some(
-        (segment) =>
-          new Date(segment.fromT) < new Date(point.t) &&
-          new Date(segment.toT) > new Date(previous.t),
-      );
-    if (!current || current.gpsOnly !== gpsOnly || gap) {
-      current = { gpsOnly, points: previous && !gap ? [previous, point] : [point] };
-      routes.push(current);
-    } else current.points.push(point);
+  const points = (track?.points || []).filter((point) => coordinates(point.lat, point.lng));
+  const paths = [];
+  let path = [];
+  points.forEach((point, index) => {
+    const previous = points[index - 1];
+    if (previous && gaps.some((gap) => gap.fromT < point.t && gap.toT > previous.t)) {
+      if (path.length > 1) paths.push(path);
+      path = [];
+    }
+    path.push({ lat: point.lat, lng: point.lng });
   });
-  const stops = [];
+  if (path.length > 1) paths.push(path);
+
+  const stops = new Map();
   for (const stop of track?.stops || []) {
-    if (!Number.isFinite(stop.place?.lat) || !Number.isFinite(stop.place?.lng)) continue;
-    const location = { lat: stop.place.lat, lng: stop.place.lng };
-    const cluster = stops.find(
-      (entry) => haversineKm([entry.lat, entry.lng], [location.lat, location.lng]) <= 2,
-    );
-    if (cluster) cluster.n += 1;
-    else stops.push({ ...location, n: 1, name: stop.place.name });
+    const place = stop.place;
+    const position = coordinates(place?.lat, place?.lng) ?? coordinates(stop.lat, stop.lng);
+    if (!position) continue;
+    const recordedName = place?.name === 'Unnamed place' ? null : place?.name;
+    const locality = place?.locality || place?.town || place?.siteAddress?.locality;
+    const name = recordedName || (locality ? `Unnamed stop near ${locality}` : 'Unnamed stop');
+    const key = place?.id ?? `${position.lat},${position.lng}`;
+    if (!stops.has(key)) stops.set(key, { key, name, position });
   }
+
   return {
-    fixedRegion: bounds === REGION,
-    cities: CITIES.map(([name, lng, lat]) => ({ name, lng, lat }))
-      .filter((point) => inside(point, bounds))
-      .map((point) => ({ ...point, xy: xy(point) })),
-    routes: routes
-      .filter((route) => route.points.length > 1)
-      .map((route) => ({
-        ...route,
-        path: route.points.map((point, i) => `${i ? 'L' : 'M'} ${xy(point).join(' ')}`).join(' '),
-      })),
-    markers: [
-      ...(fix ? [{ ...fix, n: '', kind: 'vehicle', name: 'Last position' }] : []),
-      ...stops.map((stop) => ({ ...stop, kind: 'stop' })),
-    ].map((point) => ({ ...point, xy: xy(point) })),
+    paths,
+    stops: [...stops.values()],
+    fix,
+    positions: [
+      ...points,
+      ...Array.from(stops.values(), (stop) => stop.position),
+      ...(fix ? [fix] : []),
+    ].map(({ lat, lng }) => ({ latitude: lat, longitude: lng })),
   };
 }
 
-export default function ReferenceOverviewMap({ track, livePosition, series, loading }) {
-  const [selected, setSelected] = useState(0);
-  const [hovered, setHovered] = useState(null);
-  const data = useMemo(() => mapData(track, livePosition, series), [track, livePosition, series]);
+function RoadMap({ data, location }) {
+  const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
+  const [map, setMap] = useState(null);
+  const [selectedStop, setSelectedStop] = useState(null);
+  useEffect(() => fitMapToPositions(map, data.positions), [map, data.positions]);
+
+  if (loadError) return <p role="alert">The road map could not load.</p>;
+  if (!isLoaded) return <p role="status">Loading road map…</p>;
+
+  return (
+    <>
+      <div className="vdo-road-map" role="region" aria-label="30-day truck route and stops">
+        <GoogleMap
+          mapContainerStyle={mapStyle}
+          options={mapOptions}
+          onLoad={setMap}
+          onUnmount={() => setMap(null)}
+        >
+          {data.paths.map((path, index) => (
+            <PolylineF key={index} path={path} options={routeStyle} />
+          ))}
+          {data.stops.map((stop) => (
+            <MarkerF
+              key={stop.key}
+              position={stop.position}
+              title={stop.name}
+              onClick={() => setSelectedStop(stop.key)}
+            />
+          ))}
+          {data.fix ? (
+            <MarkerF position={data.fix} title={`Last known position · ${location}`} label="●" />
+          ) : null}
+        </GoogleMap>
+      </div>
+      <p className="vdo-map-legend">
+        <span>
+          <i className="vdo-map-key" /> Recorded route
+        </span>
+        <span>● Last known position</span>
+        <span>Pins mark recorded stops</span>
+        {data.stops.find((stop) => stop.key === selectedStop)?.name || null}
+      </p>
+    </>
+  );
+}
+
+export default function ReferenceOverviewMap({ track, livePosition, error, onRetry }) {
+  const data = useMemo(() => mapData(track, livePosition), [track, livePosition]);
   return (
     <div className="vdo-map">
-      <svg
-        viewBox="0 0 600 380"
-        role="img"
-        aria-label="Vehicle's recorded routes and last position"
-      >
-        {[1, 2, 3, 4, 5].map((i) => (
-          <line key={`v${i}`} x1={i * 100} y1="0" x2={i * 100} y2="380" stroke="#ECECEE" />
-        ))}
-        {[1, 2, 3].map((i) => (
-          <line key={`h${i}`} x1="0" y1={i * 95} x2="600" y2={i * 95} stroke="#ECECEE" />
-        ))}
-        {data.fixedRegion ? (
-          <>
-            <path
-              d="M 462 380 C 470 350, 500 330, 540 322 C 560 318, 580 300, 600 296"
-              fill="none"
-              stroke="#DFDFE2"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M 0 150 C 80 160, 150 120, 230 135 C 300 148, 360 170, 420 200 C 450 220, 470 250, 500 300"
-              fill="none"
-              stroke="#E3E7F5"
-              strokeWidth="3"
-            />
-            <text x="520" y="362" fontSize="9.5" fill="#B9B9BA" letterSpacing="1.5">
-              BAY OF BENGAL
-            </text>
-          </>
-        ) : null}
-        {data.cities.map((city) => (
-          <g key={city.name}>
-            <circle cx={city.xy[0]} cy={city.xy[1]} r="2" fill="#93939A" />
-            <text x={city.xy[0] + 5} y={city.xy[1] - 5} fontSize="10.5" fill="#747476">
-              {city.name}
-            </text>
-          </g>
-        ))}
-        {data.routes.map((route, i) => (
-          <path
-            key={i}
-            d={route.path}
-            fill="none"
-            stroke="#4469F0"
-            strokeWidth={route.gpsOnly ? 2 : 2.5}
-            strokeDasharray={route.gpsOnly ? '4 4' : undefined}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ))}
-        {data.markers.map((point, i) => {
-          const vehicle = point.kind === 'vehicle';
-          const radius = Math.max(7, Math.min(22, 5 + Math.sqrt(Number(point.n) || 0) * 2.6));
-          const stroke = vehicle ? '#213EA7' : '#747476';
-          return (
-            <g
-              key={i}
-              role="button"
-              tabIndex="0"
-              aria-label={`${point.name}${point.n ? ` · ${point.n} stops` : ''}`}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              onFocus={() => setHovered(i)}
-              onBlur={() => setHovered(null)}
-              onClick={() => {
-                setSelected(i);
-                setHovered(i);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  setSelected(i);
-                }
-              }}
-            >
-              <title>
-                {point.name}
-                {point.n ? ` · ${point.n} stops` : ''}
-              </title>
-              <circle
-                cx={point.xy[0]}
-                cy={point.xy[1]}
-                r={radius + 7}
-                fill={stroke}
-                fillOpacity={selected === i ? 0.16 : 0}
-              />
-              <circle
-                cx={point.xy[0]}
-                cy={point.xy[1]}
-                r={radius}
-                fill={vehicle ? '#4469F0' : '#93939A'}
-                fillOpacity={vehicle ? 1 : 0.22}
-                stroke={stroke}
-                strokeWidth={selected === i ? 2.6 : 1.5}
-              />
-              <text
-                x={point.xy[0]}
-                y={point.xy[1] + 3.5}
-                textAnchor="middle"
-                fontSize="10.5"
-                fontWeight="600"
-                fill={vehicle ? '#FFFFFF' : '#121214'}
-              >
-                {point.n}
-              </text>
-            </g>
-          );
-        })}
-        {!data.markers.length && !data.routes.length ? (
-          <text x="300" y="190" textAnchor="middle" fill="#93939A" fontSize="12">
-            {loading ? 'Loading recorded routes…' : 'No recorded positions'}
-          </text>
-        ) : null}
-        {hovered != null && data.markers[hovered]
-          ? (() => {
-              const point = data.markers[hovered];
-              const x = Math.max(8, Math.min(370, point.xy[0] - 110));
-              const y = Math.max(8, point.xy[1] - 130);
-              return (
-                <g transform={`translate(${x}, ${y})`} pointerEvents="none" aria-hidden="true">
-                  <foreignObject width="238" height="120" style={{ overflow: 'visible' }}>
-                    <DataTooltip
-                      label={
-                        point.kind === 'vehicle'
-                          ? 'Last position'
-                          : `${point.n} long ${point.n === 1 ? 'stop' : 'stops'}`
-                      }
-                      details={[
-                        point.name || 'Recorded stop',
-                        `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`,
-                        point.kind === 'vehicle' ? null : 'Clustered within 2 km',
-                      ]}
-                    />
-                  </foreignObject>
-                </g>
-              );
-            })()
-          : null}
-      </svg>
-      <div className="vdo-map-legend">
-        <span>
-          <i className="vdo-map-key vdo-map-key--position" />
-          Last position
-        </span>
-        <span>
-          <i className="vdo-map-key vdo-map-key--stops" />
-          Long stops
-        </span>
-        <span className="vdo-map-clusters">Clusters show count within 2 km</span>
-      </div>
+      {error ? (
+        <p role="alert">
+          Could not load the 30-day route.{' '}
+          <button type="button" className="v360-btn" onClick={onRetry}>
+            Try again
+          </button>
+        </p>
+      ) : null}
+      {!data.positions.length ? (
+        error ? null : (
+          <p>No recorded positions for this period.</p>
+        )
+      ) : googleMapsLoaderOptions.googleMapsApiKey ? (
+        <RoadMap data={data} location={vehicleLocationName(livePosition)} />
+      ) : (
+        <p>The road map is unavailable. Use Open in tracking to view the route.</p>
+      )}
     </div>
   );
 }

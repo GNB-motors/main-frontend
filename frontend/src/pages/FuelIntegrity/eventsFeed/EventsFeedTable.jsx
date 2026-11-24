@@ -1,8 +1,11 @@
-import { TrendingUp, TrendingDown, Droplets, MapPin, Eye } from 'lucide-react';
+import { TrendingUp, TrendingDown, Droplets, Eye } from 'lucide-react';
 import { formatINR, formatLitres } from '../../../utils/formatters';
 import { StatusPill } from '../../../components/overview.primitives.jsx';
 import TablePager from '../TablePager.jsx';
-import { formatIST, formatRelativeIST, mapsLink } from '../fiDates.js';
+import { Link } from 'react-router-dom';
+import PlaceLabel from '../../../components/ui/PlaceLabel';
+import { trackLink } from '../../../utils/redesign/links';
+import { formatIST, formatRelativeIST } from '../fiDates.js';
 
 /** The events table with its pager; clicking a row opens it in the inspector. */
 const EventsFeedTable = ({
@@ -101,20 +104,21 @@ const EventsFeedTable = ({
                   {ev.inr != null ? formatINR(ev.inr) : '—'}
                 </td>
                 <td className="py-3.5 px-2 text-center whitespace-nowrap">
-                  {ev.lat != null && ev.lng != null ? (
-                    <a
-                      href={mapsLink(ev.lat, ev.lng)}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      title="Open in Google Maps"
+                  {ev.locationName ? <span>{ev.locationName}</span> : null}
+                  {Number.isFinite(ev.lat) && Number.isFinite(ev.lng) ? (
+                    <span onClick={(event) => event.stopPropagation()} role="presentation">
+                      <PlaceLabel lat={ev.lat} lng={ev.lng} fallbackText="Open recorded position" />
+                    </span>
+                  ) : !ev.locationName && ev.vehicle && ev.windowFrom && ev.windowTo ? (
+                    <Link
+                      to={trackLink({ reg: ev.vehicle, from: ev.windowFrom, to: ev.windowTo })}
+                      onClick={(event) => event.stopPropagation()}
                     >
-                      <MapPin size={11} /> Map
-                    </a>
-                  ) : (
-                    <span className="text-slate-400 text-xs">—</span>
-                  )}
+                      View route for this window
+                    </Link>
+                  ) : !ev.locationName ? (
+                    <span className="text-slate-500">Location unavailable</span>
+                  ) : null}
                 </td>
                 <td className="py-3.5 px-2 text-center whitespace-nowrap">
                   {isRev ? (

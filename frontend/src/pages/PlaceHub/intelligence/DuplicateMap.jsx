@@ -1,3 +1,4 @@
+import { ROAD_TILE_URL, ROAD_TILE_OPTIONS } from '../../../components/map/leafletRoadTiles.js';
 import { useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import useApi from '../../../hooks/useApi';
@@ -32,10 +33,7 @@ export default function DuplicateMap({ a: first, b: second }) {
   useEffect(() => {
     if (!hasCoords(a) || !hasCoords(b)) return;
     const map = L.map(ref.current, { scrollWheelZoom: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer(ROAD_TILE_URL, ROAD_TILE_OPTIONS).addTo(map);
     [a, b].forEach((s, i) => {
       const label = document.createElement('span');
       label.textContent = `${i === 0 ? 'A' : 'B'}: ${s.name || 'Unnamed place'}`;

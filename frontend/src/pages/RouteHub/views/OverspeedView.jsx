@@ -1,4 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useApi from '../../../hooks/useApi';
+import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService';
+import { modelLabel } from '../../LiveTracking/vehiclePanelModel';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup } from '../routeHubMap';
@@ -11,9 +14,26 @@ import FleetRankingCard from './overspeed/FleetRankingCard.jsx';
 import SpeedTraceCard from './overspeed/SpeedTraceCard.jsx';
 import OverspeedEventsCard from './overspeed/OverspeedEventsCard.jsx';
 
-export default function OverspeedView({ params, toast, setBadge, go }) {
+export default function OverspeedView({ params, toast, setBadge, go, fromDay, toDay }) {
   const [vehicles, setVehicles] = useState([]);
-  const [selected, setSelected] = useState(params.get('v') || '');
+  const requested = params.get('v') || '';
+  const linkedFrom = params.get('from');
+  const linkedTo = params.get('to');
+  const hasLinkedWindow = Boolean(
+    linkedFrom && linkedTo && Date.parse(linkedFrom) < Date.parse(linkedTo),
+  );
+  const [selected, setSelected] = useState(requested);
+  const fixedRange =
+    /^\d{4}-\d{2}-\d{2}$/.test(fromDay || '') && /^\d{4}-\d{2}-\d{2}$/.test(toDay || '');
+  const selectedVehicle = vehicles.find(
+    (v) =>
+      v._id === selected ||
+      String(v.registrationNumber || '')
+        .replace(/\s/g, '')
+        .toUpperCase() === selected.replace(/\s/g, '').toUpperCase(),
+  );
+  const vehicleId = selectedVehicle?._id;
+
   const [thr, setThr] = useState(60);
   const [dur, setDur] = useState(3);
   // The values the shown results were computed with (thr/dur are the unsubmitted inputs).
@@ -23,58 +43,123 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
 
   const [fleet, setFleet] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const request = useRef(null);
   const [error, setError] = useState(null);
+  const [vehiclesReady, setVehiclesReady] = useState(false);
+  const selectedReady = Boolean(selected && vehiclesReady);
 
   useEffect(() => {
     const ac = new AbortController();
     RouteHubService.getVehicles(ac.signal)
-      .then(setVehicles)
+      .then((rows) => {
+        if (!ac.signal.aborted) setVehicles(rows);
+      })
       .catch(() => {
         if (!ac.signal.aborted) setError('Could not load vehicles.');
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setVehiclesReady(true);
       });
     return () => ac.abort();
   }, []);
 
   const run = useCallback(async () => {
-    const to = new Date();
-    const from = new Date(to.getTime() - win * 3600000);
+    if (selected && !vehicleId) {
+      if (selectedReady) {
+        setError('The selected truck is unavailable for this audit.');
+        setLoading(false);
+      }
+      return;
+    }
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    const { signal } = controller;
+    const to = fixedRange
+      ? new Date(`${toDay}T23:59:59.999+05:30`)
+      : hasLinkedWindow
+        ? new Date(linkedTo)
+        : new Date();
+    const from = fixedRange
+      ? new Date(`${fromDay}T00:00:00+05:30`)
+      : hasLinkedWindow
+        ? new Date(linkedFrom)
+        : new Date(to.getTime() - win * 3600000);
     setLoading(true);
     setError(null);
+    setFleet(null);
+    setDetail(null);
     setAppliedThr(thr);
     setAppliedDur(dur);
     try {
       if (!selected) {
-        const data = await RouteHubService.getFleetOverspeed({
-          from: from.toISOString(),
-          to: to.toISOString(),
-          speedKmh: thr,
-          durationSec: dur * 60,
-        });
+        const data = await RouteHubService.getFleetOverspeed(
+          {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            speedKmh: thr,
+            durationSec: dur * 60,
+          },
+          signal,
+        );
+        if (signal.aborted) return;
         setFleet(data);
         setDetail(null);
         setBadge('overspeed', data?.totals?.eventCount ?? 0);
       } else {
-        const data = await RouteHubService.getOverspeedEvents({
-          vehicleId: selected,
-          from: from.toISOString(),
-          to: to.toISOString(),
-          speedKmh: thr,
-          durationSec: dur * 60,
-        });
+        const data = await RouteHubService.getOverspeedEvents(
+          {
+            vehicleId,
+            from: from.toISOString(),
+            to: to.toISOString(),
+            speedKmh: thr,
+            durationSec: dur * 60,
+          },
+          signal,
+        );
+        if (signal.aborted) return;
         setDetail(data);
       }
     } catch (e) {
-      setError(e?.message || 'Could not run the audit.');
+      if (!signal.aborted) setError(e?.message || 'Could not run the audit.');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  }, [selected, thr, dur, win, setBadge]);
+  }, [
+    selected,
+    vehicleId,
+    selectedReady,
+    thr,
+    dur,
+    win,
+    setBadge,
+    fixedRange,
+    fromDay,
+    toDay,
+    hasLinkedWindow,
+    linkedFrom,
+    linkedTo,
+  ]);
 
   useEffect(() => {
     run();
+    return () => request.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, win]);
+  }, [
+    selected,
+    vehicleId,
+    selectedReady,
+    win,
+    fixedRange,
+    fromDay,
+    toDay,
+    hasLinkedWindow,
+    linkedFrom,
+    linkedTo,
+  ]);
+
+  const rangeLabel = fixedRange || hasLinkedWindow ? 'selected period' : `last ${win} h`;
 
   // Stable references: the map redraws (and re-fits) only when these change.
   const events = useMemo(() => detail?.events || [], [detail]);
@@ -85,20 +170,20 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
     if (detail) {
       const longest = events.reduce((a, e) => Math.max(a, minsOf(e.durationSec)), 0);
       const peak = events.reduce((a, e) => Math.max(a, e.maxSpeedKmh || 0), 0);
-      const v = vehicles.find((x) => x._id === selected);
+      const v = selectedVehicle;
       return [
         {
           accent: 1,
           ic: 'gauge',
           l: 'Sustained events',
           v: events.length,
-          s: `over ${appliedThr} km/h for ${appliedDur}+ min · last ${win} h`,
+          s: `over ${appliedThr} km/h for ${appliedDur}+ min · ${rangeLabel}`,
         },
         {
           ic: 'truck',
           l: 'Vehicle',
           v: v?.registrationNumber || detail.registrationNumber || '—',
-          s: v?.model || 'connected fleet vehicle',
+          s: modelLabel(v?.model) || 'connected fleet vehicle',
           c: 'var(--nova-rage-600)',
           tint: 'var(--nova-rage-a10)',
         },
@@ -128,13 +213,13 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
         accent: 1,
         ic: 'gauge',
         l: 'Sustained events',
-        v: totals.eventCount ?? 0,
-        s: `over ${appliedThr} km/h for ${appliedDur}+ min · last ${win} h`,
+        v: totals.eventCount ?? '—',
+        s: `over ${appliedThr} km/h for ${appliedDur}+ min · ${rangeLabel}`,
       },
       {
         ic: 'truck',
         l: 'Vehicles flagged',
-        v: totals.vehiclesFlagged ?? 0,
+        v: totals.vehiclesFlagged ?? '—',
         u: `of ${totals.vehicleCount ?? rank.length}`,
         s: 'connected fleet vehicles',
         c: 'var(--nova-rage-600)',
@@ -143,7 +228,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
       {
         ic: 'clock',
         l: 'Longest event',
-        v: minsOf(totals.longestDurationSec),
+        v: totals.longestDurationSec != null ? minsOf(totals.longestDurationSec) : '—',
         u: 'min',
         s: 'continuous time over the limit',
         c: '#6A43D8',
@@ -162,7 +247,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
         vc: totals.peakSpeedKmh ? '#C2323A' : undefined,
       },
     ];
-  }, [detail, events, totals, rank.length, appliedThr, appliedDur, win, vehicles, selected]);
+  }, [detail, events, totals, rank.length, appliedThr, appliedDur, rangeLabel, selectedVehicle]);
 
   const { containerRef, mapRef } = useLeafletMap({ scrollWheelZoom: false }, [Boolean(detail)]);
 
@@ -181,6 +266,26 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
   );
   const located = useMemo(() => mapEvents.filter(hasCoords), [mapEvents]);
   const unlocated = mapEvents.length - located.length;
+  const positions = useApi((signal) => LiveTrackingService.getPositions({}, { signal }), [], {
+    enabled: Boolean((fleet || detail) && !located.length),
+  });
+  const fleetBounds = useMemo(
+    () =>
+      (positions.data || [])
+        .filter(
+          (row) =>
+            !detail?.registrationNumber || row.registrationNumber === detail.registrationNumber,
+        )
+        .filter(
+          (row) =>
+            Number.isFinite(row.latitude) &&
+            Number.isFinite(row.longitude) &&
+            Math.abs(row.latitude) <= 90 &&
+            Math.abs(row.longitude) <= 180,
+        )
+        .map((row) => [row.latitude, row.longitude]),
+    [positions.data, detail?.registrationNumber],
+  );
   const vehiclesOnMap = useMemo(() => new Set(located.map((e) => e.plate)).size, [located]);
 
   const openVehicle = useCallback((vehicleId) => {
@@ -216,15 +321,18 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
           .addTo(group);
       });
       map.invalidateSize({ animate: false });
-      if (located.length) {
-        map.fitBounds(L.latLngBounds(located.map((e) => [e.startLat, e.startLng])), {
+      const positionsToFit = located.length
+        ? located.map((e) => [e.startLat, e.startLng])
+        : fleetBounds;
+      if (positionsToFit.length) {
+        map.fitBounds(L.latLngBounds(positionsToFit), {
           padding: [48, 48],
           maxZoom: 11,
           animate: false,
         });
       }
     },
-    [located, appliedThr, Boolean(detail)],
+    [located, fleetBounds, appliedThr, Boolean(detail)],
   );
 
   let mapNotice = null;
@@ -279,13 +387,14 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
       </div>
 
       <OverspeedControls
-        selected={selected}
+        selected={vehicleId || selected}
         setSelected={setSelected}
         vehicles={vehicles}
         thr={thr}
         setThr={setThr}
         dur={dur}
         setDur={setDur}
+        fixedRange={fixedRange || hasLinkedWindow}
         win={win}
         setWin={setWin}
         run={run}
@@ -346,7 +455,9 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
 
             <OverspeedEventsCard
               events={events}
-              selected={selected}
+              selected={
+                detail.registrationNumber || selectedVehicle?.registrationNumber || selected
+              }
               appliedThr={appliedThr}
               dur={appliedDur}
               thr={appliedThr}

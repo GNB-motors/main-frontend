@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import IdlingTab from './IdlingTab.jsx';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
 import DriverVehicleAssignmentService from '@/services/DriverVehicleAssignmentService';
 import PlaceHubService from '../PlaceHub/PlaceHubService.js';
+
+const idleMap = () => within(screen.getByRole('region', { name: 'Idling map and activity' }));
 
 vi.mock('@react-google-maps/api', () => ({
   useLoadScript: () => ({ isLoaded: false, loadError: null }),
@@ -101,6 +103,10 @@ describe('IdlingTab', () => {
     expect(
       await screen.findByRole('button', { name: /Closed idle events 1 Selected period/ }),
     ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('figure', { name: 'Recorded idle hours by truck' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('figure', { name: 'Recorded idle hours by day' })).toBeInTheDocument();
     expect(IdlingConsoleService.getHistory).toHaveBeenCalledWith(
       expect.objectContaining({ to: '2026-11-06T00:00:00Z' }),
       expect.any(Object),
@@ -114,7 +120,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     expect(screen.getByText('Excess')).toBeInTheDocument();
     expect(screen.getByText('20 min')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Change' })).toHaveAttribute(
@@ -130,7 +136,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /Idle spots · 7 days/ }));
     expect(await screen.findByText(/1 idles/)).toBeInTheDocument();
   });
@@ -142,7 +148,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /Idle moments log/ }));
     expect(await screen.findByTestId('instances-tab')).toHaveTextContent('Instances Log: idle');
   });
@@ -154,7 +160,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    const vehicleRow = await screen.findByText('WB11G0962');
+    const vehicleRow = await idleMap().findByText('WB11G0962');
     fireEvent.click(vehicleRow);
     expect(await screen.findByRole('complementary', { name: 'WB11G0962' })).toBeInTheDocument();
     expect(screen.getByText('Burned so far')).toBeInTheDocument();
@@ -222,7 +228,7 @@ describe('IdlingTab', () => {
         <IdlingTab driver="driver1" />
       </MemoryRouter>,
     );
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     expect(DriverVehicleAssignmentService.getAssignmentPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: 2 }),
       expect.any(Object),

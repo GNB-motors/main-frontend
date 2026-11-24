@@ -2140,9 +2140,6 @@ html.dark .nova-rh {
 }
 
 /* ---------- dark-mode tweaks ---------- */
-html.dark .nova-rh .leaflet-tile-pane {
-  filter: invert(0.94) hue-rotate(185deg) saturate(0.55) brightness(1.02) contrast(0.95);
-}
 html.dark .nova-rh .leaflet-tooltip.city {
   color: #f8f8fb;
   text-shadow:

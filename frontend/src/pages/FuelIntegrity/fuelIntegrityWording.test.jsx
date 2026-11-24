@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { render } from '@testing-library/react';
 import VehicleRiskPanel from './VehicleRiskPanel';
@@ -75,56 +76,57 @@ describe('Fuel Integrity wording', () => {
   it('never says siphon or theft in the rendered output', () => {
     const events = buildEvents(FILLS, [WINDOW], 95);
     const { container } = render(
-      <div>
-        <VehicleRiskPanel
-          isLoading={false}
-          riskVehicles={[VEHICLE]}
-          onDrill={() => {}}
-        />
-        <VehicleDrilldownPanel
-          vehicle="WB11L8862"
-          chartData={[{ day: '06 Oct', fills: 690, loss: 12 }]}
-          windows={[WINDOW]}
-          onClose={() => {}}
-          onShowWorking={() => {}}
-        />
-        <MassBalancePipeline
-          lossL={12}
-          pricePerL={95}
-          totalEngineBurnL={640}
-          totalFillsLitres={690}
-          totalNetTankDeltaL={10}
-          windowDays={22}
-        />
-        <IntegrityBentoStrip
-          billCount={0}
-          defCount={1}
-          lossL={12}
-          pricePerL={95}
-          setChip={() => {}}
-          totalFillsLitres={690}
-          windowDays={22}
-        />
-        <AnomalyBreakdownPanel
-          defCount={1}
-          billCount={0}
-          lossL={12}
-          affected={{ list: [], max: 1 }}
-          onDrill={() => {}}
-        />
-        <EventsFeedTable
-          activeEvent={null}
-          handleRowClick={() => {}}
-          isInspectorOpen={false}
-          onPageChange={() => {}}
-          page={1}
-          pageEvents={events}
-          reviewed={new Set()}
-          totalPages={1}
-        />
-      </div>,
+      <MemoryRouter>
+        <div>
+          <VehicleRiskPanel isLoading={false} riskVehicles={[VEHICLE]} onDrill={() => {}} />
+          <VehicleDrilldownPanel
+            vehicle="WB11L8862"
+            chartData={[{ day: '06 Oct', fills: 690, loss: 12 }]}
+            windows={[WINDOW]}
+            onClose={() => {}}
+            onShowWorking={() => {}}
+          />
+          <MassBalancePipeline
+            lossL={12}
+            pricePerL={95}
+            totalEngineBurnL={640}
+            totalFillsLitres={690}
+            totalNetTankDeltaL={10}
+            windowDays={22}
+          />
+          <IntegrityBentoStrip
+            billCount={0}
+            defCount={1}
+            lossL={12}
+            pricePerL={95}
+            setChip={() => {}}
+            totalFillsLitres={690}
+            windowDays={22}
+          />
+          <AnomalyBreakdownPanel
+            defCount={1}
+            billCount={0}
+            lossL={12}
+            affected={{ list: [], max: 1 }}
+            onDrill={() => {}}
+          />
+          <EventsFeedTable
+            activeEvent={null}
+            handleRowClick={() => {}}
+            isInspectorOpen={false}
+            onPageChange={() => {}}
+            page={1}
+            pageEvents={events}
+            reviewed={new Set()}
+            totalPages={1}
+          />
+        </div>
+      </MemoryRouter>,
     );
 
+    expect(container.querySelector('a[href*="/live-tracking?v="]')).toHaveTextContent(
+      'View route for this window',
+    );
     const text = container.textContent.toLowerCase();
     expect(text).not.toMatch(/siphon/);
     expect(text).not.toMatch(/theft/);

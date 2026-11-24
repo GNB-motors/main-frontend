@@ -18,9 +18,7 @@ import './runsPlacesReference.css';
 
 /** The empty share of a truck, when every km behind it was measured. */
 const emptyShareOf = (row) =>
-  row?.totalKm > 0 && row?.emptyKm != null && !isPartialRow(row)
-    ? row.emptyKm / row.totalKm
-    : null;
+  row?.totalKm > 0 && row?.emptyKm != null && !isPartialRow(row) ? row.emptyKm / row.totalKm : null;
 
 export default function RunsTab({ from, to }) {
   const [filter, setFilter] = useState('all');
@@ -55,15 +53,16 @@ export default function RunsTab({ from, to }) {
   // The empty share of a partly measured truck would be a share of the km that
   // are known, not of the km the truck drove, so it is not shown.
   const highEmpty = measured.filter((row) => (emptyShareOf(row) ?? 0) > 0.25);
-  const shown = (filter === 'empty' ? highEmpty : measured).slice(0, 20);
+  const [showAll, setShowAll] = useState(false);
+  const matching = filter === 'empty' ? highEmpty : measured;
+  const shown = showAll ? matching : matching.slice(0, 20);
+  const fullyClassified = measured.filter((row) => !isPartialRow(row) && unknownKmOf(row) === 0);
   const maxKm = measured.reduce((max, row) => Math.max(max, row.totalKm ?? 0), 0);
   const carriedShare = loadedShare(runs);
   const serverBars = Array.isArray(runs?.byTruck);
   // A truck is missing part of its distance when the server says so (`kmPartial`)
   // or when it reports km it could not attribute to loaded or empty running.
-  const unknownKmTrucks = bars.filter(
-    (row) => isPartialRow(row) || unknownKmOf(row) > 0,
-  ).length;
+  const unknownKmTrucks = bars.filter((row) => isPartialRow(row) || unknownKmOf(row) > 0).length;
   // The bars now come from the trip list, which the API pages.
   const loadedTrips = trips?.items?.length ?? 0;
   const tripTotal = trips?.total ?? 0;
@@ -112,7 +111,17 @@ export default function RunsTab({ from, to }) {
       >
         <section className="intel-runs-briefing">
           <div className="intel-runs-brief-copy">
-            <span>✧ Period read</span>
+            {Number.isFinite(runs?.emptySharePct) ? (
+              <div className="intel-runs-share">
+                <span
+                  aria-hidden="true"
+                  style={{ '--empty-share': Math.min(100, Math.max(0, runs.emptySharePct)) + '%' }}
+                />
+                <strong>{formatPct(runs.emptySharePct)} empty running</strong>
+              </div>
+            ) : (
+              <span>Run distance</span>
+            )}
             <p>
               {carriedShare != null ? (
                 <>
@@ -122,7 +131,9 @@ export default function RunsTab({ from, to }) {
               ) : (
                 'Not enough classified distance is available to calculate the loaded share. '
               )}
-              {plantKnown ? 'Plant-to-plant running is shown separately from empty returns. ' : null}
+              {plantKnown
+                ? 'Plant-to-plant running is shown separately from empty returns. '
+                : null}
               {!plantKnown && plantRuns != null
                 ? `${formatNumber(plantRuns)} plant-to-plant runs. `
                 : null}
@@ -216,7 +227,13 @@ export default function RunsTab({ from, to }) {
           </div>
         </IntelligenceDataState>
         <footer>
-          Showing {shown.length} of {measured.length} trucks with classified distance.{' '}
+          Showing {shown.length} of {matching.length} matching trucks. {fullyClassified.length}{' '}
+          trucks have fully classified distance.{' '}
+          {matching.length > 20 ? (
+            <button type="button" onClick={() => setShowAll((open) => !open)}>
+              {showAll ? 'Show first 20' : 'Show all trucks'}
+            </button>
+          ) : null}{' '}
           {unknownKmTrucks > 0 ? `${unknownKmTruckNote(unknownKmTrucks)} ` : ''}
           {fromFirstTrips ? `From the first ${fromFirstTrips} trips. ` : ''}
           {serverBars
