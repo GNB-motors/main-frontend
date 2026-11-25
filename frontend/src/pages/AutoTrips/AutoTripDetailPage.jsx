@@ -275,8 +275,10 @@ export default function AutoTripDetailPage() {
                 <TripFlagChips trip={trip} />
               </div>
               <p className="atx-route-sub">
-                <span title={trip.pickup?.name || undefined}>
-                  {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Pickup not recorded'}
+                <span title={trip.pickup?.name || trip.pickup?.label || undefined}>
+                  {trip.pickup?.name || trip.pickup?.label
+                    ? titleCasePlace(trip.pickup.name || trip.pickup.label)
+                    : 'Pickup not recorded'}
                 </span>
                 <span className="atx-sep" aria-hidden="true">
                   →
@@ -487,7 +489,9 @@ export default function AutoTripDetailPage() {
             <DetailGroup title="Route and load" icon={<Route size={16} aria-hidden="true" />}>
               <div className="atx-fields atx-details-route">
                 <Field label="Loaded at">
-                  {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Not recorded'}
+                  {trip.pickup?.name || trip.pickup?.label
+                    ? titleCasePlace(trip.pickup.name || trip.pickup.label)
+                    : 'Not recorded'}
                 </Field>
                 <Field label="Unloaded at">
                   {dest.state === 'reached'

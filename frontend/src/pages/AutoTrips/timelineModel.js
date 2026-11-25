@@ -62,6 +62,8 @@ export function stopKind(stop) {
 
 function stopPlace(stop) {
   if (stop?.place?.name) return stop.place.name;
+  // A place the backend cannot name still comes with a label; show it as it is.
+  if (stop?.place?.label) return stop.place.label;
   if (stop?.place) return 'Unconfirmed place';
   if (stop?.lat != null && stop?.lng != null) {
     return `Unnamed place · ${Number(stop.lat).toFixed(3)}, ${Number(stop.lng).toFixed(3)}`;

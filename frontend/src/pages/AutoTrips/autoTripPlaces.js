@@ -88,6 +88,8 @@ export function canMarkPlace(stop) {
 /** What to call a stop in the list: its place, else what the truck was doing there. */
 export function stopLabel(stop) {
   if (stop?.place?.name) return stop.place.name;
+  // A place the backend cannot name still comes with a label; show it as it is.
+  if (stop?.place?.label) return stop.place.label;
   if (stop?.place)
     return stop.place.status === 'CONFIRMED' ? stop.place.siteType : 'Unconfirmed place';
   return stop?.purpose?.top ? stop.purpose.top.toLowerCase() : 'Unknown place';

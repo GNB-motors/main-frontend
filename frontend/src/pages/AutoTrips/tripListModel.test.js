@@ -209,3 +209,62 @@ describe('destinationOf for a multi-drop loaded run', () => {
     ).toMatchObject({ state: 'unnamed' });
   });
 });
+
+describe('destinationOf — the backend label for a place with no name', () => {
+  const LABEL = 'Unmarked, near Bhadutala (1.0 km), Medinipur, Paschim Medinipur, West Bengal';
+
+  it('spec 1: a drop with only a label shows the label', () => {
+    expect(
+      destinationOf({
+        status: 'COMPLETE',
+        drop: { label: LABEL, source: 'LABELLED_PLACE', arrivedAt: '2026-11-03T02:40:00Z' },
+      }),
+    ).toEqual({ text: LABEL, title: LABEL, state: 'reached' });
+  });
+
+  it('spec 1: a real name beats the label', () => {
+    expect(
+      destinationOf({
+        status: 'COMPLETE',
+        drop: {
+          name: 'NIMPURA',
+          label: LABEL,
+          source: 'LABELLED_PLACE',
+          arrivedAt: '2026-11-03T02:40:00Z',
+        },
+      }),
+    ).toEqual({ text: 'Nimpura', title: 'NIMPURA', state: 'reached' });
+  });
+
+  it('spec 1: the label beats the area name', () => {
+    expect(
+      destinationOf({
+        status: 'COMPLETE',
+        drop: {
+          label: LABEL,
+          areaName: 'Medinipur',
+          source: 'LABELLED_PLACE',
+          arrivedAt: '2026-11-03T02:40:00Z',
+        },
+      }),
+    ).toEqual({ text: LABEL, title: LABEL, state: 'reached' });
+  });
+
+  it('spec 1: an inferred drop with only a label says the drop is inferred', () => {
+    expect(
+      destinationOf({
+        status: 'NEEDS_REVIEW',
+        drop: { label: LABEL, source: 'INFERRED_TURNAROUND', arrivedAt: '2026-11-03T02:40:00Z' },
+      }),
+    ).toEqual({ text: `${LABEL} (inferred)`, title: LABEL, state: 'guessed' });
+  });
+
+  it('spec 1: a drop with no name, label or area is still an unnamed drop place', () => {
+    expect(
+      destinationOf({
+        status: 'COMPLETE',
+        drop: { source: 'LABELLED_PLACE', arrivedAt: '2026-11-03T02:40:00Z' },
+      }),
+    ).toEqual({ text: 'unnamed drop place', title: null, state: 'unnamed' });
+  });
+});

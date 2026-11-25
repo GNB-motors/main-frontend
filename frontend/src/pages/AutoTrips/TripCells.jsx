@@ -55,7 +55,8 @@ export function DriverCell({ trip, onRetry }) {
 
 /** "Ambuja Dhulagor → Nimpura" on one line; the destination's state is muted. */
 export function RouteCell({ trip, knownEtas }) {
-  const from = trip.pickup?.name;
+  // A place the backend cannot name still comes with a label; show it as it is.
+  const from = trip.pickup?.name || trip.pickup?.label;
   const dest = destinationOf(trip);
   const eta = dest.state === 'moving' ? matchKnownEta(knownEtas, trip.registrationNumber) : null;
   const etaClock = eta?.destination?.label ? formatEtaClock(eta.p50) : null;

@@ -95,3 +95,41 @@ describe('mergePlaces — core, group and purpose', () => {
     expect(other.purpose).toBe('general');
   });
 });
+
+describe('mergePlaces — the backend label for a place with no name', () => {
+  const LABEL = 'Unmarked, near Bhadutala (1.0 km), Medinipur, Paschim Medinipur, West Bengal';
+
+  it('spec 6: the subtitle comes from the label before the address', () => {
+    const [p] = mergePlaces({
+      sites: [site({ name: null, locality: { label: LABEL }, address: { locality: 'Medinipur' } })],
+    });
+    expect(p.subtitle).toBe(LABEL);
+  });
+
+  it('spec 6: without a label the address locality is still the subtitle', () => {
+    const [p] = mergePlaces({ sites: [site({ name: null, address: { locality: 'Medinipur' } })] });
+    expect(p.subtitle).toBe('Medinipur');
+  });
+
+  it('spec 6: a yard with a label keeps the label title, not the nearest-place wording', () => {
+    const places = mergePlaces({
+      sites: [
+        site({ _id: 'named', name: 'Ambuja Plant', centroidLat: 23.1, centroidLng: 86.9 }),
+        site({
+          _id: 'yard',
+          name: null,
+          siteType: 'YARD',
+          status: 'PROPOSED',
+          centroidLat: 23.11,
+          centroidLng: 86.91,
+          locality: { label: LABEL },
+        }),
+      ],
+    });
+    const yard = places.find((p) => p.sourceId === 'yard');
+    expect(yard.name).toBe(
+      'Own yard, near Bhadutala (1.0 km), Medinipur, Paschim Medinipur, West Bengal',
+    );
+    expect(yard.name).not.toContain('Ambuja Plant');
+  });
+});
