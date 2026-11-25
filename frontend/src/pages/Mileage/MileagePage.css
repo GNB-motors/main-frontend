@@ -109,6 +109,235 @@
   flex-wrap: wrap;
 }
 
+/* Title on the left, search and the ways in on the right. Once the chat upload
+   joined them the actions outgrew the space beside the title and the shared
+   header wrapped the whole group under it; here the subtitle wraps instead. */
+@media (min-width: 1024px) {
+  .mhub-page > .pshell-head {
+    flex-wrap: nowrap;
+  }
+
+  .mhub-page > .pshell-head > .pshell-head-main {
+    flex: 1 1 280px;
+    min-width: 240px;
+  }
+
+  .mhub-page > .pshell-head > .pshell-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .mhub-page .mhub-top-actions {
+    justify-content: flex-end;
+  }
+
+  /* The title line is as tall as the controls, so both share one centre line. */
+  .mhub-page .pshell-title-row {
+    min-height: 40px;
+  }
+}
+
+/* ── Page top on the design system (gnb-ui-design 6.11, 6.13) ─────────
+   Search and buttons share one height and the 8px control radius; the two
+   quieter ways in share one outline style; hover never moves the layout. */
+.mhub-page .mhub-search {
+  border-color: var(--ui-control-edge);
+  border-radius: var(--ui-r-control);
+  box-shadow: none;
+}
+
+.mhub-page .mhub-search:hover {
+  border-color: var(--ui-line-strong);
+}
+
+.mhub-page .mhub-search:focus-within {
+  border-color: var(--ui-link);
+  box-shadow: 0 0 0 3px var(--ui-brand-tint);
+}
+
+.mhub-page .mhub-search-icon,
+.mhub-page .mhub-search input::placeholder {
+  color: var(--ui-ink-5);
+}
+
+.mhub-page .mhub-add-btn {
+  border-radius: var(--ui-r-control) !important;
+  font-weight: 400 !important;
+}
+
+.mhub-page .pshell-btn--primary.mhub-add-btn {
+  border: 1px solid var(--ui-link);
+  background: var(--ui-brand);
+  color: #fff;
+  box-shadow: none;
+}
+
+.mhub-page .pshell-btn--primary.mhub-add-btn:hover:not(:disabled) {
+  background: var(--ui-brand-strong);
+  transform: none;
+  box-shadow: none;
+}
+
+.mhub-page .mhub-secondary-actions .mhub-add-btn,
+.mhub-page .mhub-status-row .pshell-btn {
+  border: 1px solid var(--ui-control-edge) !important;
+  background: var(--ui-card) !important;
+  color: var(--ui-link) !important;
+  box-shadow: none !important;
+}
+
+.mhub-page .mhub-secondary-actions .mhub-add-btn:hover:not(:disabled),
+.mhub-page .mhub-status-row .pshell-btn:hover:not(:disabled) {
+  border-color: var(--ui-control-edge) !important;
+  background: var(--ui-sunk) !important;
+  color: var(--ui-link) !important;
+  transform: none;
+  box-shadow: none !important;
+}
+
+.mhub-page .mhub-add-btn:focus-visible,
+.mhub-page .mhub-status-row .pshell-btn:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+/* The sort button next to the status chips is as tall as the chip group. */
+.mhub-page .mhub-status-row .pshell-btn {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--ui-r-control);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mhub-page .mhub-seg,
+.mhub-page .mhub-views {
+  border-color: var(--ui-line);
+  background: var(--ui-sunk);
+}
+
+/* Dates and manufacturer read as one filter bar: one card, both labels in the
+   same sentence-case style, every control 38px tall on one centre line. */
+.mhub-page .manufacturer-scope-row {
+  align-items: center;
+  gap: 10px 24px;
+  padding: 10px 16px;
+  border: 1px solid var(--ui-card-edge-on-grey);
+  border-radius: var(--ui-r-card);
+  background: var(--ui-card);
+  box-shadow: var(--ui-shadow-card);
+}
+
+.mhub-page .mhub-datebar {
+  flex: 1 1 520px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mhub-page .mhub-datebar-label,
+.mhub-page .manufacturer-filter label {
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mhub-page .mhub-range {
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+
+.mhub-page .mhub-range b {
+  color: var(--ui-ink);
+}
+
+.mhub-page .manufacturer-filter {
+  flex: 0 0 auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.mhub-page .manufacturer-filter .manufacturer-filter-trigger {
+  width: 220px;
+  max-width: 100%;
+  height: 38px;
+  min-height: 38px;
+  border-color: var(--ui-control-edge);
+  border-radius: var(--ui-r-control);
+}
+
+.mhub-page .manufacturer-filter small {
+  flex-basis: 100%;
+  margin-top: 0;
+  color: var(--ui-ink-4);
+}
+
+/* A table whose toolbar holds only the column menu: the menu sits at the right
+   end of the header row instead of taking a tall empty row of its own. A
+   toolbar with a count or extra controls keeps its row. */
+.mhub-page
+  .dt:not(:has(> .dt-tools > .dt-summary)):not(
+    :has(> .dt-tools > .dt-tools-right > :not(.dt-cols))
+  ) {
+  position: relative;
+}
+
+.mhub-page
+  .dt:not(:has(> .dt-tools > .dt-summary)):not(:has(> .dt-tools > .dt-tools-right > :not(.dt-cols)))
+  > .dt-tools {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 6;
+  height: 45px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+}
+
+.mhub-page
+  .dt:not(:has(> .dt-tools > .dt-summary)):not(:has(> .dt-tools > .dt-tools-right > :not(.dt-cols)))
+  > .dt-tools
+  .dt-tool {
+  height: 30px;
+  padding: 0 9px;
+}
+
+.mhub-page
+  .dt:not(:has(> .dt-tools > .dt-summary)):not(:has(> .dt-tools > .dt-tools-right > :not(.dt-cols)))
+  .dt-table
+  thead
+  th:last-child {
+  padding-right: 56px;
+}
+
+.mhub-page
+  .dt--compact:not(:has(> .dt-tools > .dt-summary)):not(
+    :has(> .dt-tools > .dt-tools-right > :not(.dt-cols))
+  )
+  > .dt-tools {
+  height: 34px;
+}
+
+.mhub-page
+  .dt--compact:not(:has(> .dt-tools > .dt-summary)):not(
+    :has(> .dt-tools > .dt-tools-right > :not(.dt-cols))
+  )
+  > .dt-tools
+  .dt-tool {
+  height: 26px;
+}
+
 @media (max-width: 700px) {
   .mhub-top-actions {
     flex-wrap: wrap;

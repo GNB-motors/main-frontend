@@ -272,6 +272,7 @@ export default function MileagePage() {
   return (
     <>
       <PageShell
+        className="mhub-page"
         title="Diesel & Mileage"
         subtitle="Every diesel fill, whether its bill is right, and how far each truck goes on a litre."
         actions={
@@ -310,11 +311,7 @@ export default function MileagePage() {
                 </button>
                 {/* The quieter ways in sit together, so one button leads. */}
                 <div className="mhub-secondary-actions">
-                  <button
-                    type="button"
-                    onClick={openDialog}
-                    className="pshell-btn mhub-add-btn"
-                  >
+                  <button type="button" onClick={openDialog} className="pshell-btn mhub-add-btn">
                     <MessageCircle size={15} aria-hidden /> Upload WhatsApp chat
                   </button>
                   {/* The by-hand form stays reachable: a route is never deleted. */}
@@ -479,7 +476,6 @@ export default function MileagePage() {
             toast.info('Bill photos are not switched on yet');
           }}
         />
-
       </PageShell>
     </>
   );
