@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import React from 'react';
 import ChatProofCard from './ChatProofCard';
 
@@ -143,17 +143,25 @@ describe('ChatProofCard — spec 3 and 4: what we read and what the photo showed
           litres: 120,
           rate: 89.5,
           amount: 10740,
-          plate: 'WB11S5962',
+          plate: 'WB11S5999',
         },
       },
     };
     render(<ChatProofCard draft={draft} />);
 
-    expect(screen.getByText('120 L')).toBeTruthy();
-    expect(screen.getByText('₹89.5/L')).toBeTruthy();
-    expect(screen.getByText('₹10,740')).toBeTruthy();
-    expect(screen.getByText(/PUMP_RECEIPT/)).toBeTruthy();
-    expect(screen.getByText(/confidence HIGH/)).toBeTruthy();
+    // The plate of the photo is its own, and it belongs to the photo.
+    const photo = screen.getByText('What the photo showed').closest('.ra-proof-section');
+    expect(within(photo).getByText('WB11S5999')).toBeTruthy();
+    expect(within(photo).queryByText('WB11S5962')).toBeNull();
+    expect(within(photo).getByText('120 L')).toBeTruthy();
+    expect(within(photo).getByText('₹89.5/L')).toBeTruthy();
+    expect(within(photo).getByText('₹10,740')).toBeTruthy();
+    expect(within(photo).getByText(/PUMP_RECEIPT/)).toBeTruthy();
+    expect(within(photo).getByText(/confidence HIGH/)).toBeTruthy();
+
+    // The truck of the message stays in the part that read the message.
+    const read = screen.getByText('What we read from the message').closest('.ra-proof-section');
+    expect(within(read).getByText('WB11S5962')).toBeTruthy();
   });
 
   it('keeps a diesel claim and a DEF claim on separate lines', () => {
@@ -186,6 +194,59 @@ describe('ChatProofCard — spec 3 and 4: what we read and what the photo showed
     expect(screen.getByText('Not understood')).toBeTruthy();
     expect(screen.getByText('The amount was not in the message')).toBeTruthy();
     expect(screen.getByText('distilled water')).toBeTruthy();
+  });
+});
+
+describe('ChatProofCard — spec 3 and 4: a number that was never read', () => {
+  it('leaves out a blank number instead of showing a zero', () => {
+    const draft = {
+      ...wb11s5962,
+      chatProof: {
+        ...wb11s5962.chatProof,
+        textRead: {
+          ...wb11s5962.chatProof.textRead,
+          litresClaim: ' ',
+          defLitres: ' ',
+          km: ' ',
+          mileage: ' ',
+        },
+        photoRead: { kind: 'PUMP', amount: ' ' },
+      },
+    };
+    render(<ChatProofCard draft={draft} />);
+
+    expect(screen.queryByText(/Diesel/)).toBeNull();
+    expect(screen.queryByText(/DEF \/ urea/)).toBeNull();
+    expect(screen.queryByText('Kilometres')).toBeNull();
+    expect(screen.queryByText('Mileage')).toBeNull();
+    expect(screen.queryByText('Amount')).toBeNull();
+    expect(screen.queryByText(/0 L/)).toBeNull();
+  });
+
+  it('does not read a boolean, a list or nothing as a number', () => {
+    const draft = {
+      ...wb11s5962,
+      chatProof: {
+        ...wb11s5962.chatProof,
+        textRead: {
+          ...wb11s5962.chatProof.textRead,
+          litresClaim: true,
+          defLitres: [],
+          km: null,
+          mileage: undefined,
+        },
+        photoRead: { kind: 'PUMP', litres: NaN, rate: false, amount: {} },
+      },
+    };
+    render(<ChatProofCard draft={draft} />);
+
+    expect(screen.queryByText(/Diesel/)).toBeNull();
+    expect(screen.queryByText(/DEF \/ urea/)).toBeNull();
+    expect(screen.queryByText('Kilometres')).toBeNull();
+    expect(screen.queryByText('Mileage')).toBeNull();
+    expect(screen.queryByText('Litres')).toBeNull();
+    expect(screen.queryByText('Rate')).toBeNull();
+    expect(screen.queryByText('Amount')).toBeNull();
   });
 });
 

@@ -129,7 +129,9 @@ export const evaluateOcrQuality = (draft) => {
  */
 export const checkFacts = (draft) => {
   const raw = draft?.checks;
-  if (!raw || typeof raw !== 'object') return { ran: false, needs: 0, rows: [] };
+  if (!raw || typeof raw !== 'object') return { ran: false, needs: 0, unknown: 0, rows: [] };
+
+  const UNKNOWN = ['UNKNOWN', 'NOT_RUN', 'NOT_CHECKED', 'SKIPPED', 'PENDING'];
 
   const BAD = [
     'FAIL',
@@ -151,14 +153,18 @@ export const checkFacts = (draft) => {
 
   const rows = [];
   let needs = 0;
+  let unknown = 0;
   entries.forEach(([name, value]) => {
     const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
     const bad = value?.ok === false || value?.valid === false || BAD.includes(status);
+    // A check that could not run is not a check that passed.
+    const isUnknown = !bad && UNKNOWN.includes(status);
     const detail = value?.detail || value?.message || value?.reason || '';
     if (bad) needs += 1;
-    rows.push({ name, bad, detail, status });
+    if (isUnknown) unknown += 1;
+    rows.push({ name, bad, unknown: isUnknown, detail, status });
   });
-  return { ran: rows.length > 0, needs, rows };
+  return { ran: rows.length > 0, needs, unknown, rows };
 };
 
 /**

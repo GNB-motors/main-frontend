@@ -28,9 +28,22 @@ const fmtIst = (value) => {
   return `${get('day')} ${get('month')}, ${get('hour')}:${get('minute')}`;
 };
 
-/** A number we can show. An empty string is not a number. */
-const hasNumber = (value) =>
-  value != null && value !== '' && !Number.isNaN(Number(value));
+/**
+ * A number we can show.
+ *
+ * Only a finite number, or a non-blank string that reads as one. A blank
+ * string, a boolean, a list or nothing at all is not a number, so the row
+ * is left out instead of showing a zero we did not read.
+ */
+const hasNumber = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return false;
+    return Number.isFinite(Number(trimmed));
+  }
+  return false;
+};
 
 const fmtNumber = (value) => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 

@@ -39,7 +39,8 @@ const DrawerDetailsPane = ({
     ? draft.pipelineReasons.filter(Boolean)
     : [];
   const reason = draft.pipelineReason || '';
-  const caption = draft.caption || '';
+  // A caption is a message from a person: only a string is a message.
+  const caption = typeof draft.caption === 'string' ? draft.caption : '';
 
   // The proof card shows the message of a chat import. When it shows the very
   // same message, the old box would only repeat it.
@@ -96,13 +97,19 @@ const DrawerDetailsPane = ({
 
   // The checks: what the server looked at, and what needs a person.
   const checks = checkFacts(draft);
+  const couldNotRun =
+    checks.unknown === 0
+      ? ''
+      : checks.unknown === 1
+        ? '1 check could not run'
+        : `${checks.unknown} checks could not run`;
   const checksSummary = !checks.ran
     ? 'Not checked'
-    : checks.needs === 0
-      ? 'No issues found'
-      : checks.needs === 1
-        ? '1 needs a look'
-        : `${checks.needs} need a look`;
+    : checks.needs > 0
+      ? `${checks.needs === 1 ? '1 needs a look' : `${checks.needs} need a look`}${
+          couldNotRun ? ` · ${couldNotRun}` : ''
+        }`
+      : couldNotRun || 'No issues found';
 
   const predictionsSummary = candidates.length
     ? `${candidates.length} truck suggestion${candidates.length === 1 ? '' : 's'}`
