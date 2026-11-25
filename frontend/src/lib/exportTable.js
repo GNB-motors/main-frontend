@@ -89,9 +89,12 @@ function buildCsv(columns, rows, meta) {
 }
 
 function triggerDownload(content, filename, mimeType, binary = false) {
-  const blob = binary
-    ? new Blob([content], { type: mimeType })
-    : new Blob(['﻿', content], { type: `${mimeType};charset=utf-8` });
+  const blob =
+    content instanceof Blob
+      ? content
+      : binary
+        ? new Blob([content], { type: mimeType })
+        : new Blob(['﻿', content], { type: `${mimeType};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -144,7 +147,19 @@ async function buildXlsx(columns, rows, meta) {
   return XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 }
 
-export default async function exportTable({
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/**
+ * Build the export file in memory, without downloading it.
+ *
+ * The bytes are exactly the ones `exportTable` downloads for the same input:
+ * the same CSV BOM, the same workbook, the same MIME types and the same
+ * date-stamped filename. E-mailing a report reuses this, so the attachment and
+ * the downloaded file can never drift apart.
+ *
+ * @returns {Promise<{ blob: Blob, filename: string, rows: number }>}
+ */
+export async function buildTableFile({
   rows = [],
   columns = [],
   filename = 'export',
@@ -156,16 +171,25 @@ export default async function exportTable({
   const base = `${filename}-${stamp.toISOString().slice(0, 10)}`;
 
   if (format === 'csv') {
-    triggerDownload(buildCsv(columns, safeRows, meta), `${base}.csv`, 'text/csv');
-    return { format, rows: safeRows.length };
+    return {
+      blob: new Blob(['﻿', buildCsv(columns, safeRows, meta)], {
+        type: 'text/csv;charset=utf-8',
+      }),
+      filename: `${base}.csv`,
+      rows: safeRows.length,
+    };
   }
 
   const buffer = await buildXlsx(columns, safeRows, meta);
-  triggerDownload(
-    buffer,
-    `${base}.xlsx`,
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    true,
-  );
-  return { format: 'xlsx', rows: safeRows.length };
+  return {
+    blob: new Blob([buffer], { type: XLSX_MIME }),
+    filename: `${base}.xlsx`,
+    rows: safeRows.length,
+  };
+}
+
+export default async function exportTable(opts = {}) {
+  const file = await buildTableFile(opts);
+  triggerDownload(file.blob, file.filename);
+  return { format: opts.format === 'csv' ? 'csv' : 'xlsx', rows: file.rows };
 }
