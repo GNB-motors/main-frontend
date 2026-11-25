@@ -112,7 +112,7 @@ export const INTELLIGENCE_TABS = [
 ];
 
 /**
- * The five sections the tabs sit in.
+ * The sections the tabs sit in.
  *
  * Eleven tabs in one row overflowed the page, so the page shows the
  * sections first and the tabs of the open section underneath. Every tab is
@@ -122,6 +122,7 @@ export const INTELLIGENCE_SECTIONS = [
   { id: 'issues', label: 'Issues', tabs: ['issues'] },
   { id: 'people', label: 'Trucks & drivers', tabs: ['vehicles', 'drivers'] },
   { id: 'driving', label: 'Driving', tabs: ['overspeed', 'cruise', 'detours'] },
+  { id: 'fuel', label: 'Fuel & DEF', tabs: ['mileage'] },
   { id: 'runs', label: 'Runs & places', tabs: ['runs', 'places'] },
   {
     id: 'performance',
@@ -138,7 +139,6 @@ export const INTELLIGENCE_SECTIONS = [
 export const MOVED_TABS = {
   idling: '/idling',
   fuel: '/fuel-checks',
-  mileage: '/mileage-def',
 };
 
 /** Where an `/intelligence?…` link for a moved tab now opens, or null. */

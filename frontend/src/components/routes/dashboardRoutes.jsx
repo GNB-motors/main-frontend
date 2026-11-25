@@ -2,6 +2,7 @@ import { Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
+import MileageDefRedirect from './MileageDefRedirect';
 import TripsRedirect from './TripsRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
 import RouteFallback from './RouteFallback';
@@ -79,7 +80,7 @@ const OptimalSpeedPage = lazy(() => import('../../pages/OptimalSpeed/OptimalSpee
 const RefuelAdvisoryPage = lazy(() => import('../../pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('../../pages/DrivingDna/DrivingDnaPage.jsx'));
 const DefLedgerPage = lazy(() => import('../../pages/DefLedger/DefLedgerPage.jsx'));
-// Idling, Fuel checks and Mileage & DEF: former Intelligence tabs, now under Fuel Management.
+// Idling and Fuel checks: former Intelligence tabs, now under Fuel Management.
 const FuelInsightPage = lazy(() => import('../../pages/FuelInsights/FuelInsightPage.jsx'));
 const FleetCoveragePage = lazy(() => import('../../pages/FleetCoverage/FleetCoveragePage.jsx'));
 const Vehicle360Page = lazy(() => import('../../pages/Vehicle360/Vehicle360Page.jsx'));
@@ -107,7 +108,7 @@ const dashboardRoutes = (
     <Route path="/intelligence" element={<IntelligencePage />} />
     <Route path="/idling" element={<FuelInsightPage tab="idling" />} />
     <Route path="/fuel-checks" element={<FuelInsightPage tab="fuel" />} />
-    <Route path="/mileage-def" element={<FuelInsightPage tab="mileage" />} />
+    <Route path="/mileage-def" element={<MileageDefRedirect />} />
     <Route
       path="/route-intelligence"
       element={<RedirectWithState to="/route-hub?tab=intelligence" />}

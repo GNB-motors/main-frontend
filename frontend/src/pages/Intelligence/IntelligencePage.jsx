@@ -204,7 +204,7 @@ function TabContent({ active, from, to, vehicle, driver, kind, headerControl, su
  * reason for every claim.
  *
  * The page answers "what needs me" first: five numbers, then the tabs in
- * five sections. The tab, the period and the filters all live in the URL,
+ * sections. The tab, the period and the filters all live in the URL,
  * so a link to a page is a link to that exact view and the Back button goes
  * back through it.
  */
@@ -248,7 +248,7 @@ export default function IntelligencePage() {
   const drivingTask = DRIVING_TASK_TABS.includes(active);
   const periodLabel = periodRangeLabel(from, to);
 
-  // Idling, Fuel checks and Mileage & DEF live under Fuel Management now.
+  // Idling and Fuel checks live under Fuel Management.
   const movedTo = movedTabDestination(searchParams);
   if (movedTo) return <Navigate to={movedTo} replace />;
 

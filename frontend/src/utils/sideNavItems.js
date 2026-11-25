@@ -296,7 +296,6 @@ export const SIDE_NAV_ITEMS = [
       // Moved from Intelligence; ungated there, so ungated here.
       { to: '/idling', label: 'Idling', hint: 'Every long idle with the engine on.' },
       { to: '/fuel-checks', label: 'Fuel checks', hint: 'Fuel that went down while parked.' },
-      { to: '/mileage-def', label: 'Mileage & DEF', hint: 'Best and worst km/L and DEF use.' },
     ],
     matchRoutes: [
       '/mileage',
@@ -307,7 +306,6 @@ export const SIDE_NAV_ITEMS = [
       '/def-ledger',
       '/idling',
       '/fuel-checks',
-      '/mileage-def',
       '/trip-management',
     ],
   },

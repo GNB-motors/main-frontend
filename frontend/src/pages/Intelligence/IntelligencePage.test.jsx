@@ -29,6 +29,7 @@ vi.mock('./IntelligenceService', () => ({
 
 import IntelligenceService from './IntelligenceService';
 import IntelligencePage from './IntelligencePage';
+import MileageDefRedirect from '@/components/routes/MileageDefRedirect';
 
 const summary = {
   period: { from: '2026-10-27T18:30:00Z', to: '2026-11-02T18:30:00Z' },
@@ -94,6 +95,7 @@ function renderPage(entry = '/intelligence') {
       <LocationDisplay />
       <Routes>
         <Route path="/intelligence" element={<IntelligencePage />} />
+        <Route path="/mileage-def" element={<MileageDefRedirect />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -112,7 +114,7 @@ describe('IntelligencePage', () => {
     IntelligenceService.getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
   });
 
-  it('shows the title, the five sections, and every tab inside its section', async () => {
+  it('shows the title, the sections, and every tab inside its section', async () => {
     renderPage('/intelligence?tab=issues');
 
     expect(screen.getByText('Intelligence')).toBeInTheDocument();
@@ -131,6 +133,27 @@ describe('IntelligencePage', () => {
         expect(await screen.findByRole('tab', { name: label })).toBeInTheDocument();
       }
     }
+    fireEvent.click(screen.getByRole('tab', { name: 'Fuel & DEF' }));
+    expect(await screen.findByRole('tabpanel', { name: 'Mileage & DEF' })).toBeInTheDocument();
+    await waitFor(() => expect(IntelligenceService.getMileage).toHaveBeenCalled());
+  });
+
+  it('opens the former Mileage & DEF URL inside Intelligence with its truck and dates', async () => {
+    renderPage('/mileage-def?vehicle=WB11G0762&from=2026-11-23&to=2026-11-24');
+
+    expect(await screen.findByRole('tabpanel', { name: 'Mileage & DEF' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Fuel & DEF' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await waitFor(() =>
+      expect(IntelligenceService.getMileage).toHaveBeenCalledWith(
+        expect.objectContaining({ vehicle: 'WB11G0762', from: '2026-11-23', to: '2026-11-24' }),
+      ),
+    );
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/intelligence?vehicle=WB11G0762&from=2026-11-23&to=2026-11-24&tab=mileage',
+    );
   });
 
   it('shows the period at a glance from the issues and the instances', async () => {

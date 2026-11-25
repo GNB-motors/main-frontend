@@ -17,7 +17,6 @@ const tabProbe = (name) => ({
 });
 vi.mock('../Intelligence/IdlingTab', () => tabProbe('idling-tab'));
 vi.mock('../Intelligence/FuelRiskTab', () => tabProbe('fuel-tab'));
-vi.mock('../Intelligence/MileageDefTab', () => tabProbe('mileage-tab'));
 
 const renderAt = (tab, url) =>
   render(
@@ -36,15 +35,6 @@ describe('FuelInsightPage', () => {
       await screen.findByText('idling-tab WB11S6162 2026-11-23→2026-11-23 driver:d1'),
     ).toBeInTheDocument();
     expect(screen.getByText('filters driver:true')).toBeInTheDocument();
-  });
-
-  it('shows Mileage & DEF by truck only', async () => {
-    renderAt('mileage', '/mileage-def?vehicle=WB11G0762&driver=d1');
-    expect(screen.getByRole('heading', { name: 'Mileage & DEF' })).toBeInTheDocument();
-    expect(
-      await screen.findByText(/mileage-tab WB11G0762 .* driver:undefined/),
-    ).toBeInTheDocument();
-    expect(screen.getByText('filters driver:false')).toBeInTheDocument();
   });
 
   it('shows Fuel checks', async () => {

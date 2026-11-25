@@ -97,7 +97,6 @@ describe('Fuel Management standalone navigation', () => {
       '/def-ledger',
       '/idling',
       '/fuel-checks',
-      '/mileage-def',
     ]);
     expect(shows(items, '/reports')).toBe(false);
   });

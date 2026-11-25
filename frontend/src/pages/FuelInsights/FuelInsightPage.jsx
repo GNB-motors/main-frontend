@@ -12,17 +12,15 @@ import '../Intelligence/IntelligenceDesign.css';
 
 const IdlingTab = lazy(() => import('../Intelligence/IdlingTab'));
 const FuelRiskTab = lazy(() => import('../Intelligence/FuelRiskTab'));
-const MileageDefTab = lazy(() => import('../Intelligence/MileageDefTab'));
 
 /** Which tab component each Fuel Management page shows, and whether it filters by driver. */
 const PAGES = {
   idling: { Tab: IdlingTab, driver: true },
   fuel: { Tab: FuelRiskTab, driver: true },
-  mileage: { Tab: MileageDefTab, driver: false },
 };
 
 /**
- * One former Intelligence tab (Idling, Fuel checks, Mileage & DEF) as its own
+ * One former Intelligence tab (Idling, Fuel checks) as its own
  * page under Fuel Management. The truck, driver and dates stay in the URL
  * with the same names as before, so every old link keeps its filters.
  */

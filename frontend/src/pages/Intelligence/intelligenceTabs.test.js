@@ -44,6 +44,7 @@ describe('the Intelligence tabs', () => {
     expect([...placed].sort()).toEqual(INTELLIGENCE_TABS.map((tab) => tab.id).sort());
     expect(new Set(placed).size).toBe(placed.length);
     expect(sectionOfTab('overspeed').id).toBe('driving');
+    expect(sectionOfTab('mileage').id).toBe('fuel');
     expect(sectionOfTab('nope').id).toBe('issues');
   });
 
@@ -53,7 +54,7 @@ describe('the Intelligence tabs', () => {
       at('tab=idling&vehicle=WB11S6162&from=2026-11-23&to=2026-11-23&idleSubview=instances'),
     ).toBe('/idling?vehicle=WB11S6162&from=2026-11-23&to=2026-11-23&idleSubview=instances');
     expect(at('tab=fuel&fuelView=drain')).toBe('/fuel-checks?fuelView=drain');
-    expect(at('tab=mileage')).toBe('/mileage-def');
+    expect(at('tab=mileage')).toBeNull();
     expect(at('tab=overspeed')).toBeNull();
   });
 
