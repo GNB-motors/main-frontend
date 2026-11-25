@@ -72,6 +72,26 @@ describe('ResetPasswordPage', () => {
     expect(url).not.toContain('tok-body');
   });
 
+  it('a new link pasted into the open page (fragment-only navigation) is read', async () => {
+    // Same path, new fragment: the browser does not reload, so the inline
+    // script and the state initializer never see this token.
+    renderPage();
+    await screen.findByRole('heading', { name: /This link does not work/i });
+    apiClient.post.mockResolvedValue({
+      data: { data: { valid: true, firstName: 'Ravi', orgName: 'GNB Motors', role: 'DRIVER' } },
+    });
+
+    window.location.hash = '#token=tok-pasted';
+
+    expect(await screen.findByText(/Ravi/)).toBeInTheDocument();
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/auth/password-reset/verify',
+      { token: 'tok-pasted' },
+      expect.objectContaining({ skipAuthRedirect: true }),
+    );
+    expect(window.location.href).not.toContain('tok-pasted');
+  });
+
   it('review 4: a link with the token in the FRAGMENT works', async () => {
     window.location.hash = '#token=tok-frag';
     apiClient.post.mockResolvedValue({

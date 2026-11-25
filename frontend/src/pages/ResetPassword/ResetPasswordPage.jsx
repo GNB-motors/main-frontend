@@ -5,7 +5,7 @@ import AuthHelpLayout from '../../components/auth/AuthHelpLayout.jsx';
 import PasswordField from '../../components/auth/PasswordField.jsx';
 import { checkNewPassword } from '../../components/auth/passwordRules';
 import { PasswordResetService } from '../../services/PasswordResetService';
-import { releaseResetToken, takeResetToken } from './resetTokenScrub.js';
+import { readTokenFromLocation, releaseResetToken, takeResetToken } from './resetTokenScrub.js';
 import '../../components/ui/forms.css';
 
 /**
@@ -23,7 +23,9 @@ export default function ResetPasswordPage() {
 
   // The token is read exactly once, then thrown away: it must never sit in the
   // history, in a log line or in any other URL.
-  const [token] = useState(() => takeResetToken());
+  // `attempt` counts the links read, so a link pasted again is checked again.
+  const [link, setLink] = useState(() => ({ token: takeResetToken(), attempt: 0 }));
+  const { token } = link;
 
   const [phase, setPhase] = useState(token ? 'checking' : 'invalid'); // checking|form|saving|done|invalid
   const [who, setWho] = useState(null);
@@ -35,6 +37,30 @@ export default function ResetPasswordPage() {
   // The token leaves the address bar in the initializer above. When the page
   // goes away the copy the initializer kept is forgotten as well.
   useEffect(() => () => releaseResetToken(), []);
+
+  // A new link pasted into this open page changes only the fragment: the
+  // browser does not reload, so neither the inline script nor the initializer
+  // sees it. Take it here, scrub it from the address bar and start over.
+  useEffect(() => {
+    const onNavigate = () => {
+      if (!readTokenFromLocation(window.location)) return;
+      const fresh = takeResetToken();
+      if (!fresh) return;
+      setLink((prev) => ({ token: fresh, attempt: prev.attempt + 1 }));
+      setPhase('checking');
+      setWho(null);
+      setPassword('');
+      setConfirm('');
+      setTouched(false);
+      setServerError('');
+    };
+    window.addEventListener('hashchange', onNavigate);
+    window.addEventListener('popstate', onNavigate);
+    return () => {
+      window.removeEventListener('hashchange', onNavigate);
+      window.removeEventListener('popstate', onNavigate);
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -53,7 +79,7 @@ export default function ResetPasswordPage() {
         setPhase('invalid');
       });
     return () => ctrl.abort();
-  }, [token]);
+  }, [token, link.attempt]);
 
   const problem = checkNewPassword(password, confirm);
 
