@@ -17,6 +17,23 @@ export const fmtLitres = (n) => {
 };
 
 /**
+ * Is this a number we can show?
+ *
+ * Only a finite number, or a non-blank string that reads as one. A blank
+ * string, a boolean, a list or nothing at all is not a number, so the row is
+ * left out instead of showing a zero we did not read.
+ */
+export const hasNumber = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return false;
+    return Number.isFinite(Number(trimmed));
+  }
+  return false;
+};
+
+/**
  * Format the fuel type a row carries.
  *
  * The server calls DEF "ADBLUE"; a person reads it as "DEF / urea".

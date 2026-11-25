@@ -398,6 +398,41 @@ describe('DrawerDetailsPane — the checks that could not run', () => {
 
     expect(screen.getByRole('button', { name: 'Checks · 2 checks could not run' })).toBeTruthy();
   });
+
+  it('spec 5: counts a check with no result as a check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: [{ name: 'TRUCK', result: null }] }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 check could not run' })).toBeTruthy();
+    expect(screen.queryByText('No issues found')).toBeNull();
+  });
+
+  it('spec 5: counts a keyed check with no result as a check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: { TRUCK: { detail: 'No truck in the message.' } } }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 check could not run' })).toBeTruthy();
+    expect(screen.queryByText('No issues found')).toBeNull();
+  });
+
+  it('spec 5: a check that passed is not a check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: [{ name: 'TRUCK', result: 'pass' }] }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · No issues found' })).toBeTruthy();
+  });
 });
 
 describe('DrawerDetailsPane — the proof from the chat', () => {
@@ -432,6 +467,30 @@ describe('DrawerDetailsPane — the proof from the chat', () => {
 
     expect(screen.getByText('DEF / urea')).toBeTruthy();
     expect(screen.getByText('Also claims DEF 18 L')).toBeTruthy();
+  });
+
+  /** The DEF claim line of a row whose claim is not a number. */
+  const defClaimLine = (litres) => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), fuelType: 'ADBLUE', defClaim: { litres } }}
+      />,
+    );
+    openSection('Audit');
+    return screen.queryByText(/Also claims DEF/);
+  };
+
+  it('spec 6: leaves out a DEF claim that is only a space', () => {
+    expect(defClaimLine(' ')).toBeNull();
+  });
+
+  it('spec 6: leaves out a DEF claim that is a boolean', () => {
+    expect(defClaimLine(true)).toBeNull();
+  });
+
+  it('spec 6: leaves out a DEF claim that is a list', () => {
+    expect(defClaimLine([])).toBeNull();
   });
 
   it('spec 7: does not repeat the message the proof card already shows', () => {

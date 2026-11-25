@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle2, AlertTriangle, MessageCircle } from 'lucide-react';
-import { fmtDate, fmtRelativeTime, fmtLitres, fmtFuelType } from './receiptFormat';
+import { fmtDate, fmtRelativeTime, fmtLitres, fmtFuelType, hasNumber } from './receiptFormat';
 import {
   isChatRow,
   uploaderOf,
@@ -300,7 +300,7 @@ const DrawerDetailsPane = ({
           <div className="ra-prop">
             <span className="ra-prop__label">Fuel Type</span>
             <span className="ra-prop__val">{fmtFuelType(draft.fuelType)}</span>
-            {draft.defClaim?.litres != null && draft.defClaim?.litres !== '' && (
+            {hasNumber(draft.defClaim?.litres) && (
               <span className="ra-prop__val ra-prop__val--muted">
                 Also claims DEF {fmtLitres(draft.defClaim.litres)}
               </span>

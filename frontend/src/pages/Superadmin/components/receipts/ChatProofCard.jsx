@@ -4,7 +4,7 @@
 // Everything in this card is read-only. Nothing here changes a row, a truck,
 // a time or an approval; it only shows a person what the row already carries.
 
-import { fmtLitres, fmtMoney } from './receiptFormat';
+import { fmtLitres, fmtMoney, hasNumber } from './receiptFormat';
 import { checkFacts } from './receiptVerification';
 
 const IST = 'Asia/Kolkata';
@@ -26,23 +26,6 @@ const fmtIst = (value) => {
   }).formatToParts(dt);
   const get = (type) => parts.find((part) => part.type === type)?.value || '';
   return `${get('day')} ${get('month')}, ${get('hour')}:${get('minute')}`;
-};
-
-/**
- * A number we can show.
- *
- * Only a finite number, or a non-blank string that reads as one. A blank
- * string, a boolean, a list or nothing at all is not a number, so the row
- * is left out instead of showing a zero we did not read.
- */
-const hasNumber = (value) => {
-  if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '') return false;
-    return Number.isFinite(Number(trimmed));
-  }
-  return false;
 };
 
 const fmtNumber = (value) => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });

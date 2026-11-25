@@ -131,7 +131,7 @@ export const checkFacts = (draft) => {
   const raw = draft?.checks;
   if (!raw || typeof raw !== 'object') return { ran: false, needs: 0, unknown: 0, rows: [] };
 
-  const UNKNOWN = ['UNKNOWN', 'NOT_RUN', 'NOT_CHECKED', 'SKIPPED', 'PENDING'];
+  const PASS = ['PASS', 'PASSED', 'OK'];
 
   const BAD = [
     'FAIL',
@@ -157,8 +157,10 @@ export const checkFacts = (draft) => {
   entries.forEach(([name, value]) => {
     const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
     const bad = value?.ok === false || value?.valid === false || BAD.includes(status);
-    // A check that could not run is not a check that passed.
-    const isUnknown = !bad && UNKNOWN.includes(status);
+    // A check passes only when it says so. A missing, empty or unrecognised
+    // result is a check that could not run, never a check that passed.
+    const explicitPass = PASS.includes(status) || value?.ok === true || value?.valid === true;
+    const isUnknown = !bad && !explicitPass;
     const detail = value?.detail || value?.message || value?.reason || '';
     if (bad) needs += 1;
     if (isUnknown) unknown += 1;
