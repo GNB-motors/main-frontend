@@ -12,6 +12,7 @@ import { LocationsManager } from './settingsLocations';
 import { FleetDataSettings } from './settingsFleetData';
 import { IdleThresholdSetting } from './settingsIdling';
 import { NetFuelSetting } from './settingsNetFuel';
+import { EmailReportSettings } from './settingsEmailReports';
 import './Settings.css';
 
 /**
@@ -103,6 +104,9 @@ export default function SettingsPage() {
                 <IdleThresholdSetting canEdit={access.editIdling} />
                 <NetFuelSetting canEdit={access.editIdling} />
               </>
+            ) : null}
+            {active.key === 'email-reports' ? (
+              <EmailReportSettings canEdit={access.editEmailReports} />
             ) : null}
           </section>
         </div>

@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
+import { parseSafe } from '../../schemas/validate.js';
 
 const dataOf = (res) => res.data?.data ?? {};
 
@@ -20,8 +21,24 @@ const updateIdleThreshold = (idleThresholdMin) =>
 const updateNetFuelKmPerL = (netFuelKmPerL) =>
   call(apiClient.patch('/api/fuel-settings', { netFuelKmPerL }));
 
+/** Scheduled report e-mails: { daily, weekly, recipients, serverEnabled, … }. */
+const emailSettings = (data) =>
+  parseSafe(
+    'emailReportSettingsSchema',
+    () => import('../../schemas/reportEmail.schema.js'),
+    data,
+  );
+
+const getEmailReportSettings = async ({ signal } = {}) =>
+  emailSettings(await call(apiClient.get('/api/email-report-settings', { signal })));
+
+const updateEmailReportSettings = async (patch) =>
+  emailSettings(await call(apiClient.patch('/api/email-report-settings', patch)));
+
 export const SettingsService = {
   getFuelSettings,
   updateIdleThreshold,
   updateNetFuelKmPerL,
+  getEmailReportSettings,
+  updateEmailReportSettings,
 };

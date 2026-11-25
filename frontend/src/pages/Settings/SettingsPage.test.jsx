@@ -28,6 +28,9 @@ vi.mock('./settingsFleetData', () => ({
 vi.mock('./settingsIdling', () => ({
   IdleThresholdSetting: ({ canEdit }) => <p>idling body {String(canEdit)}</p>,
 }));
+vi.mock('./settingsEmailReports', () => ({
+  EmailReportSettings: ({ canEdit }) => <p>email reports body {String(canEdit)}</p>,
+}));
 const renderAt = (url) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -40,7 +43,7 @@ const keys = (access) => visibleSections(access).map((s) => s.key);
 describe('settings sections', () => {
   it('an owner of a fleet org sees every section', () => {
     const access = settingsAccess({ role: 'OWNER', fleetAccess: true, coverageFlag: true });
-    expect(keys(access)).toEqual(['locations', 'fleet-data', 'idling']);
+    expect(keys(access)).toEqual(['locations', 'fleet-data', 'idling', 'email-reports']);
   });
 
   it('a driver sees locations and idling, read-only', () => {
@@ -48,18 +51,26 @@ describe('settings sections', () => {
     expect(keys(access)).toEqual(['locations', 'idling']);
     expect(access.editIdling).toBe(false);
     expect(access.manageLocations).toBe(false);
+    expect(access.emailReports).toBe(false);
   });
 
-  it('an ERP-only org sees only locations', () => {
+  it('an ERP-only org sees only locations and the e-mail reports', () => {
     const access = settingsAccess({ role: 'OWNER', fleetAccess: false, coverageFlag: false });
-    expect(keys(access)).toEqual(['locations']);
+    expect(keys(access)).toEqual(['locations', 'email-reports']);
   });
 
-  it('groups the nav under Fleet and Rules', () => {
+  it('a manager may read the e-mail reports but not change them', () => {
+    const access = settingsAccess({ role: 'MANAGER', fleetAccess: true, coverageFlag: true });
+    expect(keys(access)).toContain('email-reports');
+    expect(access.editEmailReports).toBe(false);
+  });
+
+  it('groups the nav under Fleet, Rules and Reports', () => {
     const access = settingsAccess({ role: 'OWNER', fleetAccess: true, coverageFlag: true });
     expect(groupSections(visibleSections(access)).map((g) => [g.label, g.items.length])).toEqual([
       ['Fleet', 2],
       ['Rules', 1],
+      ['Reports', 1],
     ]);
   });
 
@@ -106,6 +117,11 @@ describe('SettingsPage', () => {
     expect(screen.getByText('fleet body true true')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Idling/ }));
     expect(screen.getByText('idling body true')).toBeInTheDocument();
+  });
+
+  it('opens the e-mail reports section for an owner', () => {
+    renderAt('/settings?section=email-reports');
+    expect(screen.getByText('email reports body true')).toBeInTheDocument();
   });
 
   it('a section the viewer may not see falls back to the first', () => {

@@ -1,4 +1,4 @@
-import { MapPin, Radio, Timer } from 'lucide-react';
+import { MapPin, Mail, Radio, Timer } from 'lucide-react';
 
 export const SETTINGS_SECTIONS = [
   {
@@ -16,6 +16,13 @@ export const SETTINGS_SECTIONS = [
     icon: Radio,
   },
   { key: 'idling', group: 'Rules', label: 'Idling', hint: 'When a stop is idling', icon: Timer },
+  {
+    key: 'email-reports',
+    group: 'Reports',
+    label: 'Email reports',
+    hint: 'Daily and weekly fuel report',
+    icon: Mail,
+  },
 ];
 
 const MANAGERS = ['OWNER', 'MANAGER'];
@@ -34,6 +41,11 @@ export function settingsAccess({ role, fleetAccess, coverageFlag }) {
     // GET /api/fleet-coverage: OWNER, MANAGER, behind the fleetIntelligence flag
     coverage: fleetAccess && coverageFlag && manager,
     idling: fleetAccess,
+    // GET /api/email-report-settings: OWNER, MANAGER. PATCH: OWNER only.
+    // These gates are guidance for the UI — the backend is what enforces
+    // them, and it is the only thing that can.
+    emailReports: manager,
+    editEmailReports: role === 'OWNER',
   };
 }
 
@@ -52,6 +64,7 @@ export function visibleSections(access) {
   return SETTINGS_SECTIONS.filter((s) => {
     if (s.key === 'fleet-data') return access.fleetEdgeAccounts || access.coverage;
     if (s.key === 'idling') return access.idling;
+    if (s.key === 'email-reports') return access.emailReports;
     return true;
   });
 }
