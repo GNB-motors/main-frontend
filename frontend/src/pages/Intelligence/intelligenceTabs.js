@@ -121,8 +121,7 @@ export const INTELLIGENCE_TABS = [
 export const INTELLIGENCE_SECTIONS = [
   { id: 'issues', label: 'Issues', tabs: ['issues'] },
   { id: 'people', label: 'Trucks & drivers', tabs: ['vehicles', 'drivers'] },
-  { id: 'driving', label: 'Driving', tabs: ['idling', 'overspeed', 'cruise', 'detours'] },
-  { id: 'fuel', label: 'Fuel & DEF', tabs: ['fuel', 'mileage'] },
+  { id: 'driving', label: 'Driving', tabs: ['overspeed', 'cruise', 'detours'] },
   { id: 'runs', label: 'Runs & places', tabs: ['runs', 'places'] },
   {
     id: 'performance',
@@ -130,6 +129,27 @@ export const INTELLIGENCE_SECTIONS = [
     tabs: ['perfVehicles', 'perfDrivers', 'leaderboards'],
   },
 ];
+
+/**
+ * Tabs that moved to their own pages under Fuel Management. Old links
+ * (digest chips, truck page, report cards, bookmarks) still say
+ * `/intelligence?tab=idling`; the page sends them on with every filter kept.
+ */
+export const MOVED_TABS = {
+  idling: '/idling',
+  fuel: '/fuel-checks',
+  mileage: '/mileage-def',
+};
+
+/** Where an `/intelligence?…` link for a moved tab now opens, or null. */
+export function movedTabDestination(searchParams) {
+  const path = MOVED_TABS[searchParams.get('tab')];
+  if (!path) return null;
+  const next = new URLSearchParams(searchParams);
+  next.delete('tab');
+  const query = next.toString();
+  return query ? `${path}?${query}` : path;
+}
 
 /** The section a tab belongs to. */
 export function sectionOfTab(tabId) {

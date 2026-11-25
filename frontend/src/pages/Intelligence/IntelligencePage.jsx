@@ -1,6 +1,6 @@
 import './reportCardsReference.css';
 import { lazy, Suspense } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import IntelligenceSkeleton from './IntelligenceSkeleton';
 import { useApi } from '@/hooks/useApi';
 import { useFullPageLayout } from '@/hooks/usePageLayout';
@@ -12,6 +12,7 @@ import IntelligenceService from './IntelligenceService';
 import {
   INSTANCE_TABS,
   INTELLIGENCE_SECTIONS,
+  movedTabDestination,
   resolveIntelligenceTab,
   sectionOfTab,
   tabById,
@@ -246,6 +247,10 @@ export default function IntelligencePage() {
   const openTab = (tab) => updateParams({ tab, kind: null });
   const drivingTask = DRIVING_TASK_TABS.includes(active);
   const periodLabel = periodRangeLabel(from, to);
+
+  // Idling, Fuel checks and Mileage & DEF live under Fuel Management now.
+  const movedTo = movedTabDestination(searchParams);
+  if (movedTo) return <Navigate to={movedTo} replace />;
 
   return (
     <div className="intelligence-page min-w-0 w-full">
