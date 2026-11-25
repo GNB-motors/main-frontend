@@ -22,6 +22,7 @@ import {
 import { SortIcon } from './SortIcon.jsx';
 import DateRangeFilter from './DateRangeFilter';
 import MileageVarianceSection from './orgDetail/MileageVarianceSection';
+import OrgUsersSection from './orgDetail/OrgUsersSection';
 import { getUserRole } from '../../../utils/session';
 import '../SuperAdminPage.css';
 import './OrgDetailPage.css';
@@ -235,6 +236,9 @@ const OrgDetailPage = () => {
           ))}
         </div>
       </div>
+
+      {/* Users of this organisation (owner first) with the reset action */}
+      <OrgUsersSection orgId={orgId} />
 
       {/* Vehicle analysis table */}
       <div className="content-card orgs-table-card">

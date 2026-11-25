@@ -1,0 +1,140 @@
+/*
+ * Shared form styles for the password reset screens (forgot / reset) and the
+ * admin reset dialog. The signed-out pages render before a theme is known, so
+ * the colours here are fixed brand values; inside the dashboard they sit next
+ * to the themed pages without overriding them.
+ */
+
+.pwf {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pwf-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pwf-row {
+  position: relative;
+  display: flex;
+}
+
+.pwf-input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fff;
+  color: #0f172a;
+}
+
+.pwf-input:focus {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 1px;
+  border-color: #1d4ed8;
+}
+
+.pwf-input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.pwf-eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  padding: 6px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.pwf-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.pwf-hint {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* The forgot / reset page forms. */
+.fp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 24px;
+  max-width: 420px;
+}
+
+.fp-submit {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.fp-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fp-other {
+  margin-top: 8px;
+}
+
+/* Small buttons used outside the signed-out pages (the superadmin users list). */
+.pwf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pwf-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pwf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pwf-pager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 10px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pwf-pager button {
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pwf-pager button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
