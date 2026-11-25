@@ -256,6 +256,7 @@ export default function CustomReportPreview({
             }
             disabled={!rows.length || loading}
             buttonClass="btn-secondary-action !py-1.5 !px-3 !text-xs"
+            email={{ label: config.name || 'Custom report' }}
           />
         </div>
       </div>

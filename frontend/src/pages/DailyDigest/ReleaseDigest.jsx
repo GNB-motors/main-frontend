@@ -316,6 +316,7 @@ export default function ReleaseDigest({ renderOverview = null }) {
                 rows={digestExportRows}
                 columns={digestExportColumns}
                 filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
+                email={{ label: 'Daily digest' }}
                 disabled={loading || !digestExportRows.length}
               />
               <button
@@ -505,6 +506,7 @@ export default function ReleaseDigest({ renderOverview = null }) {
             rows={digestExportRows}
             columns={digestExportColumns}
             filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
+            email={{ label: 'Daily digest' }}
             disabled={loading || !digestExportRows.length}
           />
         ),

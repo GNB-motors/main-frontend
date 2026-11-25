@@ -180,6 +180,7 @@ const VehicleReport = () => {
           columns={VEHICLE_EXPORT_COLUMNS}
           filename="vehicle-report"
           buttonClass="rpt-btn"
+          email={{ label: 'Vehicle report' }}
           fetchAll={() =>
             ReportsService.fetchAllReportRows(ReportsService.getVehicleReports, requestParams)
           }

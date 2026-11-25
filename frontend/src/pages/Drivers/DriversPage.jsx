@@ -293,6 +293,7 @@ const DriversPage = () => {
                 fetchAll={fetchAllEmployeesForExport}
                 columns={EMPLOYEE_EXPORT_COLUMNS}
                 filename="employees"
+                email={{ label: 'Employees report' }}
                 meta={employeeExportMeta({ search: searchTerm, filters })}
                 disabled={!exportRows.length}
                 compact

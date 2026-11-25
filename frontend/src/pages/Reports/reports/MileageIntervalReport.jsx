@@ -122,7 +122,18 @@ const MileageIntervalReport = () => {
           )}
         />
       }
-      actions={<ExportButton buttonClass="rpt-btn" onExport={exportMileage} disabled={!response} />}
+      actions={
+        <ExportButton
+          buttonClass="rpt-btn"
+          onExport={exportMileage}
+          email={{
+            report: 'mileage-intervals',
+            label: 'Mileage report',
+            params: { ...requestParams, format: 'xlsx' },
+          }}
+          disabled={!response}
+        />
+      }
       notice={
         response && 'dataAsOf' in meta ? (
           <ReportDataNotice

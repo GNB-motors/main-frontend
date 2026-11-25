@@ -6,6 +6,7 @@ import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.js';
+import { buildFilteredReportFile } from '../../../utils/reportCsvExport';
 import { formatINR } from '../../../utils/formatters';
 import { unattributedKmOf, useRunningCostColumns } from './useRunningCostColumns.jsx';
 import { costCell, runningCostTotals } from './runningCostTotals';
@@ -187,6 +188,28 @@ const RunningCostReport = () => {
               filenamePrefix: 'running_cost_report',
               errorMessage: 'Could not export running-cost report.',
             })
+          }
+          email={
+            searching
+              ? {
+                  label: 'Running cost report',
+                  // The server export cannot apply the search box, so the
+                  // mailed file is the one the download builds: the filtered
+                  // rows, the same columns.
+                  buildFile: () =>
+                    buildFilteredReportFile({
+                      headers: EXPORT_COLUMNS.map(([header]) => header),
+                      rows: filtered,
+                      mapRow: (row) => EXPORT_COLUMNS.map(([, valueOf]) => valueOf(row) ?? ''),
+                      filenamePrefix: 'running_cost_report',
+                      extension: 'xlsx',
+                    }),
+                }
+              : {
+                  label: 'Running cost report',
+                  report: 'running-cost',
+                  params: { ...params, format: 'xlsx' },
+                }
           }
           disabled={!filtered.length}
         />

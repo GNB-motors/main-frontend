@@ -6,6 +6,7 @@ import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.js';
+import { buildFilteredReportFile } from '../../../utils/reportCsvExport';
 import { formatINR, formatKm, formatNum } from '../../../utils/formatters';
 import { fuelExtraOf, useNonBusinessColumns } from './useNonBusinessColumns.jsx';
 import ReportFrame, {
@@ -168,6 +169,28 @@ const NonBusinessReport = () => {
               filenamePrefix: 'non_business_report',
               errorMessage: 'Could not export non-business report.',
             })
+          }
+          email={
+            searching
+              ? {
+                  label: 'Non-business report',
+                  // The server export cannot apply the search box, so the
+                  // mailed file is the one the download builds: the filtered
+                  // rows, the same columns.
+                  buildFile: () =>
+                    buildFilteredReportFile({
+                      headers: EXPORT_COLUMNS.map(([header]) => header),
+                      rows: filtered,
+                      mapRow: (row) => EXPORT_COLUMNS.map(([, valueOf]) => valueOf(row) ?? ''),
+                      filenamePrefix: 'non_business_report',
+                      extension: 'xlsx',
+                    }),
+                }
+              : {
+                  label: 'Non-business report',
+                  report: 'non-business',
+                  params: { ...params, format: 'xlsx' },
+                }
           }
           disabled={!filtered.length}
         />
