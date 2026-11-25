@@ -14,7 +14,8 @@ import CollapsibleSection from './CollapsibleSection';
 import PredictedFill from './PredictedFill';
 import TimeControls from './TimeControls';
 import KeyFactsCard from './KeyFactsCard';
-import ChatProofCard, { checkFacts } from './ChatProofCard';
+import ChatProofCard from './ChatProofCard';
+import { checkFacts } from './receiptVerification';
 import '../ReceiptApproval.css';
 
 

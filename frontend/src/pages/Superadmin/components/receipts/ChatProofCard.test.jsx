@@ -166,7 +166,7 @@ describe('ChatProofCard — spec 3 and 4: what we read and what the photo showed
     };
     render(<ChatProofCard draft={draft} />);
 
-    expect(screen.getByText('100 L')).toBeTruthy();
+    expect(screen.getByText('Diesel 100 L')).toBeTruthy();
     expect(screen.getByText('DEF / urea 18 L')).toBeTruthy();
   });
 

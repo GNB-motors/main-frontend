@@ -121,6 +121,47 @@ export const evaluateOcrQuality = (draft) => {
 };
 
 /**
+ * The checks the server ran on this row, and the ones that need a look.
+ *
+ * A check the server never ran is not a check that passed: it stays unknown.
+ * Both shapes are read: the keyed object the server sends today and the
+ * array of { name, result, detail } a chat import can carry.
+ */
+export const checkFacts = (draft) => {
+  const raw = draft?.checks;
+  if (!raw || typeof raw !== 'object') return { ran: false, needs: 0, rows: [] };
+
+  const BAD = [
+    'FAIL',
+    'FAILED',
+    'WARN',
+    'WARNING',
+    'NEEDS_REVIEW',
+    'NEEDS_LOOK',
+    'INVALID',
+    'MISMATCH',
+  ];
+
+  const entries = Array.isArray(raw)
+    ? raw.map((entry) => [
+        typeof entry?.name === 'string' ? entry.name : '',
+        entry && typeof entry === 'object' ? entry : {},
+      ])
+    : Object.entries(raw);
+
+  const rows = [];
+  let needs = 0;
+  entries.forEach(([name, value]) => {
+    const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
+    const bad = value?.ok === false || value?.valid === false || BAD.includes(status);
+    const detail = value?.detail || value?.message || value?.reason || '';
+    if (bad) needs += 1;
+    rows.push({ name, bad, detail, status });
+  });
+  return { ran: rows.length > 0, needs, rows };
+};
+
+/**
  * Determine odometer status and badge attributes
  */
 export const getOdometerMeta = (draft) => {

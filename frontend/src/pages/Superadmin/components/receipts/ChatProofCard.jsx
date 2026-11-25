@@ -5,13 +5,14 @@
 // a time or an approval; it only shows a person what the row already carries.
 
 import { fmtLitres, fmtMoney } from './receiptFormat';
+import { checkFacts } from './receiptVerification';
 
 const IST = 'Asia/Kolkata';
 
 /**
  * A time in India, whichever time zone the browser is in.
  */
-export const fmtIst = (value) => {
+const fmtIst = (value) => {
   if (!value) return '';
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return '';
@@ -32,50 +33,6 @@ const hasNumber = (value) =>
   value != null && value !== '' && !Number.isNaN(Number(value));
 
 const fmtNumber = (value) => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
-
-/**
- * The checks the server ran on this row, and the ones that need a look.
- *
- * A check the server never ran is not a check that passed: it stays unknown.
- * Both shapes are read: the keyed object the server sends today and the
- * array of { name, result, detail } a chat import can carry.
- */
-export const checkFacts = (draft) => {
-  const raw = draft?.checks;
-  if (!raw || typeof raw !== 'object') return { ran: false, needs: 0, rows: [] };
-
-  const BAD = [
-    'FAIL',
-    'FAILED',
-    'WARN',
-    'WARNING',
-    'NEEDS_REVIEW',
-    'NEEDS_LOOK',
-    'INVALID',
-    'MISMATCH',
-  ];
-
-  const entries = Array.isArray(raw)
-    ? raw.map((entry) => [
-        typeof entry?.name === 'string' ? entry.name : '',
-        entry && typeof entry === 'object' ? entry : {},
-      ])
-    : Object.entries(raw);
-
-  const rows = [];
-  let needs = 0;
-  entries.forEach(([name, value]) => {
-    const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
-    const bad =
-      value?.ok === false ||
-      value?.valid === false ||
-      BAD.includes(status);
-    const detail = value?.detail || value?.message || value?.reason || '';
-    if (bad) needs += 1;
-    rows.push({ name, bad, detail, status });
-  });
-  return { ran: rows.length > 0, needs, rows };
-};
 
 const KIND_LABEL = {
   PUMP: 'Pump screen',
@@ -176,13 +133,13 @@ const ChatProofCard = ({ draft }) => {
         ) : null}
         {diesel != null ? (
           <div className="ra-proof-row">
-            <span className="ra-proof-row__label">Diesel</span>
-            <span className="ra-proof-row__value">{fmtLitres(diesel)}</span>
+            <span className="ra-proof-row__label">Claim</span>
+            <span className="ra-proof-row__value">Diesel {fmtLitres(diesel)}</span>
           </div>
         ) : null}
         {defLitres != null ? (
           <div className="ra-proof-row">
-            <span className="ra-proof-row__label">DEF</span>
+            <span className="ra-proof-row__label">Claim</span>
             <span className="ra-proof-row__value">DEF / urea {fmtLitres(defLitres)}</span>
           </div>
         ) : null}
