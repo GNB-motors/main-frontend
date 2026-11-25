@@ -97,7 +97,7 @@ export const LIVE_LAYERS = [
   },
   {
     id: 'idling',
-    label: 'Trucks idling now',
+    label: 'Long idling now',
     icon: 'Timer',
     color: 'var(--rd-idling)',
     defaultOn: false,

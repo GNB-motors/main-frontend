@@ -3,6 +3,9 @@ import useUrlFilter from '@/hooks/useUrlFilter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, Timer } from 'lucide-react';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
+import DriverVehicleAssignmentService from '@/services/DriverVehicleAssignmentService';
+import { filterIdleEvents } from './idlingDriverFilter';
+import { istWindow, openIdlesInWindow } from './idlingWindow';
 import PlaceHubService from '../PlaceHub/PlaceHubService.js';
 import {
   clusterIdleEvents,
@@ -29,10 +32,13 @@ const isCanceled = (error) => error?.name === 'CanceledError' || error?.code ===
 export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
   const [subView, setSubView] = useUrlFilter('idleSubview', 'map', ['map', 'instances']);
   const [view, setView] = useUrlFilter('idleView', 'live', ['live', 'spots']);
+  // "1" lists stops under the idle limit too: what the digest's idling cost counts.
+  const [idleShort, setIdleShort] = useUrlFilter('idleShort', '', ['', '1']);
   const [selectedId, setSelectedId] = useState(null);
 
   const [live, setLive] = useState([]);
   const [history, setHistory] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [truncated, setTruncated] = useState(false);
   const [idleSetting, setIdleSetting] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,12 +54,14 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
     const signal = controller.signal;
 
     setLoading(true);
+    setAssignments([]);
+    setSelectedId(null);
     setErrors({});
 
     try {
-      const fromDate = from || new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const range = istWindow(from, to);
 
-      const [liveRes, historyPages, settingRes] = await Promise.all([
+      const [liveRes, historyPages, settingRes, driverAssignments] = await Promise.all([
         IdlingConsoleService.getLive({ signal }).catch((err) => {
           if (isCanceled(err)) throw err;
           setErrors((e) => ({ ...e, 'live idling': 'Could not load live idling' }));
@@ -65,7 +73,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
           try {
             for (let page = 1; page <= MAX_IDLE_PAGES; page++) {
               const res = await IdlingConsoleService.getHistory(
-                { from: fromDate, to, page, limit: IDLE_PAGE_SIZE },
+                { from: range.from, to: range.to, page, limit: IDLE_PAGE_SIZE },
                 { signal },
               );
               rows = rows.concat(res.data || []);
@@ -84,6 +92,28 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
           if (isCanceled(err)) throw err;
           return null;
         }),
+        (async () => {
+          if (!driver) return [];
+          const rows = [];
+          try {
+            for (let page = 1, totalPages = 1; page <= totalPages; page++) {
+              const res = await DriverVehicleAssignmentService.getAssignmentPage(
+                { driverId: driver, includePast: true, page, limit: 200 },
+                { signal },
+              );
+              rows.push(...res.results);
+              totalPages = res.meta?.totalPages || 1;
+            }
+            return rows;
+          } catch (err) {
+            if (isCanceled(err)) throw err;
+            setErrors((e) => ({
+              ...e,
+              'driver assignments': 'Could not load recorded driver assignments',
+            }));
+            return [];
+          }
+        })(),
       ]);
 
       if (signal.aborted) return;
@@ -91,13 +121,14 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
       setHistory(historyPages.rows || []);
       setTruncated(historyPages.wasTruncated);
       setIdleSetting(settingRes);
+      setAssignments(driverAssignments);
       setLoading(false);
     } catch (err) {
       if (!isCanceled(err)) {
         setLoading(false);
       }
     }
-  }, [from, to]);
+  }, [from, to, driver]);
 
   useEffect(() => {
     loadData();
@@ -118,20 +149,14 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
     }
   }, 30000);
 
-  // Vehicle filter support
-  const filteredLive = useMemo(() => {
-    if (!vehicle) return live;
-    const v = vehicle.trim().toLowerCase();
-    return live.filter((e) => (e.registrationNumber || '').toLowerCase().includes(v));
-  }, [live, vehicle]);
-
-  const filteredHistory = useMemo(() => {
-    if (!vehicle) return history;
-    const plate = vehicle.replace(/\s/g, '').toUpperCase();
-    return history.filter(
-      (event) => (event.registrationNumber || '').replace(/\s/g, '').toUpperCase() === plate,
-    );
-  }, [history, vehicle]);
+  const filteredLive = useMemo(
+    () => filterIdleEvents(live, { vehicle, driver, assignments }),
+    [live, vehicle, driver, assignments],
+  );
+  const filteredHistory = useMemo(
+    () => filterIdleEvents(history, { vehicle, driver, assignments }),
+    [history, vehicle, driver, assignments],
+  );
   const spots = useMemo(() => clusterIdleEvents(filteredHistory), [filteredHistory]);
 
   const filteredSpots = useMemo(() => {
@@ -141,6 +166,10 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
   }, [spots, vehicle]);
 
   const liveTotals = useMemo(() => liveIdleTotals(filteredLive), [filteredLive]);
+  const openInPeriod = useMemo(
+    () => openIdlesInWindow(filteredLive, istWindow(from, to)),
+    [filteredLive, from, to],
+  );
   const historyTotals = useMemo(() => idleHistoryTotals(filteredHistory), [filteredHistory]);
 
   // Selected item
@@ -157,19 +186,29 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-driving-tab intel-idling-tab">
-      <IdlingPeriodRead
-        live={filteredLive}
-        history={filteredHistory}
-        loading={loading}
-        errors={errors}
-        truncated={truncated}
-        onLive={() => {
-          setView('live', { idleSubview: null });
-        }}
-        onHistory={() => {
-          setView('spots', { idleSubview: null });
-        }}
-      />
+      {vehicle ? <p className="intel-subtitle">Idling for {vehicle}</p> : null}
+      {driver ? (
+        <p role="status">
+          Idling for the selected driver · only events with a recorded driver or an assignment
+          covering the whole idle are included.
+        </p>
+      ) : null}
+      {subView === 'map' ? (
+        <IdlingPeriodRead
+          live={filteredLive}
+          history={filteredHistory}
+          open={openInPeriod}
+          loading={loading}
+          errors={errors}
+          truncated={truncated}
+          onLive={() => {
+            setView('live', { idleSubview: null });
+          }}
+          onHistory={() => {
+            setView('spots', { idleSubview: null });
+          }}
+        />
+      ) : null}
       <IntelligenceViewSwitcher label="Idling views">
         <button
           type="button"
@@ -194,7 +233,32 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
       </IntelligenceViewSwitcher>
 
       {subView === 'instances' ? (
-        <InstancesTab kind="idle" from={from} to={to} vehicle={vehicle} driver={driver} />
+        <>
+          <label className="intel-idle-short-toggle">
+            <input
+              type="checkbox"
+              aria-label="Include short stops"
+              checked={idleShort === '1'}
+              onChange={(e) => setIdleShort(e.target.checked ? '1' : '')}
+            />
+            Include short stops
+            <small>
+              {idleShort === '1'
+                ? 'Every stop with the engine on, as the daily digest counts idling cost.'
+                : idleSetting?.idleThresholdMin
+                  ? `Only stops of ${idleSetting.idleThresholdMin} min or more.`
+                  : 'Only stops at or over your idle limit.'}
+            </small>
+          </label>
+          <InstancesTab
+            kind="idle"
+            from={from}
+            to={to}
+            vehicle={vehicle}
+            driver={driver}
+            includeShort={idleShort === '1'}
+          />
+        </>
       ) : (
         <IntelligenceMapWorkspace
           label="Idling map and activity"
@@ -202,25 +266,38 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
           loading={loading}
         >
           <div className="ph-side">
-            <IdlingPanel
-              loading={loading}
-              view={view}
-              onView={setView}
-              live={filteredLive}
-              liveTotals={liveTotals}
-              spots={filteredSpots}
-              historyTotals={historyTotals}
-              historyLabel={from || to ? 'selected period' : '7 days'}
-              truncated={truncated}
-              idleSetting={idleSetting}
-              errors={errors}
-              selectedId={selectedId}
-              onPickLive={(item) => setSelectedId(`live:${item._id}`)}
-              onPickSpot={(item) => setSelectedId(item.id)}
-            />
+            {driver && errors['driver assignments'] ? (
+              <div role="alert">
+                <p>
+                  Could not load driver assignments. Idling totals for this driver are unavailable.
+                </p>
+                <button type="button" onClick={loadData}>
+                  Retry driver idling
+                </button>
+              </div>
+            ) : (
+              <IdlingPanel
+                loading={loading}
+                view={view}
+                onView={setView}
+                live={filteredLive}
+                showSummary={false}
+                liveTotals={liveTotals}
+                spots={filteredSpots}
+                historyTotals={historyTotals}
+                historyLabel={from || to ? 'selected period' : '7 days'}
+                truncated={truncated}
+                idleSetting={idleSetting}
+                errors={errors}
+                selectedId={selectedId}
+                onPickLive={(item) => setSelectedId(`live:${item._id}`)}
+                onPickSpot={(item) => setSelectedId(item.id)}
+              />
+            )}
           </div>
           <div className="ph-map-wrap">
             <RiskMapCanvas
+              key={vehicle || driver || 'fleet'}
               type="idling"
               idleLive={filteredLive}
               idleSpots={filteredSpots}

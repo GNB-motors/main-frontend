@@ -14,6 +14,14 @@ vi.mock('@react-google-maps/api', () => ({
 vi.mock('../../services/HotspotService.js', () => ({
   listHotspots: vi.fn(),
   getDrainMap: vi.fn(),
+  getHotspotIncidents: vi.fn().mockResolvedValue({
+    hotspotId: 'h',
+    shared: false,
+    windowDays: 90,
+    incidentCount: 0,
+    otherFleets: 0,
+    items: [],
+  }),
   provenanceOf: (h) => (h?.orgId ? 'own-manual' : 'network'),
 }));
 

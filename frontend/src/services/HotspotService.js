@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import { parseSafe } from '../schemas/validate.js';
 
 /**
  * HotspotService — siphoning/theft hotspot list + review actions.
@@ -6,7 +7,9 @@ import apiClient from '../utils/axiosConfig';
  * hotspots (orgId: null). Shared rows carry only aggregates (centroid,
  * incidentCount, lastIncidentAt) — never which org contributed an incident.
  * The UI must keep it that way: no endpoint returns per-org incident lists
- * for a shared hotspot, and none should be added.
+ * for a shared hotspot, and none should be added. (`getHotspotIncidents` on a
+ * shared hotspot returns only the caller's OWN alerts, plus a count of the
+ * rest; no other fleet's row ever leaves the server.)
  */
 export async function listHotspots({ signal } = {}) {
   const response = await apiClient.get('/api/hotspots', { signal });
@@ -27,6 +30,19 @@ export async function getDrainMap({ from, to, bbox, signal } = {}) {
   if (bbox) params.bbox = bbox;
   const response = await apiClient.get('/api/hotspots/map', { params, signal });
   return response.data?.data ?? null;
+}
+
+/**
+ * The incidents behind one hotspot: this org's fuel-theft and unauthorised-
+ * refuel alerts inside its circle over the learning window, newest first.
+ */
+export async function getHotspotIncidents(id, { signal } = {}) {
+  const response = await apiClient.get(`/api/hotspots/${id}/incidents`, { signal });
+  return parseSafe(
+    'hotspotIncidentsSchema',
+    () => import('../schemas/hotspotIncidents.schema.js'),
+    response.data?.data ?? null,
+  );
 }
 
 export async function dismissHotspot(id, { signal } = {}) {

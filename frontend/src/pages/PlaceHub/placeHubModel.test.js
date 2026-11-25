@@ -314,6 +314,16 @@ describe('idling', () => {
       excessRupees: 200,
     });
   });
+
+  it('keeps unpriced idling unknown instead of ₹0', () => {
+    const unpriced = { ...ev(), rupees: null };
+    expect(liveIdleTotals([unpriced])).toMatchObject({ rupees: null, excessRupees: null });
+    expect(idleHistoryTotals([unpriced])).toMatchObject({ rupees: null, excessRupees: null });
+    // One priced event: the total is what is known, not wiped out.
+    expect(idleHistoryTotals([unpriced, ev()]).rupees).toBe(100);
+    // No events at all is a real zero.
+    expect(idleHistoryTotals([])).toMatchObject({ events: 0, hours: 0, rupees: 0 });
+  });
 });
 
 describe('fuel risk', () => {

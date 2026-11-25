@@ -76,7 +76,8 @@ export const METRIC_LABELS = {
   moving: 'Moving',
   atPlant: 'At plant',
   parked: 'Parked',
-  engineOnIdleVerified: 'Engine on, idle verified',
+  // Same meaning as Track's "Idling" status: stopped with the engine running.
+  engineOnIdleVerified: 'Idling (stopped, engine on)',
   engineStateUnknown: 'Engine state unknown',
   dark: 'Dark (no signal)',
   // 2. Yesterday's work / Today so far

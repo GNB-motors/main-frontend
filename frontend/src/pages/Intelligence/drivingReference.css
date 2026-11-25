@@ -107,3 +107,68 @@
 .intelligence-page .intel-driving-tab .leaflet-tooltip-top::before {
   border-top-color: #fff;
 }
+
+/* Idle hours by truck (bars) and by day (line), under the idling period read. */
+.intel-idle-charts {
+  display: grid;
+  flex: 1 1 100%;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px 20px 18px;
+  border-top: 1px solid #ececee;
+}
+.intel-idle-chart {
+  margin: 0;
+  min-width: 0;
+}
+.intel-idle-chart figcaption {
+  margin-bottom: 10px;
+  color: #5b5b63;
+  font-size: 12px;
+  font-weight: 600;
+}
+.intel-idle-bar {
+  display: grid;
+  grid-template-columns: 96px 1fr 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 12.5px;
+}
+.intel-idle-bar i {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: #f1f1f4;
+  overflow: hidden;
+}
+.intel-idle-bar b {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #e8833a;
+}
+.intel-idle-bar-label {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.intel-idle-bar-value {
+  text-align: right;
+  color: #5b5b63;
+  font-variant-numeric: tabular-nums;
+}
+
+.intel-idle-short-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.intel-idle-short-toggle small {
+  color: #5b5b63;
+  font-weight: 400;
+}

@@ -275,7 +275,10 @@ describe('the issue groups', () => {
   });
 
   it('drops the shared advice when the trucks were told different things', () => {
-    const [group] = groupIssuesByKind([silent('a', 'A', 4), { ...silent('b', 'B', 5), advice: 'Other.' }]);
+    const [group] = groupIssuesByKind([
+      silent('a', 'A', 4),
+      { ...silent('b', 'B', 5), advice: 'Other.' },
+    ]);
     expect(group.advice).toBeNull();
   });
 

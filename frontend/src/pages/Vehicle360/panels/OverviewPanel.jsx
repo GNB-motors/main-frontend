@@ -9,6 +9,7 @@ import { timeAgo } from '../../../utils/formatters';
 import { viewOf } from '../../../utils/liveView';
 import { trackLink } from '../../../utils/redesign/links';
 import ReferenceOverviewMap from './overview/ReferenceOverviewMap';
+import TruckActivityStrip from './overview/TruckActivityStrip';
 import {
   DistanceCard,
   ServiceCard,
@@ -70,6 +71,7 @@ export default function OverviewPanel({
     <PanelErrorBoundary name="vehicle-overview">
       <div className="vdo-overview">
         <div className="vdo-content">
+          <TruckActivityStrip vehicle={reg} stops={track.data?.stops} />
           <div className="vdo-top-row">
             <DistanceCard
               series={series}

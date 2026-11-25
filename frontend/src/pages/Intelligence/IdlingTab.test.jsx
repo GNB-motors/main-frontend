@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import IdlingTab from './IdlingTab.jsx';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
+import DriverVehicleAssignmentService from '@/services/DriverVehicleAssignmentService';
 import PlaceHubService from '../PlaceHub/PlaceHubService.js';
+
+const idleMap = () => within(screen.getByRole('region', { name: 'Idling map and activity' }));
 
 vi.mock('@react-google-maps/api', () => ({
   useLoadScript: () => ({ isLoaded: false, loadError: null }),
@@ -25,11 +28,19 @@ vi.mock('../PlaceHub/PlaceHubService.js', () => ({
 }));
 
 vi.mock('./InstancesTab', () => ({
-  default: ({ kind }) => <div data-testid="instances-tab">Instances Log: {kind}</div>,
+  default: ({ kind, includeShort }) => (
+    <div data-testid="instances-tab">
+      Instances Log: {kind} includeShort:{String(includeShort)}
+    </div>
+  ),
 }));
 
 vi.mock('../PlaceHub/page/useHtmlDark.js', () => ({
   default: () => false,
+}));
+
+vi.mock('@/services/DriverVehicleAssignmentService', () => ({
+  default: { getAssignmentPage: vi.fn() },
 }));
 
 describe('IdlingTab', () => {
@@ -46,6 +57,10 @@ describe('IdlingTab', () => {
   });
   beforeEach(() => {
     vi.clearAllMocks();
+    DriverVehicleAssignmentService.getAssignmentPage.mockResolvedValue({
+      results: [],
+      meta: { totalPages: 1 },
+    });
     IdlingConsoleService.getLive.mockResolvedValue([
       {
         _id: 'live1',
@@ -90,12 +105,45 @@ describe('IdlingTab', () => {
     );
     expect(screen.getByRole('region', { name: 'Idling period read' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', { name: /Closed idle events 1 Selected period/ }),
+      // One finished stop plus the live one that started inside the period:
+      // the same stops the idle-moments log lists.
+      await screen.findByRole('button', { name: /Idle stops 2 Selected period/ }),
     ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('figure', { name: 'Recorded idle hours by truck' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('figure', { name: 'Recorded idle hours by day' })).toBeInTheDocument();
     expect(IdlingConsoleService.getHistory).toHaveBeenCalledWith(
       expect.objectContaining({ to: '2026-11-06T00:00:00Z' }),
       expect.any(Object),
     );
+  });
+
+  it('asks idle history for whole IST days, like the idle-moments log', async () => {
+    render(
+      <MemoryRouter>
+        <IdlingTab from="2026-11-18" to="2026-11-24" />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('button', { name: /Idle stops/ });
+    expect(IdlingConsoleService.getHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: '2026-11-18T00:00:00.000+05:30',
+        to: '2026-11-24T23:59:59.999+05:30',
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('lists short stops in the idle log when the link asks for them, and toggles them', async () => {
+    render(
+      <MemoryRouter initialEntries={['/?idleSubview=instances&idleShort=1']}>
+        <IdlingTab from="2026-11-24" to="2026-11-24" vehicle="WB11M3462" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByTestId('instances-tab')).toHaveTextContent('includeShort:true');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Include short stops/ }));
+    expect(screen.getByTestId('instances-tab')).toHaveTextContent('includeShort:false');
   });
 
   it('renders live idling vehicles, KPIs, and threshold rule link', async () => {
@@ -105,7 +153,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     expect(screen.getByText('Excess')).toBeInTheDocument();
     expect(screen.getByText('20 min')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Change' })).toHaveAttribute(
@@ -121,7 +169,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /Idle spots · 7 days/ }));
     expect(await screen.findByText(/1 idles/)).toBeInTheDocument();
   });
@@ -133,7 +181,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /Idle moments log/ }));
     expect(await screen.findByTestId('instances-tab')).toHaveTextContent('Instances Log: idle');
   });
@@ -145,7 +193,7 @@ describe('IdlingTab', () => {
       </MemoryRouter>,
     );
 
-    const vehicleRow = await screen.findByText('WB11G0962');
+    const vehicleRow = await idleMap().findByText('WB11G0962');
     fireEvent.click(vehicleRow);
     expect(await screen.findByRole('complementary', { name: 'WB11G0962' })).toBeInTheDocument();
     expect(screen.getByText('Burned so far')).toBeInTheDocument();
@@ -162,5 +210,75 @@ describe('IdlingTab', () => {
     expect(
       await screen.findByText(/Some idling data could not load \(live idling\)/),
     ).toBeInTheDocument();
+  });
+  it('filters the map, lists and period read to the selected driver', async () => {
+    IdlingConsoleService.getLive.mockResolvedValue([
+      {
+        _id: '1',
+        registrationNumber: 'WB11T0662',
+        driverId: 'driver1',
+        startAt: '2026-11-01T00:00:00Z',
+        durationMin: 45,
+      },
+      {
+        _id: '2',
+        registrationNumber: 'WB11T0999',
+        driverId: 'driver2',
+        startAt: '2026-11-01T00:00:00Z',
+        durationMin: 45,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <IdlingTab driver="driver1" from="2026-11-01" to="2026-11-07" />
+      </MemoryRouter>,
+    );
+    expect(await idleMap().findByText('WB11T0662')).toBeInTheDocument();
+    expect(screen.queryByText('WB11T0999')).not.toBeInTheDocument();
+    expect(screen.queryByText('WB11G0962')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Idling now 1/ })).toBeInTheDocument();
+    expect(DriverVehicleAssignmentService.getAssignmentPage).toHaveBeenCalledWith(
+      expect.objectContaining({ driverId: 'driver1', includePast: true }),
+      expect.any(Object),
+    );
+  });
+  it('loads all assignment pages before attributing events without a recorded driver', async () => {
+    DriverVehicleAssignmentService.getAssignmentPage
+      .mockResolvedValueOnce({ results: [], meta: { totalPages: 2 } })
+      .mockResolvedValueOnce({
+        results: [
+          {
+            driverId: 'driver1',
+            vehicleId: { _id: 'truck1', registrationNumber: 'WB11G0962' },
+            startDate: '2026-11-01T00:00:00Z',
+            endDate: null,
+          },
+        ],
+        meta: { totalPages: 2 },
+      });
+    render(
+      <MemoryRouter>
+        <IdlingTab driver="driver1" />
+      </MemoryRouter>,
+    );
+    expect(await idleMap().findByText('WB11G0962')).toBeInTheDocument();
+    expect(DriverVehicleAssignmentService.getAssignmentPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2 }),
+      expect.any(Object),
+    );
+    expect(screen.getByRole('button', { name: /Idle stops 1/ })).toBeInTheDocument();
+  });
+  it('shows unavailable totals and a retry when driver attribution cannot load', async () => {
+    DriverVehicleAssignmentService.getAssignmentPage.mockRejectedValue(new Error('Offline'));
+    render(
+      <MemoryRouter>
+        <IdlingTab driver="driver1" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Idling totals for this driver are unavailable',
+    );
+    expect(screen.queryByText('No truck is idling right now')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry driver idling' })).toBeInTheDocument();
   });
 });

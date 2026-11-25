@@ -47,5 +47,6 @@ describe('RunsTruckBar', () => {
       screen.getByRole('link', {
         name: 'WB11L8862, 1,240 km in total, 900 km loaded, 300 km empty, 40 km plant to plant',
       }),
-    ).toBeInTheDocument();  });
+    ).toBeInTheDocument();
+  });
 });

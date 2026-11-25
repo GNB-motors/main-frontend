@@ -135,7 +135,12 @@ describe('ReportCardsTab', () => {
         {
           ...cards.items[1],
           kmInPeriod: 0,
-          assignmentCoverage: { trucks: ['WB11T0662'], assignmentCount: 2, measuredDays: 1 },
+          assignmentCoverage: {
+            trucks: ['WB11T0662'],
+            assignmentCount: 2,
+            measuredDays: 1,
+            idleMinutes: 95,
+          },
         },
         {
           ...cards.items[1],
@@ -154,6 +159,13 @@ describe('ReportCardsTab', () => {
     expect(screen.getByRole('columnheader', { name: 'Assignments' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Measured days' })).toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Score' })).not.toBeInTheDocument();
+    // Idle time each driver is responsible for, or a dash when none is recorded.
+    expect(screen.getByRole('columnheader', { name: 'Recorded idling' })).toBeInTheDocument();
+    const rows = screen.getAllByRole('row');
+    expect(rows.find((r) => r.textContent.includes('Ramesh Yadav')).textContent).toMatch(
+      /1h 35m|1 h 35 min/,
+    );
+    expect(rows.find((r) => r.textContent.includes('Other Driver')).textContent).toContain('—');
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search drivers' }), {
       target: { value: 'WB11T0662' },
     });

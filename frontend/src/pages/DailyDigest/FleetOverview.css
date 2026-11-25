@@ -423,6 +423,9 @@
   color: var(--rd-ink-2);
   font-size: 13px;
 }
+.db-leak-total--quiet strong {
+  color: var(--rd-ink);
+}
 .db-leak-split {
   display: flex;
   gap: 2px;

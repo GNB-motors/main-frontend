@@ -93,6 +93,19 @@ const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttent
   );
 
 describe('OwnerReportPanel', () => {
+  it('keeps a zero cost unknown when calculations are incomplete', async () => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 0,
+      partial: true,
+      sections: [],
+      coverageNote: '2 items could not be calculated',
+    });
+    const { container } = renderPanel();
+    expect(await screen.findByText(/Not counted yet. Fuel calculations/)).toBeInTheDocument();
+    expect(container.querySelector('.db-leak-total strong')).toHaveTextContent('—');
+    expect(container.querySelector('.db-leak-total')).toHaveClass('db-leak-total--quiet');
+    expect(screen.queryByText('₹0')).not.toBeInTheDocument();
+  });
   it('explains the server overlap deduction without showing additive category percentages', async () => {
     fleetViewService.getMorningBrief.mockResolvedValue({
       totalRupees: 20675,
@@ -324,7 +337,8 @@ describe('OwnerReportPanel', () => {
     renderPanel();
     expect(await screen.findByRole('heading', { name: 'Needs attention' })).toBeTruthy();
     const card = screen.getByRole('region', { name: 'Needs attention' });
-    expect(within(card).getByText('Possible fuel loss')).toBeTruthy();
+    // The heading can paint before the report's rows; wait for the rows.
+    expect(await within(card).findByText('Possible fuel loss')).toBeTruthy();
     expect(within(card).getByRole('link', { name: 'Review SOS and breakdowns' })).toBeTruthy();
     expect(within(card).getByText('Still open now')).toBeTruthy();
     expect(within(card).getByText('No bills to approve right now.')).toBeTruthy();
@@ -342,11 +356,47 @@ describe('OwnerReportPanel', () => {
     expect(screen.getByText('estimated extra fuel cost for this period')).toBeTruthy();
     expect(screen.getByText('₹2,207')).toBeTruthy();
     expect(screen.getByText('Check the receipts')).toBeTruthy();
-    // each truck is a chip that opens its own page
+    // Fuel loss opens the selected truck and day in Fuel checks.
     const chip = screen.getByText('MH12AB1234').closest('a');
-    expect(chip.getAttribute('href')).toBe('/vehicles/MH12AB1234');
+    const destination = new URL(chip.getAttribute('href'), 'https://fleet.invalid');
+    expect(destination.pathname).toBe('/intelligence');
+    expect(Object.fromEntries(destination.searchParams)).toMatchObject({
+      tab: 'fuel',
+      fuelView: 'drain',
+      vehicle: 'MH12AB1234',
+      from: TODAY_IST,
+      to: TODAY_IST,
+    });
     expect(chip.textContent).toContain('₹270');
     expect(screen.queryByText('17,635.8')).toBeNull();
+  });
+
+  it.each([
+    ['excessIdling', 'idling', { idleSubview: 'instances', idleShort: '1' }],
+    ['fuelOverModel', 'mileage', {}],
+  ])('keeps truck and day on %s chips', async (key, tab, extra) => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 100,
+      sections: [
+        {
+          key,
+          status: 'ok',
+          rupees: 100,
+          vehicles: [{ registrationNumber: 'WB11S6162', rupees: 100 }],
+        },
+      ],
+    });
+    renderPanel('2026-11-03');
+    const chip = await screen.findByRole('link', { name: /WB11S6162/ });
+    const destination = new URL(chip.getAttribute('href'), 'https://fleet.invalid');
+    expect(destination.pathname).toBe('/intelligence');
+    expect(Object.fromEntries(destination.searchParams)).toMatchObject({
+      tab,
+      vehicle: 'WB11S6162',
+      from: '2026-11-03',
+      to: '2026-11-03',
+      ...extra,
+    });
   });
 
   it('calls the day "Today so far" and leaves a live day\'s percentages open', async () => {
@@ -462,5 +512,38 @@ describe('OwnerReportPanel', () => {
     // Fleet now is read live: on a past day it carries the "Live" tag.
     expect((await screen.findAllByText('Live')).length).toBeGreaterThan(0);
     expect(screen.queryByText(/^Fleet at /)).toBeNull();
+  });
+
+  it('explains no long idling when the idling cost card still names trucks', async () => {
+    // The cost card counts every idle minute; "Long idling" lists only stops
+    // over the org's limit. Both are right, so the empty line must say why.
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 100,
+      sections: [
+        {
+          key: 'excessIdling',
+          status: 'ok',
+          rupees: 100,
+          vehicles: [{ registrationNumber: 'WB11S6162', rupees: 100 }],
+        },
+      ],
+    });
+    fleetViewService.getOwnerReport.mockResolvedValue({
+      ...REPORT,
+      sections: REPORT.sections.map((s) =>
+        s.id === 'exceptions'
+          ? {
+              ...s,
+              rows: [...s.rows, { kind: 'idling', period: 'day', state: 'ok', count: 0 }],
+            }
+          : s,
+      ),
+    });
+    renderPanel('2026-11-03');
+    expect(
+      await screen.findByText(
+        'No stops met the alert duration. The fuel estimate can include shorter idles.',
+      ),
+    ).toBeTruthy();
   });
 });

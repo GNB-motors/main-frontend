@@ -79,6 +79,8 @@ const OptimalSpeedPage = lazy(() => import('../../pages/OptimalSpeed/OptimalSpee
 const RefuelAdvisoryPage = lazy(() => import('../../pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('../../pages/DrivingDna/DrivingDnaPage.jsx'));
 const DefLedgerPage = lazy(() => import('../../pages/DefLedger/DefLedgerPage.jsx'));
+// Idling, Fuel checks and Mileage & DEF: former Intelligence tabs, now under Fuel Management.
+const FuelInsightPage = lazy(() => import('../../pages/FuelInsights/FuelInsightPage.jsx'));
 const FleetCoveragePage = lazy(() => import('../../pages/FleetCoverage/FleetCoveragePage.jsx'));
 const Vehicle360Page = lazy(() => import('../../pages/Vehicle360/Vehicle360Page.jsx'));
 const AccessControlPage = lazy(() => import('../../pages/AccessControl/AccessControlPage.jsx'));
@@ -93,7 +95,7 @@ const dashboardRoutes = (
   <>
     <Route path="/digest" element={<DailyDigestPage />} />
     <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
-    <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/idling" replace />} />
     <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
     <Route path="/def-ledger/log" element={<AdBlueLogPage />} />
@@ -103,6 +105,9 @@ const dashboardRoutes = (
     <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
     <Route path="/route-hub" element={<RouteHubPage />} />
     <Route path="/intelligence" element={<IntelligencePage />} />
+    <Route path="/idling" element={<FuelInsightPage tab="idling" />} />
+    <Route path="/fuel-checks" element={<FuelInsightPage tab="fuel" />} />
+    <Route path="/mileage-def" element={<FuelInsightPage tab="mileage" />} />
     <Route
       path="/route-intelligence"
       element={<RedirectWithState to="/route-hub?tab=intelligence" />}
@@ -146,8 +151,8 @@ const dashboardRoutes = (
     />
     <Route path="/overspeed" element={<RedirectWithState to="/intelligence?tab=overspeed" />} />
     {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
-    <Route path="/hotspots" element={<Navigate to="/intelligence?tab=fuel" replace />} />
-    <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
+    <Route path="/hotspots" element={<Navigate to="/fuel-checks" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/idling" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
     <Route

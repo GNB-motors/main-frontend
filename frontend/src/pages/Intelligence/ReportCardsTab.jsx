@@ -7,7 +7,7 @@ import './reportCardsReference.css';
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
-import { formatNumber } from '@/utils/redesign/format';
+import { formatDuration, formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
 import useUrlFilter from '@/hooks/useUrlFilter';
 import TripService from '@/pages/Trip/services/TripService';
@@ -262,6 +262,15 @@ export default function ReportCardsTab({
           render: (card) => card.assignmentCoverage?.measuredDays ?? '—',
         }
       : null,
+    subject === 'driver' && {
+      key: 'idleMinutes',
+      label: 'Recorded idling',
+      align: 'right',
+      render: (card) =>
+        card.assignmentCoverage?.idleMinutes == null
+          ? '—'
+          : formatDuration(card.assignmentCoverage.idleMinutes),
+    },
     {
       key: 'distance',
       label: 'Distance',

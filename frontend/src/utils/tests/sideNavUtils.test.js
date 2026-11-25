@@ -88,13 +88,16 @@ describe('Trip Windows nav access', () => {
 });
 
 describe('Fuel Management standalone navigation', () => {
-  it('keeps all three pages directly accessible without Reports access', () => {
+  it('keeps every page directly accessible without Reports access', () => {
     const items = getVisibleNavItems(flags(['fuelIntegrity', 'vehicleActivity']));
     const fuel = items.find((item) => item.groupId === 'fuelManagement');
     expect(fuel.children.map((child) => child.to)).toEqual([
       '/mileage',
       '/fuel-integrity',
       '/def-ledger',
+      '/idling',
+      '/fuel-checks',
+      '/mileage-def',
     ]);
     expect(shows(items, '/reports')).toBe(false);
   });

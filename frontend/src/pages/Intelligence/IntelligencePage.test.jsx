@@ -122,8 +122,7 @@ describe('IntelligencePage', () => {
     const sections = {
       Issues: [],
       'Trucks & drivers': ['Trucks', 'Drivers'],
-      Driving: ['Idling', 'Overspeed', 'Cruise & gears', 'Detours'],
-      'Fuel & DEF': ['Fuel checks', 'Mileage & DEF'],
+      Driving: ['Overspeed', 'Cruise & gears', 'Detours'],
       'Runs & places': ['Loaded & empty runs', 'Places'],
     };
     for (const [section, tabs] of Object.entries(sections)) {
@@ -203,12 +202,19 @@ describe('IntelligencePage', () => {
   });
 
   it('opens on the tab the URL asks for', async () => {
-    renderPage('/intelligence?tab=mileage');
+    renderPage('/intelligence?tab=detours');
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /Mileage & DEF/ })).toHaveAttribute(
-        'aria-selected',
-        'true',
+      expect(screen.getByRole('tab', { name: /Detours/ })).toHaveAttribute('aria-selected', 'true'),
+    );
+  });
+
+  it('sends a link to a tab that moved under Fuel Management on, filters kept', async () => {
+    renderPage('/intelligence?tab=idling&vehicle=WB11S6162&from=2026-11-23&to=2026-11-23');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/idling?vehicle=WB11S6162&from=2026-11-23&to=2026-11-23',
       ),
     );
   });
@@ -218,12 +224,12 @@ describe('IntelligencePage', () => {
 
     fireEvent.click(await screen.findByRole('tab', { name: 'Driving' }));
     await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('/intelligence?tab=idling'),
+      expect(screen.getByTestId('location')).toHaveTextContent('/intelligence?tab=overspeed'),
     );
-    fireEvent.click(screen.getByRole('tab', { name: 'Overspeed' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Detours' }));
 
     await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('/intelligence?tab=overspeed'),
+      expect(screen.getByTestId('location')).toHaveTextContent('/intelligence?tab=detours'),
     );
   });
 

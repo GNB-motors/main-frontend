@@ -11,7 +11,8 @@ import { formatNumber } from '@/utils/redesign/format';
  * can be checked.
  */
 export default function ReportCardTile({ card, onOpen }) {
-  const TrendIcon = card?.trend === 'UP' ? TrendingUp : card?.trend === 'DOWN' ? TrendingDown : Minus;
+  const TrendIcon =
+    card?.trend === 'UP' ? TrendingUp : card?.trend === 'DOWN' ? TrendingDown : Minus;
   const trendTone =
     card?.trend === 'UP'
       ? 'text-[var(--rd-good-ink)]'
@@ -30,21 +31,31 @@ export default function ReportCardTile({ card, onOpen }) {
           className="min-w-0 text-left text-[14px] font-semibold text-[var(--rd-ink)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rd-brand-2)]"
         >
           {card?.name}
-          {card?.make ? <span className="font-normal text-[var(--rd-ink-2)]">{` · ${card.make}`}</span> : null}
-          {card?.model ? <span className="font-normal text-[var(--rd-ink-2)]">{` ${card.model}`}</span> : null}
+          {card?.make ? (
+            <span className="font-normal text-[var(--rd-ink-2)]">{` · ${card.make}`}</span>
+          ) : null}
+          {card?.model ? (
+            <span className="font-normal text-[var(--rd-ink-2)]">{` ${card.model}`}</span>
+          ) : null}
         </button>
         {card?.trend ? (
           <span className={`inline-flex shrink-0 items-center ${trendTone}`}>
             <TrendIcon size={16} aria-hidden="true" />
             <span className="sr-only">
-              {card.trend === 'UP' ? 'getting better' : card.trend === 'DOWN' ? 'getting worse' : 'steady'}
+              {card.trend === 'UP'
+                ? 'getting better'
+                : card.trend === 'DOWN'
+                  ? 'getting worse'
+                  : 'steady'}
             </span>
           </span>
         ) : null}
       </div>
 
       {card?.headline ? (
-        <p className="mt-1 mb-0 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">{card.headline}</p>
+        <p className="mt-1 mb-0 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">
+          {card.headline}
+        </p>
       ) : null}
 
       {card?.strengths?.length ? (
@@ -61,7 +72,9 @@ export default function ReportCardTile({ card, onOpen }) {
             <div key={`${chip.key}-${chip.label}`} className="flex flex-col gap-0.5">
               <InsightChip chip={chip} size="sm" />
               {isFalling && chip.advice ? (
-                <span className="text-[12px] leading-relaxed text-[var(--rd-ink-2)]">{chip.advice}</span>
+                <span className="text-[12px] leading-relaxed text-[var(--rd-ink-2)]">
+                  {chip.advice}
+                </span>
               ) : null}
             </div>
           ))}
