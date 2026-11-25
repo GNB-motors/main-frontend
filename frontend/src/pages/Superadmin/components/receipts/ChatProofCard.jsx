@@ -179,7 +179,7 @@ const ChatProofCard = ({ draft }) => {
         <div className="ra-proof-section__title">What the photo showed</div>
         {photoRead ? (
           <div className="ra-proof-note">
-            {KIND_LABEL[kind] || 'Photo'}
+            {(Object.hasOwn(KIND_LABEL, kind) && KIND_LABEL[kind]) || 'Photo'}
             {docKind ? ` · ${docKind}` : ''}
             {kindConfidence != null && kindConfidence !== ''
               ? ` · confidence ${kindConfidence}`

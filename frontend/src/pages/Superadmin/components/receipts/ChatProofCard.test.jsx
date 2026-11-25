@@ -98,6 +98,14 @@ describe('ChatProofCard — spec 3 and 4: what we read and what the photo showed
     expect(screen.queryByText('0 km')).toBeNull();
   });
 
+  it('an unexpected photo kind falls back to a plain label', () => {
+    const draft = { ...wb11s5962, photoRead: { ...wb11s5962.photoRead, kind: '__proto__' } };
+    render(<ChatProofCard draft={draft} />);
+
+    expect(screen.getByText('What the photo showed')).toBeTruthy();
+    expect(screen.getAllByText(/^Photo/).length).toBeGreaterThan(0);
+  });
+
   it('says that the photo was not a pump screen or bill we could read', () => {
     render(<ChatProofCard draft={wb11s5962} />);
 
