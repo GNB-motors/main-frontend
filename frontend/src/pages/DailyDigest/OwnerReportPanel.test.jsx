@@ -371,7 +371,7 @@ describe('OwnerReportPanel', () => {
   });
 
   it.each([
-    ['excessIdling', 'idling', { idleSubview: 'instances' }],
+    ['excessIdling', 'idling', { idleSubview: 'instances', idleShort: '1' }],
     ['fuelOverModel', 'mileage', {}],
   ])('keeps truck and day on %s chips', async (key, tab, extra) => {
     fleetViewService.getMorningBrief.mockResolvedValue({

@@ -152,7 +152,8 @@ function TruckChips({ trucks, day, kind }) {
             day={day}
             to={
               kind === 'excessIdling'
-                ? `/intelligence?tab=idling&idleSubview=instances&vehicle=${encodeURIComponent(truck.reg)}`
+                ? // The digest's idling cost counts every stop, so its trucks open with short stops listed.
+                  `/intelligence?tab=idling&idleSubview=instances&idleShort=1&vehicle=${encodeURIComponent(truck.reg)}`
                 : kind === 'fuelOverModel'
                   ? `/intelligence?tab=mileage&vehicle=${encodeURIComponent(truck.reg)}`
                   : kind === 'moneyTheft'

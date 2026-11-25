@@ -6,11 +6,15 @@ const period = { preset: '7d', from: '2026-10-27', to: '2026-11-02', label: 'Las
 
 describe('IntelligencePeriodPicker', () => {
   it('marks the period that is on', () => {
-    render(
-      <IntelligencePeriodPicker period={period} onPreset={vi.fn()} onCustom={vi.fn()} />,
+    render(<IntelligencePeriodPicker period={period} onPreset={vi.fn()} onCustom={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Last 30 days' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Last 30 days' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 
   it('asks for another preset when one is picked', async () => {
@@ -38,7 +42,9 @@ describe('IntelligencePeriodPicker', () => {
     render(<IntelligencePeriodPicker period={period} onPreset={vi.fn()} onCustom={onCustom} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Custom/ }));
-    fireEvent.change(screen.getByLabelText('Period from date'), { target: { value: '2026-10-20' } });
+    fireEvent.change(screen.getByLabelText('Period from date'), {
+      target: { value: '2026-10-20' },
+    });
 
     expect(onCustom).toHaveBeenCalledWith({ from: '2026-10-20', to: '2026-11-02' });
   });

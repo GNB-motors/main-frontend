@@ -129,32 +129,38 @@ export default function IdlingPeriodRead({
           </button>
         ))}
       </div>
-      {trucks.length ? (
-        <figure className="intel-idle-chart" aria-label="Recorded idle hours by truck">
-          <figcaption>Recorded idle hours · top {trucks.length} trucks</figcaption>
-          {trucks.map(([truck, value]) => (
-            <div className="intel-idle-bar" key={truck}>
-              <span>{truck}</span>
-              <i aria-hidden="true">
-                <b style={{ width: `${(100 * value) / (trucks[0][1] || 1)}%` }} />
-              </i>
-              <span>{formatNumber(value, { digits: 1 })} h</span>
-            </div>
-          ))}
-        </figure>
-      ) : null}
-      {days.length ? (
-        <figure className="intel-idle-chart" aria-label="Recorded idle hours by day">
-          <figcaption>Recorded idle hours by day</figcaption>
-          <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={days}>
-              <XAxis dataKey="day" tickFormatter={(day) => day.slice(5)} />
-              <YAxis unit=" h" />
-              <Tooltip />
-              <Line dataKey="hours" stroke="#315be1" isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </figure>
+      {trucks.length || days.length ? (
+        <div className="intel-idle-charts">
+          {trucks.length ? (
+            <figure className="intel-idle-chart" aria-label="Recorded idle hours by truck">
+              <figcaption>Recorded idle hours · top {trucks.length} trucks</figcaption>
+              {trucks.map(([truck, value]) => (
+                <div className="intel-idle-bar" key={truck}>
+                  <span className="intel-idle-bar-label">{truck}</span>
+                  <i aria-hidden="true">
+                    <b style={{ width: `${(100 * value) / (trucks[0][1] || 1)}%` }} />
+                  </i>
+                  <span className="intel-idle-bar-value">
+                    {formatNumber(value, { digits: 1 })} h
+                  </span>
+                </div>
+              ))}
+            </figure>
+          ) : null}
+          {days.length ? (
+            <figure className="intel-idle-chart" aria-label="Recorded idle hours by day">
+              <figcaption>Recorded idle hours by day</figcaption>
+              <ResponsiveContainer width="100%" height={140}>
+                <LineChart data={days}>
+                  <XAxis dataKey="day" tickFormatter={(day) => day.slice(5)} />
+                  <YAxis unit=" h" />
+                  <Tooltip />
+                  <Line dataKey="hours" stroke="#315be1" isAnimationActive={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </figure>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

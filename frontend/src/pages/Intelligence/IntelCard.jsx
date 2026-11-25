@@ -25,7 +25,9 @@ export default function IntelCard({
             <span className="intel-card-count">{count}</span>
           ) : null}
         </h3>
-        {info?.text ? <InfoTip text={info.text} basis={info.basis} label={`About ${title}`} /> : null}
+        {info?.text ? (
+          <InfoTip text={info.text} basis={info.basis} label={`About ${title}`} />
+        ) : null}
         {action ? <div className="intel-card-action">{action}</div> : null}
       </header>
       <div className={flush ? 'intel-card-body intel-card-body--flush' : 'intel-card-body'}>

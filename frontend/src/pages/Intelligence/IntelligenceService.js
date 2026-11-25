@@ -109,9 +109,18 @@ const IntelligenceService = {
     }),
 
   /** GET /api/intelligence/instances — the moments behind one kind of event. */
-  getInstances: ({ kind, from, to, vehicle, driver, page, limit, signal } = {}) =>
+  getInstances: ({ kind, from, to, vehicle, driver, page, limit, includeShort, signal } = {}) =>
     get('/api/intelligence/instances', {
-      params: { kind, from, to, vehicle, driver, page, limit },
+      params: {
+        kind,
+        from,
+        to,
+        vehicle,
+        driver,
+        page,
+        limit,
+        includeShort: includeShort ? 1 : undefined,
+      },
       signal,
       schema: 'InstancesResponseSchema',
       importer: importIntelligence,

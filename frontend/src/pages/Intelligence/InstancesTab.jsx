@@ -115,7 +115,14 @@ function FuelWindowValue({ row, maximum }) {
  * are not drawn, and a sentence that only repeats the row's number is said
  * once instead of on every row.
  */
-export default function InstancesTab({ kind, from, to, vehicle = '', driver = '' }) {
+export default function InstancesTab({
+  kind,
+  from,
+  to,
+  vehicle = '',
+  driver = '',
+  includeShort = false,
+}) {
   const [page, setPage] = useState(1);
   const [subKind, setSubKind] = useState('cruise');
   const [filterText, setFilterText] = useState('');
@@ -133,9 +140,10 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
         driver,
         page,
         limit: PAGE_SIZE,
+        includeShort,
         signal,
       }),
-    [activeKind, from, to, vehicle, driver, page],
+    [activeKind, from, to, vehicle, driver, page, includeShort],
   );
 
   const held = data?.held ? data.why : null;

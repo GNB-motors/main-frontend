@@ -28,7 +28,11 @@ vi.mock('../PlaceHub/PlaceHubService.js', () => ({
 }));
 
 vi.mock('./InstancesTab', () => ({
-  default: ({ kind }) => <div data-testid="instances-tab">Instances Log: {kind}</div>,
+  default: ({ kind, includeShort }) => (
+    <div data-testid="instances-tab">
+      Instances Log: {kind} includeShort:{String(includeShort)}
+    </div>
+  ),
 }));
 
 vi.mock('../PlaceHub/page/useHtmlDark.js', () => ({
@@ -129,6 +133,17 @@ describe('IdlingTab', () => {
       }),
       expect.any(Object),
     );
+  });
+
+  it('lists short stops in the idle log when the link asks for them, and toggles them', async () => {
+    render(
+      <MemoryRouter initialEntries={['/?idleSubview=instances&idleShort=1']}>
+        <IdlingTab from="2026-11-24" to="2026-11-24" vehicle="WB11M3462" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByTestId('instances-tab')).toHaveTextContent('includeShort:true');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Include short stops/ }));
+    expect(screen.getByTestId('instances-tab')).toHaveTextContent('includeShort:false');
   });
 
   it('renders live idling vehicles, KPIs, and threshold rule link', async () => {

@@ -217,8 +217,8 @@ export default function PlacesTab({ from, to }) {
                         {kmAtStake ? <small>{kmAtStake}</small> : null}
                         {suspicious ? (
                           <small>
-                            {suspicious} {suspicious === 1 ? 'trip' : 'trips'} here look unusual — worth a
-                            look
+                            {suspicious} {suspicious === 1 ? 'trip' : 'trips'} here look unusual —
+                            worth a look
                           </small>
                         ) : null}
                         {question.suggestion?.category ? (

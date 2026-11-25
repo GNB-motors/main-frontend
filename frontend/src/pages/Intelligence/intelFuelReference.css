@@ -399,3 +399,51 @@
 .intel-fuel-bar-tooltip .data-tooltip-label > i {
   background: #c56200;
 }
+
+/* The incidents behind the selected hotspot. */
+.intel-fuel-incidents h4 {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b5b63;
+}
+.intel-fuel-incidents ol {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid #ececee;
+  border-radius: 10px;
+}
+.intel-fuel-incidents li {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) 1.6fr;
+  gap: 12px;
+  padding: 9px 12px;
+  border-top: 1px solid #f1f1f4;
+  font-size: 12.5px;
+}
+.intel-fuel-incidents li:first-child {
+  border-top: 0;
+}
+.intel-fuel-incidents li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.intel-fuel-incidents li a {
+  font-weight: 600;
+  color: #2f58ee;
+}
+.intel-fuel-incidents li span {
+  color: #5b5b63;
+}
+.intel-fuel-incidents-note {
+  margin: 6px 0 0;
+  color: #5b5b63;
+  font-size: 12px;
+}

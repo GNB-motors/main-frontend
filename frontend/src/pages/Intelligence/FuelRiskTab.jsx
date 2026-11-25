@@ -10,6 +10,7 @@ import { X } from 'lucide-react';
 import { listHotspots, getDrainMap } from '../../services/HotspotService.js';
 import { fromHotspot, drainCellsOf, fuelTotals } from '../PlaceHub/model/fuelRisk.js';
 import InstancesTab from './InstancesTab';
+import HotspotIncidents from './HotspotIncidents';
 import RiskMapCanvas from './RiskMapCanvas';
 import '../PlaceHub/PlaceHub.css';
 import './IntelligencePage.css';
@@ -377,6 +378,9 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                     </div>
                   ))}
                 </div>
+                {selectedKind === 'hotspot' ? (
+                  <HotspotIncidents hotspotId={selectedItem.sourceId} />
+                ) : null}
                 <button className="intel-fuel-review-log" onClick={() => setSubView('instances')}>
                   Review fuel-drop records →
                 </button>

@@ -24,7 +24,7 @@ const card = {
   ],
   problems: [],
   kmInPeriod: 1240,
-  basis: { text: 'From the truck\'s own reports.', basis: '1,240 km · 9 trips' },
+  basis: { text: "From the truck's own reports.", basis: '1,240 km · 9 trips' },
 };
 
 describe('ReportCardTile', () => {

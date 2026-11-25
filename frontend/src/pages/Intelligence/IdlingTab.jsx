@@ -32,6 +32,8 @@ const isCanceled = (error) => error?.name === 'CanceledError' || error?.code ===
 export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
   const [subView, setSubView] = useUrlFilter('idleSubview', 'map', ['map', 'instances']);
   const [view, setView] = useUrlFilter('idleView', 'live', ['live', 'spots']);
+  // "1" lists stops under the idle limit too: what the digest's idling cost counts.
+  const [idleShort, setIdleShort] = useUrlFilter('idleShort', '', ['', '1']);
   const [selectedId, setSelectedId] = useState(null);
 
   const [live, setLive] = useState([]);
@@ -231,7 +233,32 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
       </IntelligenceViewSwitcher>
 
       {subView === 'instances' ? (
-        <InstancesTab kind="idle" from={from} to={to} vehicle={vehicle} driver={driver} />
+        <>
+          <label className="intel-idle-short-toggle">
+            <input
+              type="checkbox"
+              aria-label="Include short stops"
+              checked={idleShort === '1'}
+              onChange={(e) => setIdleShort(e.target.checked ? '1' : '')}
+            />
+            Include short stops
+            <small>
+              {idleShort === '1'
+                ? 'Every stop with the engine on, as the daily digest counts idling cost.'
+                : idleSetting?.idleThresholdMin
+                  ? `Only stops of ${idleSetting.idleThresholdMin} min or more.`
+                  : 'Only stops at or over your idle limit.'}
+            </small>
+          </label>
+          <InstancesTab
+            kind="idle"
+            from={from}
+            to={to}
+            vehicle={vehicle}
+            driver={driver}
+            includeShort={idleShort === '1'}
+          />
+        </>
       ) : (
         <IntelligenceMapWorkspace
           label="Idling map and activity"
