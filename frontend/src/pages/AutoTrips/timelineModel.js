@@ -94,7 +94,7 @@ export function timelineRows(trip) {
       id: 'pickup',
       kind: 'loading',
       label: 'Loading',
-      place: pickup.name || 'Pickup place',
+      place: pickup.name || pickup.label || 'Pickup place',
       placeNote: 'plant',
       at: pickupAt,
       leftAt: pickup.departedAt || null,

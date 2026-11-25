@@ -10,6 +10,12 @@ describe('facilityText', () => {
     expect(dropLabel(null)).toBe('—');
   });
 
+  it('spec 1: an unnamed drop shows the backend label before its area; a name still wins', () => {
+    const label = 'Unmarked, near Bhadutala (700 m), Medinipur, West Bengal';
+    expect(dropLabel({ label, areaName: 'SALMARI' })).toBe(label);
+    expect(dropLabel({ name: 'COSSIPORE', label })).toBe('COSSIPORE');
+  });
+
   it('says whether a role is the manager’s answer or learned, and how sure', () => {
     expect(roleText({ roles: ['PICKUP'], typeSource: 'INFERRED', pPickup: 0.904 })).toBe(
       'Pickup (learned, 90%)',

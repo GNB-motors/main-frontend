@@ -20,6 +20,13 @@ describe('timelineRows — the place of a stop', () => {
     expect(rows.map((r) => r.place)).toEqual(['Nimpura']);
   });
 
+  it('spec 3: an unnamed pickup shows its label, a named one its name', () => {
+    const at = '2026-11-02T18:00:00Z';
+    expect(timelineRows({ pickup: { arrivedAt: at, label: LABEL } })[0].place).toBe(LABEL);
+    expect(timelineRows({ pickup: { arrivedAt: at, name: 'JSW', label: LABEL } })[0].place).toBe('JSW');
+    expect(timelineRows({ pickup: { arrivedAt: at } })[0].place).toBe('Pickup place');
+  });
+
   it('spec 3: a place with neither name nor label keeps the old wording', () => {
     const rows = timelineRows({ routeStops: [stop({ status: 'PROPOSED' })] });
     expect(rows.map((r) => r.place)).toEqual(['Unconfirmed place']);

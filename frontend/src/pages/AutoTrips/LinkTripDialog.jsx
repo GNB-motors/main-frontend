@@ -82,7 +82,7 @@ export default function LinkTripDialog({ plan, onOpenChange, onLinked }) {
           {trips.map((t) => (
             <li key={t._id} className="atx-pick-row">
               <span>
-                <strong>{fmtDayTime(t.pickup?.departedAt)}</strong> · {t.pickup?.name || '—'} →{' '}
+                <strong>{fmtDayTime(t.pickup?.departedAt)}</strong> · {t.pickup?.name || t.pickup?.label || '—'} →{' '}
                 {dropLabel(t.drop)} · {t.km?.laden == null ? '—' : fmtKm(t.km.laden)}
               </span>
               <Button size="sm" onClick={() => link(t)} disabled={linkM.loading}>

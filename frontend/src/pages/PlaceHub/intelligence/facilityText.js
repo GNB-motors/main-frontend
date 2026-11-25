@@ -65,6 +65,7 @@ export function poiText(poi) {
 export function dropLabel(drop) {
   if (!drop) return '—';
   if (drop.name) return drop.name;
+  if (drop.label) return drop.label;
   if (drop.areaName) return `${drop.areaName} area`;
   return drop.source === 'UNKNOWN' ? 'drop not found' : 'unnamed place';
 }
