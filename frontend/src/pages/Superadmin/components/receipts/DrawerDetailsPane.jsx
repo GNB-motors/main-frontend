@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle2, AlertTriangle, MessageCircle } from 'lucide-react';
-import { fmtDate, fmtRelativeTime } from './receiptFormat';
+import { fmtDate, fmtRelativeTime, fmtLitres, fmtFuelType } from './receiptFormat';
 import {
   isChatRow,
   uploaderOf,
@@ -14,38 +14,9 @@ import CollapsibleSection from './CollapsibleSection';
 import PredictedFill from './PredictedFill';
 import TimeControls from './TimeControls';
 import KeyFactsCard from './KeyFactsCard';
+import ChatProofCard, { checkFacts } from './ChatProofCard';
+import '../ReceiptApproval.css';
 
-/**
- * The checks the server ran on this row, and the ones that need a look.
- *
- * A check the server never ran is not a check that passed: it stays unknown.
- */
-const checkFacts = (draft) => {
-  const checks = draft?.checks && typeof draft.checks === 'object' ? draft.checks : null;
-  if (!checks) return { ran: false, needs: 0, rows: [] };
-  const rows = [];
-  let needs = 0;
-  Object.entries(checks).forEach(([name, value]) => {
-    const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
-    const bad =
-      value?.ok === false ||
-      value?.valid === false ||
-      [
-        'FAIL',
-        'FAILED',
-        'WARN',
-        'WARNING',
-        'NEEDS_REVIEW',
-        'NEEDS_LOOK',
-        'INVALID',
-        'MISMATCH',
-      ].includes(status);
-    const detail = value?.detail || value?.message || value?.reason || '';
-    if (bad) needs += 1;
-    rows.push({ name, bad, detail, status });
-  });
-  return { ran: rows.length > 0, needs, rows };
-};
 
 const DrawerDetailsPane = ({
   draft,
@@ -68,6 +39,16 @@ const DrawerDetailsPane = ({
     : [];
   const reason = draft.pipelineReason || '';
   const caption = draft.caption || '';
+
+  // The proof card shows the message of a chat import. When it shows the very
+  // same message, the old box would only repeat it.
+  const chatProof =
+    draft.chatProof && typeof draft.chatProof === 'object' && !Array.isArray(draft.chatProof)
+      ? draft.chatProof
+      : null;
+  const proofText = typeof chatProof?.text === 'string' ? chatProof.text : '';
+  const proofShowsCaption =
+    proofText.trim() !== '' && proofText.trim() === caption.trim();
 
   // Who sent the photo, and who drove: two different people, often.
   const isChat = isChatRow(draft);
@@ -138,6 +119,9 @@ const DrawerDetailsPane = ({
 
   return (
     <div className="ra-drawer__details-pane">
+      {/* What the chat said, and what we read from it. */}
+      {chatProof && <ChatProofCard draft={draft} />}
+
       {/* The facts of the fill, in one small card. */}
       <KeyFactsCard
         veh={veh}
@@ -307,7 +291,12 @@ const DrawerDetailsPane = ({
           </div>
           <div className="ra-prop">
             <span className="ra-prop__label">Fuel Type</span>
-            <span className="ra-prop__val">{draft.fuelType || '—'}</span>
+            <span className="ra-prop__val">{fmtFuelType(draft.fuelType)}</span>
+            {draft.defClaim?.litres != null && draft.defClaim?.litres !== '' && (
+              <span className="ra-prop__val ra-prop__val--muted">
+                Also claims DEF {fmtLitres(draft.defClaim.litres)}
+              </span>
+            )}
           </div>
           <div className="ra-prop">
             <span className="ra-prop__label">Filling Mode</span>
@@ -352,7 +341,7 @@ const DrawerDetailsPane = ({
           )}
         </div>
 
-        {caption && (
+        {caption && !proofShowsCaption && (
           <>
             <div className="ra-section-card__title">
               <MessageCircle size={15} />

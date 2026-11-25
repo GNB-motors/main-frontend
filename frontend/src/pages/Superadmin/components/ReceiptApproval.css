@@ -2358,3 +2358,80 @@
     animation: none;
   }
 }
+
+/* The proof from the chat: the message, what we read from it, what the photo
+   showed and what our own data says. Read-only, always open. */
+.ra-proof-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.ra-proof-card__title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, var(--muted-foreground));
+}
+
+.ra-proof-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ra-proof-section__title,
+.ra-proof-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.ra-proof-subtitle {
+  color: var(--muted, var(--muted-foreground));
+  margin-top: 4px;
+}
+
+.ra-proof-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.ra-proof-row__label {
+  min-width: 96px;
+  color: var(--muted, var(--muted-foreground));
+}
+
+.ra-proof-row__value {
+  font-weight: 600;
+}
+
+.ra-proof-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted, var(--muted-foreground));
+}
+
+.ra-proof-muted {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted, var(--muted-foreground));
+}
+
+.ra-proof-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--foreground);
+}

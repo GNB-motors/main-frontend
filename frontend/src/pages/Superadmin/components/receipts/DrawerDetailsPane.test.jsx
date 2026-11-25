@@ -350,3 +350,63 @@ describe('DrawerDetailsPane — the facts a draft carries', () => {
     expect(screen.getByText('Message from the sender')).toBeTruthy();
   });
 });
+
+describe('DrawerDetailsPane — the proof from the chat', () => {
+  const chatProof = {
+    sender: '+91 98765 43210',
+    sentAt: '2026-11-09T04:43:00.000Z',
+    text: 'S5962 / Uria 18 liter',
+    textRead: { truck: 'WB11S5962', defLitres: 18, notRead: [] },
+    photoRead: { kind: 'UNKNOWN', stamp: '2026-11-09T04:43:00.000Z' },
+  };
+
+  it('spec 1: shows the proof card only for a row that carries chat proof', () => {
+    const { rerender } = render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+    expect(screen.queryByText('Proof from the chat')).toBeNull();
+
+    rerender(<DrawerDetailsPane {...props} draft={{ ...draftWith({}), chatProof }} />);
+    expect(screen.getByText('Proof from the chat')).toBeTruthy();
+  });
+
+  it('spec 6: calls DEF "DEF / urea" and shows a DEF claim on a diesel row', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          fuelType: 'ADBLUE',
+          defClaim: { litres: 18 },
+        }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.getByText('DEF / urea')).toBeTruthy();
+    expect(screen.getByText('Also claims DEF 18 L')).toBeTruthy();
+  });
+
+  it('spec 7: does not repeat the message the proof card already shows', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), caption: 'S5962 / Uria 18 liter', chatProof }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.queryByText('Message from the sender')).toBeNull();
+  });
+
+  it('spec 7: keeps a caption that the proof card does not show', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), caption: 'Filled the tank at Jhargram pump', chatProof }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.getByText('Message from the sender')).toBeTruthy();
+    expect(screen.getByText('Filled the tank at Jhargram pump')).toBeTruthy();
+  });
+});

@@ -22,6 +22,21 @@ export const verifyFuelMath = (litres, rate, amount) => {
 };
 
 /**
+ * Does the row really carry a photo we can look at?
+ *
+ * A chat import can arrive without any image at all: the drawer then says
+ * "Photo not available", and the score must not claim a receipt image.
+ */
+export const hasUsablePhotoUrl = (draft) => {
+  if (!draft) return false;
+  const usable = (value) => typeof value === 'string' && value.trim() !== '';
+  if (usable(draft.fuelImageUrl)) return true;
+  if (usable(draft.odometerImageUrl)) return true;
+  const photos = Array.isArray(draft.photos) ? draft.photos : [];
+  return photos.some((photo) => usable(photo?.url));
+};
+
+/**
  * Calculate an intelligent, explainable OCR extraction score (0 - 100)
  * rather than relying on a hardcoded 98%.
  */
@@ -29,7 +44,8 @@ export const evaluateOcrQuality = (draft) => {
   if (!draft) return { score: 0, level: 'low', label: 'No Data', tags: [] };
 
   const tags = [];
-  let score = 20; // Base receipt image captured
+  // The base is only given when the row really has a photo to read.
+  let score = hasUsablePhotoUrl(draft) ? 20 : 0;
 
   // Volume
   const hasLitres = draft.litres != null && Number(draft.litres) > 0;

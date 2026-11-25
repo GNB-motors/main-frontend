@@ -49,9 +49,50 @@ describe('evaluateOcrQuality', () => {
       rate: 90,
       amount: 9000,
       odometerReading: 42000,
+      photos: [{ url: 'https://example.com/pump.jpg' }],
     });
     expect(result.level).toBe('high');
     expect(result.tags.map((t) => t.label)).toContain('Math Verified ✓');
+  });
+
+  it('spec 8: gives the photo base only when the row really has a photo', () => {
+    const withoutPhoto = evaluateOcrQuality({ litres: 100, rate: 90, amount: 9000 });
+    const withPhoto = evaluateOcrQuality({
+      litres: 100,
+      rate: 90,
+      amount: 9000,
+      photos: [{ url: 'https://example.com/pump.jpg' }],
+    });
+
+    expect(withPhoto.score - withoutPhoto.score).toBe(20);
+  });
+
+  it('spec 8: counts a fuel image or an odometer image as a photo', () => {
+    const base = { litres: 100, rate: 90, amount: 9000 };
+    const withFuel = evaluateOcrQuality({ ...base, fuelImageUrl: 'https://example.com/f.jpg' });
+    const withOdo = evaluateOcrQuality({ ...base, odometerImageUrl: 'https://example.com/o.jpg' });
+
+    expect(withFuel.score - evaluateOcrQuality(base).score).toBe(20);
+    expect(withOdo.score - evaluateOcrQuality(base).score).toBe(20);
+  });
+
+  it('spec 8: an empty photo url is not a photo', () => {
+    const result = evaluateOcrQuality({
+      litres: 100,
+      rate: 90,
+      amount: 9000,
+      photos: [{ url: '  ' }],
+      fuelImageUrl: '',
+    });
+
+    expect(result.score).toBe(65);
+  });
+
+  it('spec 8: keeps the ten point floor for a row without a photo', () => {
+    const result = evaluateOcrQuality({});
+
+    expect(result.score).toBe(10);
+    expect(result.label).toBe('Needs Review');
   });
 });
 

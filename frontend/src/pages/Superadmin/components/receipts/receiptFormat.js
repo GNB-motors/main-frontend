@@ -17,6 +17,19 @@ export const fmtLitres = (n) => {
 };
 
 /**
+ * Format the fuel type a row carries.
+ *
+ * The server calls DEF "ADBLUE"; a person reads it as "DEF / urea".
+ */
+export const fmtFuelType = (fuelType) => {
+  const value = String(fuelType || '').trim();
+  if (!value) return '—';
+  const key = value.toUpperCase();
+  if (key === 'ADBLUE' || key === 'DEF') return 'DEF / urea';
+  return value;
+};
+
+/**
  * Format date for table & cards
  */
 export const fmtDate = (d) => {
