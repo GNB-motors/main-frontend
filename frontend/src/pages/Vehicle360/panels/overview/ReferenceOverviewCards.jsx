@@ -1,5 +1,6 @@
 import { OverviewCardSkeleton } from './OverviewSkeleton';
 import DataTooltip from '../../../../components/ui/DataTooltip';
+import useOpenDriverEditor from './useOpenDriverEditor';
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatKm, formatNum } from '../../../../utils/formatters';
@@ -185,12 +186,25 @@ export function ServiceCard({ prediction, health, onGoTab }) {
 
 export function DriverCard({ driver }) {
   const dutyDays = daysSince(driver?.assignmentStartDate);
+  const { openDriver, opening } = useOpenDriverEditor();
   return (
     <section className="vdo-card">
       <CardHead title="Assigned driver">
-        <Link className="vdo-link" to="/vehicle-assignments">
-          Change →
-        </Link>
+        {driver ? (
+          // The driver's own page: their details, and the truck they drive.
+          <button
+            type="button"
+            className="vdo-link"
+            disabled={opening}
+            onClick={() => openDriver(driver)}
+          >
+            {opening ? 'Opening…' : 'Change →'}
+          </button>
+        ) : (
+          <Link className="vdo-link" to="/drivers">
+            Assign →
+          </Link>
+        )}
       </CardHead>
       <div className="vdo-driver">
         <span className="vdo-driver-avatar" aria-hidden="true">
@@ -227,7 +241,7 @@ export function DriverCard({ driver }) {
           Call driver
         </a>
       ) : (
-        <Link className="vdo-button" to="/vehicle-assignments">
+        <Link className="vdo-button" to="/drivers">
           {driver ? 'Driver details' : 'Assign driver'}
         </Link>
       )}

@@ -81,6 +81,12 @@ export default function FuelPanel({
   );
   const overviewData = sharedOverview ?? overview.data;
   const [fuel, def] = fluidLevels(overviewData, health, fleetMaster, ialert);
+  // Every fill of this truck in Diesel & Mileage (there is no /fuel-ledger page).
+  const refuelsLink = `/mileage?${new URLSearchParams({
+    tab: 'live',
+    subtab: 'stream',
+    search: registrationNumber || '',
+  })}`;
   const fuelCapacity =
     numeric(overviewData?.fuel?.capacityL) ??
     numeric(health?.primaryFuelTankCapacityL) ??
@@ -189,7 +195,7 @@ export default function FuelPanel({
           <section className="vdo-card vfuel-refuels">
             <div className="vfuel-between">
               <h3>Refuels</h3>
-              <Link to="/fuel-ledger">All fuel entries →</Link>
+              <Link to={refuelsLink}>All fuel entries →</Link>
             </div>
             {!logs.length ? (
               <div className="vfuel-empty">
@@ -198,7 +204,7 @@ export default function FuelPanel({
                 </span>
                 <h3>No recent refuels on record</h3>
                 <p>Fuel receipts submitted by drivers or entered in the fuel ledger appear here.</p>
-                <Link className="vfuel-button" to="/fuel-ledger">
+                <Link className="vfuel-button" to={refuelsLink}>
                   Open fuel ledger →
                 </Link>
               </div>

@@ -6,7 +6,9 @@ export function fromHotspot(h) {
   return {
     id: `hotspot:${h._id}`,
     sourceId: String(h._id),
-    name: h.name || 'Fuel risk hotspot',
+    // A learned hotspot's place name ("Kharagpur Bypass, Baligerya") rather
+    // than the coordinates its stored name was built from.
+    name: h.placeName || h.name || 'Fuel risk hotspot',
     lat: toNum(h.centerLat),
     lng: toNum(h.centerLng),
     radiusM: Number(h.radiusM) || 500,

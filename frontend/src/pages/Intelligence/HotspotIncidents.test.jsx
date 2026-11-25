@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import HotspotIncidents from './HotspotIncidents';
 import { getHotspotIncidents } from '../../services/HotspotService.js';
@@ -71,6 +71,55 @@ describe('HotspotIncidents', () => {
     renderIt();
     expect(await screen.findByText('−17 L (289 → 272 L)')).toBeInTheDocument();
     expect(screen.getByText('−24 L')).toBeInTheDocument();
+  });
+
+  it('reviews each truck in the fuel-drop log over the days of its incidents here', async () => {
+    getHotspotIncidents.mockResolvedValue({
+      hotspotId: 'h1',
+      shared: false,
+      windowDays: 90,
+      incidentCount: 3,
+      otherFleets: 0,
+      items: [
+        // 14 Nov 02:34 pm IST and 13 Nov 11:00 pm IST (still 13 Nov in UTC too).
+        {
+          id: 'a1',
+          registrationNumber: 'WB25U8211',
+          kind: 'THEFT',
+          at: '2026-11-14T09:04:00.000Z',
+        },
+        {
+          id: 'a2',
+          registrationNumber: 'WB25U8211',
+          kind: 'THEFT',
+          at: '2026-11-13T17:30:00.000Z',
+        },
+        {
+          id: 'a3',
+          registrationNumber: 'WB11F6262',
+          kind: 'UNAUTHORISED_REFUEL',
+          at: '2026-11-14T07:12:00.000Z',
+        },
+      ],
+    });
+    const onReview = vi.fn();
+    render(
+      <MemoryRouter>
+        <HotspotIncidents hotspotId="h1" onReview={onReview} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Review WB25U8211 →' }));
+    expect(onReview).toHaveBeenCalledWith({
+      vehicle: 'WB25U8211',
+      from: '2026-11-13',
+      to: '2026-11-14',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Review WB11F6262 →' }));
+    expect(onReview).toHaveBeenLastCalledWith({
+      vehicle: 'WB11F6262',
+      from: '2026-11-14',
+      to: '2026-11-14',
+    });
   });
 
   it('says how many incidents of a shared hotspot came from other fleets', async () => {

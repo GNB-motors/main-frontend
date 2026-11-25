@@ -641,3 +641,79 @@
     animation: none;
   }
 }
+
+/* Truck activity: a period switch and one tile per number, each opening its
+   Intelligence view for this truck. */
+.vdo-truck-activity > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.vdo-truck-activity h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #121214;
+}
+.vdo-truck-activity-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f1f1f4;
+}
+.vdo-truck-activity-toggle button {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5d5d5e;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.vdo-truck-activity-toggle button[aria-pressed='true'] {
+  background: #fff;
+  color: #121214;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(30, 34, 56, 0.15);
+}
+.vdo-truck-activity-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+.vdo-truck-activity-metrics > a {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #ececee;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.vdo-truck-activity-metrics > a:hover {
+  border-color: rgba(47, 88, 238, 0.35);
+  background: #f8f9ff;
+}
+.vdo-truck-activity-metrics span {
+  color: #5d5d5e;
+  font-size: 12px;
+}
+.vdo-truck-activity-metrics strong {
+  color: #121214;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.vdo-truck-activity-metrics small {
+  color: #93939a;
+  font-size: 11px;
+}

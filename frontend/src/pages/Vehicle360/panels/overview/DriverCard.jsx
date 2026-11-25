@@ -9,7 +9,7 @@ import { timeAgo } from '../../../../utils/formatters';
  * Shows real driver details (initials avatar, full name, phone with click-to-call,
  * DL number, and assigned branch/duty duration) rather than repeating vehicle
  * telemetry like odometer or speed. Where no driver is assigned, shows a clean
- * prompt linking directly to Driver ↔ Vehicle Assignments.
+ * prompt linking to Employees, where a driver's truck is assigned.
  */
 export default function DriverCard({ assignedDriver, fleetMaster, fleetEdge }) {
   return (
@@ -17,7 +17,7 @@ export default function DriverCard({ assignedDriver, fleetMaster, fleetEdge }) {
       <CardHead
         title="Assigned Driver"
         action={
-          <Link to="/vehicle-assignments" className="v360-link">
+          <Link to="/drivers" className="v360-link">
             {assignedDriver ? 'Change assignment →' : 'Assign driver →'}
           </Link>
         }
@@ -26,11 +26,10 @@ export default function DriverCard({ assignedDriver, fleetMaster, fleetEdge }) {
         <div className="v360-empty">
           <span className="v360-empty-title">No driver currently assigned</span>
           <span className="v360-empty-hint">
-            Assign a driver from Driver ↔ Vehicle Assignments to track shift performance and driver
-            accountability.
+            Assign a driver from Employees to track shift performance and driver accountability.
           </span>
           <div style={{ marginTop: 12 }}>
-            <Link to="/vehicle-assignments" className="v360-btn v360-btn--primary">
+            <Link to="/drivers" className="v360-btn v360-btn--primary">
               Assign driver
             </Link>
           </div>

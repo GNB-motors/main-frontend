@@ -188,6 +188,8 @@ const dashboardRoutes = (
     {/* Fleet Intelligence Routes */}
     <Route path="/route-hub" element={<RouteHubPage />} />
     <Route path="/drivers" element={<DriversPage />} />
+    {/* Truck ↔ driver assignment lives on each employee's page. */}
+    <Route path="/vehicle-assignments" element={<Navigate to="/drivers" replace />} />
     <Route path="/access-control" element={<AccessControlPage />} />
     <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />
     <Route path="/drivers/add" element={<AddDriverPage />} />

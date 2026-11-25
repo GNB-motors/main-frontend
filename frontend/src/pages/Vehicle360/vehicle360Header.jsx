@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { Suspense, lazy } from 'react';
 import { formatKm, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
@@ -21,8 +22,19 @@ const RING_R = 26;
 const RING_C = 2 * Math.PI * RING_R;
 
 export function Breadcrumbs({ reg }) {
+  const navigate = useNavigate();
+  // Back to wherever the owner came from in the app (digest, track, a list);
+  // a page opened straight from a link has no in-app history, so it goes to
+  // the vehicle list instead of leaving the app.
+  const goBack = () => {
+    if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
+    else navigate('/vehicles');
+  };
   return (
     <nav className="v360-crumbs" aria-label="Breadcrumb">
+      <button type="button" className="v360-back" onClick={goBack} aria-label="Go back">
+        <ArrowLeft size={16} aria-hidden="true" />
+      </button>
       <Link to="/live-tracking">Fleet</Link>
       <span className="v360-crumbs-sep" aria-hidden="true">
         /

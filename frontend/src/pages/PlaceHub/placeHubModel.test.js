@@ -327,6 +327,22 @@ describe('idling', () => {
 });
 
 describe('fuel risk', () => {
+  it('names a learned hotspot by its place, not its coordinates', () => {
+    const learned = {
+      _id: 'h',
+      orgId: 'o',
+      source: 'AUTO_LEARNED',
+      name: 'Siphoning hotspot (22.251, 87.393)',
+      centerLat: 22.251,
+      centerLng: 87.393,
+    };
+    expect(fromHotspot({ ...learned, placeName: 'Kharagpur Bypass, Baligerya' }).name).toBe(
+      'Kharagpur Bypass, Baligerya',
+    );
+    // Until the backend has learned a place, the old name stays.
+    expect(fromHotspot(learned).name).toBe('Siphoning hotspot (22.251, 87.393)');
+  });
+
   it('labels hotspots by who they came from', () => {
     expect(fromHotspot({ _id: 'h', orgId: null, centerLat: 1, centerLng: 2 }).provenance).toBe(
       'network',

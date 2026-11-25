@@ -303,13 +303,10 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                                 : 'Fuel drops'}
                               {item.radiusM ? ` · ${item.radiusM} m circle` : ''}
                             </small>
-                            <HotspotIncidents hotspotId={item.sourceId} />
-                            <button
-                              className="intel-fuel-review-log"
-                              onClick={() => setSubView('instances')}
-                            >
-                              Review fuel-drop records →
-                            </button>
+                            <HotspotIncidents
+                              hotspotId={item.sourceId}
+                              onReview={(target) => setSubView('instances', target)}
+                            />
                           </div>
                         ) : null}
                       </div>

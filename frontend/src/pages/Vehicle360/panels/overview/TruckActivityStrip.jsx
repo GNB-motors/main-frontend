@@ -12,14 +12,17 @@ const metricDefinitions = [
     label: 'Idling',
     tab: 'idling',
     params: { idleSubview: 'instances' },
-    read: (s) => formatDuration(s?.totalMin),
+    // No idle at all is a measured zero; only a missing total is unknown.
+    read: (s) =>
+      Number.isFinite(s?.totalMin) ? formatDuration(s.totalMin) : s?.count === 0 ? '0 min' : '—',
   },
   {
     kind: 'fuel_unexplained',
     label: 'Fuel to explain',
     tab: 'fuel',
     params: { fuelSubview: 'instances' },
-    read: (s) => (Number.isFinite(s?.totalL) ? `${formatNumber(s.totalL)} L` : '—'),
+    read: (s) =>
+      Number.isFinite(s?.totalL) ? `${formatNumber(s.totalL)} L` : s?.count === 0 ? '0 L' : '—',
   },
   {
     kind: 'overspeed',
@@ -65,26 +68,16 @@ export default function TruckActivityStrip({ vehicle, stops }) {
     <section className="vdo-card vdo-truck-activity" aria-label="Truck activity">
       <header>
         <h3>Truck activity</h3>
-        <div role="group" aria-label="Activity period">
-          <button
-            type="button"
-            className="v360-btn"
-            aria-pressed={!week}
-            onClick={() => setWeek(false)}
-          >
+        <div className="vdo-truck-activity-toggle" role="group" aria-label="Activity period">
+          <button type="button" aria-pressed={!week} onClick={() => setWeek(false)}>
             Today
           </button>
-          <button
-            type="button"
-            className="v360-btn"
-            aria-pressed={week}
-            onClick={() => setWeek(true)}
-          >
+          <button type="button" aria-pressed={week} onClick={() => setWeek(true)}>
             Last 7 days
           </button>
         </div>
       </header>
-      <div>
+      <div className="vdo-truck-activity-metrics">
         {metricDefinitions.map((definition) => (
           <TruckMetric
             key={definition.kind}

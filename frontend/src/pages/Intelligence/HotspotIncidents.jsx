@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useApi } from '@/hooks/useApi';
 import { formatNumber } from '@/utils/redesign/format';
-import { formatDateTimeIST } from '../../utils/dateUtils';
+import { formatDateTimeIST, toISTDateString } from '../../utils/dateUtils';
 import { getHotspotIncidents } from '../../services/HotspotService.js';
 
 const KIND_LABEL = {
@@ -35,11 +35,28 @@ function fuelLine(item) {
 }
 
 /**
+ * One review per truck, over the IST days its incidents here fall on, so the
+ * fuel-drop log opens on that truck's events instead of the page's last week.
+ */
+function reviewTargets(items) {
+  const byTruck = new Map();
+  for (const item of items) {
+    if (!item.registrationNumber) continue;
+    const day = item.at ? toISTDateString(item.at) : null;
+    const entry = byTruck.get(item.registrationNumber) || { from: day, to: day };
+    if (day && (!entry.from || day < entry.from)) entry.from = day;
+    if (day && (!entry.to || day > entry.to)) entry.to = day;
+    byTruck.set(item.registrationNumber, entry);
+  }
+  return [...byTruck].map(([reg, { from, to }]) => ({ reg, from, to }));
+}
+
+/**
  * The incidents behind one hotspot, so the count on the card can be checked
  * truck by truck. A shared hotspot lists only this fleet's own incidents and
  * says how many came from other fleets.
  */
-export default function HotspotIncidents({ hotspotId }) {
+export default function HotspotIncidents({ hotspotId, onReview }) {
   const { data, loading, error, refetch } = useApi(
     (signal) => getHotspotIncidents(hotspotId, { signal }),
     [hotspotId],
@@ -108,6 +125,20 @@ export default function HotspotIncidents({ hotspotId }) {
           {formatNumber(data.otherFleets)} more {data.otherFleets === 1 ? 'incident' : 'incidents'}{' '}
           came from other fleets. Their details stay private.
         </p>
+      ) : null}
+      {onReview && items.some((item) => item.registrationNumber) ? (
+        <div className="intel-fuel-incident-review">
+          {reviewTargets(items).map(({ reg, from, to }) => (
+            <button
+              key={reg}
+              type="button"
+              className="intel-fuel-review-log"
+              onClick={() => onReview({ vehicle: reg, from, to })}
+            >
+              Review {reg} →
+            </button>
+          ))}
+        </div>
       ) : null}
       {data.truncated ? (
         <p className="intel-fuel-incidents-note">Showing the newest {items.length}.</p>

@@ -79,6 +79,27 @@
 .v360-crumbs a:hover {
   color: var(--ink);
 }
+.v360-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 4px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 50%;
+  background: var(--card, #fff);
+  color: var(--ink2, #3f3f46);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.v360-back:hover {
+  border-color: var(--line2, #d4d4d8);
+  background: var(--sunk, #f4f4f5);
+  color: var(--ink, #121214);
+}
 .v360-crumbs-sep {
   color: var(--line2);
 }
