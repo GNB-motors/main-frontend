@@ -76,7 +76,7 @@ describe('FuelRiskTab', () => {
     });
   });
 
-  it('renders hotspots, KPIs, and opens detail drawer on select', async () => {
+  it('renders hotspots, KPIs, and opens the hotspot in its own row on select', async () => {
     render(
       <MemoryRouter>
         <FuelRiskTab from="2026-10-30T00:00:00Z" to="2026-11-06T00:00:00Z" />
@@ -87,7 +87,15 @@ describe('FuelRiskTab', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('NH16 lay-by'));
-    expect(await screen.findByRole('region', { name: 'NH16 lay-by' })).toBeInTheDocument();
+    const row = screen.getByText('NH16 lay-by').closest('button');
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+    // The incidents open inside the list row, not in a panel under the map.
+    expect(
+      await within(row.parentElement).findByRole('region', { name: 'Incidents at this hotspot' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'NH16 lay-by' })).toBeNull();
+    fireEvent.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('pre-selects hotspot when URL includes hotspot search param', async () => {
@@ -97,7 +105,9 @@ describe('FuelRiskTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('region', { name: 'NH16 lay-by' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('region', { name: 'Incidents at this hotspot' }),
+    ).toBeInTheDocument();
   });
 
   it('switches between hotspots and drain map', async () => {

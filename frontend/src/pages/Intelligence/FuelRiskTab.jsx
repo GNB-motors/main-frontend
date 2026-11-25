@@ -264,29 +264,55 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
               <div className="intel-fuel-record-list">
                 {view === 'hotspots'
                   ? shownHotspots.map((item) => (
-                      <button
+                      <div
                         key={item.id}
-                        aria-pressed={selectedId === item.id}
-                        onClick={() => setSelectedId(item.id)}
+                        className="intel-fuel-record-item"
+                        // A hotspot picked on the map opens its row in view.
+                        ref={(el) =>
+                          el && selectedId === item.id && el.scrollIntoView?.({ block: 'nearest' })
+                        }
                       >
-                        <div>
-                          <strong>{item.name}</strong>
-                          <small>
-                            {item.provenance === 'network'
-                              ? 'Learned across the network'
-                              : item.provenance === 'own-manual'
-                                ? 'Marked by your team'
-                                : 'Learned from your fleet'}
-                            {validDate(item.lastIncidentAt)
-                              ? ` · ${formatDateTimeIST(item.lastIncidentAt)}`
-                              : ''}
-                          </small>
-                        </div>
-                        <span>
-                          {item.incidentCount}
-                          <small>incidents</small>
-                        </span>
-                      </button>
+                        <button
+                          aria-pressed={selectedId === item.id}
+                          aria-expanded={selectedId === item.id}
+                          onClick={() => setSelectedId(selectedId === item.id ? null : item.id)}
+                        >
+                          <div>
+                            <strong>{item.name}</strong>
+                            <small>
+                              {item.provenance === 'network'
+                                ? 'Learned across the network'
+                                : item.provenance === 'own-manual'
+                                  ? 'Marked by your team'
+                                  : 'Learned from your fleet'}
+                              {validDate(item.lastIncidentAt)
+                                ? ` · ${formatDateTimeIST(item.lastIncidentAt)}`
+                                : ''}
+                            </small>
+                          </div>
+                          <span>
+                            {item.incidentCount}
+                            <small>incidents</small>
+                          </span>
+                        </button>
+                        {selectedId === item.id ? (
+                          <div className="intel-fuel-record-detail">
+                            <small>
+                              {item.category === 'UNAUTHORISED_REFUEL'
+                                ? 'Refuels at unapproved pumps'
+                                : 'Fuel drops'}
+                              {item.radiusM ? ` · ${item.radiusM} m circle` : ''}
+                            </small>
+                            <HotspotIncidents hotspotId={item.sourceId} />
+                            <button
+                              className="intel-fuel-review-log"
+                              onClick={() => setSubView('instances')}
+                            >
+                              Review fuel-drop records →
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     ))
                   : filteredCells.map((item) => (
                       <button
@@ -324,14 +350,13 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                 isDark={false}
               />
             </div>
-            {selectedItem ? (
+            {selectedItem && selectedKind !== 'hotspot' ? (
               <section className="intel-fuel-selected" aria-label={selectedTitle}>
                 <header>
                   <div>
                     <h3>{selectedTitle}</h3>
                     <small>
                       {selectedItem.lat?.toFixed(3)}, {selectedItem.lng?.toFixed(3)}
-                      {selectedItem.radiusM ? ` · ${selectedItem.radiusM} m radius` : ''}
                     </small>
                   </div>
                   <button
@@ -341,46 +366,22 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                     <X size={14} />
                   </button>
                 </header>
-                <span className="intel-fuel-source-tag">
-                  {selectedKind === 'hotspot'
-                    ? selectedItem.provenance === 'network'
-                      ? 'Learned across the network'
-                      : selectedItem.provenance === 'own-manual'
-                        ? 'Marked by your team'
-                        : 'Learned from your fleet'
-                    : 'Reported parked sensor drops'}
-                </span>
+                <span className="intel-fuel-source-tag">Reported parked sensor drops</span>
                 <p>
-                  {selectedItem.raw?.description ||
-                    'Review the recorded events and matching fuel receipts before determining a cause.'}
+                  Review the recorded events and matching fuel receipts before determining a cause.
                 </p>
                 <div className="intel-fuel-selected-stats">
-                  {(selectedKind === 'hotspot'
-                    ? [
-                        ['Incidents', selectedItem.incidentCount],
-                        ['Category', selectedItem.category],
-                        [
-                          'Last incident',
-                          validDate(selectedItem.lastIncidentAt)
-                            ? formatDateTimeIST(selectedItem.lastIncidentAt)
-                            : 'Not reported',
-                        ],
-                      ]
-                    : [
-                        ['Events', selectedItem.events],
-                        ['Litres', formatNumber(selectedItem.litres)],
-                        ['Estimated value', formatInr(selectedItem.rupees)],
-                      ]
-                  ).map(([label, value]) => (
+                  {[
+                    ['Events', selectedItem.events],
+                    ['Litres', formatNumber(selectedItem.litres)],
+                    ['Estimated value', formatInr(selectedItem.rupees)],
+                  ].map(([label, value]) => (
                     <div key={label}>
                       <small>{label}</small>
                       <strong>{value}</strong>
                     </div>
                   ))}
                 </div>
-                {selectedKind === 'hotspot' ? (
-                  <HotspotIncidents hotspotId={selectedItem.sourceId} />
-                ) : null}
                 <button className="intel-fuel-review-log" onClick={() => setSubView('instances')}>
                   Review fuel-drop records →
                 </button>

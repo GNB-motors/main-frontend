@@ -164,10 +164,29 @@
 .intel-fuel-record-list {
   display: flex;
   flex-direction: column;
-  max-height: 420px;
+  max-height: 520px;
   overflow: auto;
 }
-.intel-fuel-record-list > button {
+.intel-fuel-record-item > button {
+  width: 100%;
+}
+/* A hotspot opens in its own row: the incidents behind it, right under it. */
+.intel-fuel-record-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 18px 16px 21px;
+  border-bottom: 1px solid #ececee;
+  background: #2f58ee0a;
+  box-shadow: inset 3px 0 #2f58ee;
+}
+.intel-fuel-record-detail > small {
+  margin-top: 0;
+}
+.intel-fuel-record-detail .intel-fuel-review-log {
+  align-self: flex-start;
+}
+:is(.intel-fuel-record-list, .intel-fuel-record-item) > button {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -180,10 +199,10 @@
   color: #121214;
   cursor: pointer;
 }
-.intel-fuel-record-list > button:hover {
+:is(.intel-fuel-record-list, .intel-fuel-record-item) > button:hover {
   background: #f8f8fb;
 }
-.intel-fuel-record-list > button[aria-pressed='true'] {
+:is(.intel-fuel-record-list, .intel-fuel-record-item) > button[aria-pressed='true'] {
   background: #2f58ee0f;
   box-shadow: inset 3px 0 #2f58ee;
 }
@@ -198,7 +217,7 @@
   line-height: 1.5;
   color: #93939a;
 }
-.intel-fuel-record-list > button > span {
+:is(.intel-fuel-record-list, .intel-fuel-record-item) > button > span {
   font:
     500 20px 'Vehicle Overview DM Sans',
     sans-serif;
@@ -214,10 +233,14 @@
   color: #93939a;
 }
 .intel-fuel-map-column {
+  display: flex;
+  flex-direction: column;
   flex: 2 1 560px;
   min-width: 0;
 }
+/* The map fills the card's height, however tall the list grows. */
 .intel-fuel-map-canvas {
+  flex: 1 1 auto;
   height: 520px;
   min-height: 320px;
 }
@@ -410,37 +433,53 @@
 .intel-fuel-incidents ol {
   display: flex;
   flex-direction: column;
-  max-height: 280px;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
   border: 1px solid #ececee;
   border-radius: 10px;
 }
 .intel-fuel-incidents li {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.8fr) 1.6fr;
-  gap: 12px;
-  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
   border-top: 1px solid #f1f1f4;
   font-size: 12.5px;
 }
 .intel-fuel-incidents li:first-child {
   border-top: 0;
 }
-.intel-fuel-incidents li > div {
+.intel-fuel-incident-head {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }
-.intel-fuel-incidents li a {
+.intel-fuel-incident-head a,
+.intel-fuel-incident-head strong {
   font-weight: 600;
   color: #2f58ee;
 }
-.intel-fuel-incidents li span {
+.intel-fuel-incident-kind {
   color: #5b5b63;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.intel-fuel-incident-fuel {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.intel-fuel-incident-fuel.is-drop {
+  color: #c2410c;
+}
+.intel-fuel-incident-where {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #6b6b73;
+  font-size: 11.5px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .intel-fuel-incidents-note {
   margin: 6px 0 0;

@@ -9,14 +9,27 @@ const KIND_LABEL = {
   UNAUTHORISED_REFUEL: 'Refuel at an unapproved pump',
 };
 
-/** "−40 L (180 → 140 L)", or what is known of it. */
+/**
+ * The signed fuel change. FleetEdge reports the difference as a size, not a
+ * direction (a 289 → 272 L drop arrives as 17), so the levels decide the sign;
+ * without them a fuel drop is a loss and a refuel a gain.
+ */
+function signedChange(item) {
+  if (item.fuelBeforeL != null && item.fuelAfterL != null)
+    return item.fuelAfterL - item.fuelBeforeL;
+  if (item.fuelChangeL == null) return null;
+  const size = Math.abs(item.fuelChangeL);
+  return item.kind === 'THEFT' ? -size : size;
+}
+
+/** "−17 L (289 → 272 L)", or what is known of it. */
 function fuelLine(item) {
-  const change = item.fuelChangeL;
+  const change = signedChange(item);
   const levels =
     item.fuelBeforeL != null && item.fuelAfterL != null
       ? ` (${formatNumber(item.fuelBeforeL)} → ${formatNumber(item.fuelAfterL)} L)`
       : '';
-  if (change == null) return levels ? levels.trim() : 'Fuel change not reported';
+  if (change == null) return 'Fuel change not reported';
   const sign = change > 0 ? '+' : change < 0 ? '−' : '';
   return `${sign}${formatNumber(Math.abs(change))} L${levels}`;
 }
@@ -57,7 +70,7 @@ export default function HotspotIncidents({ hotspotId }) {
         <ol>
           {items.map((item) => (
             <li key={item.id}>
-              <div>
+              <div className="intel-fuel-incident-head">
                 {item.registrationNumber ? (
                   <Link to={`/vehicles/${encodeURIComponent(item.registrationNumber)}?tab=fuel`}>
                     {item.registrationNumber}
@@ -65,16 +78,21 @@ export default function HotspotIncidents({ hotspotId }) {
                 ) : (
                   <strong>Truck not named</strong>
                 )}
-                <span>{KIND_LABEL[item.kind] || 'Fuel alert'}</span>
+                <span className="intel-fuel-incident-kind">
+                  {KIND_LABEL[item.kind] || 'Fuel alert'} ·{' '}
+                  {item.at ? formatDateTimeIST(item.at) : 'time not reported'}
+                </span>
               </div>
-              <div>
-                <strong>{fuelLine(item)}</strong>
-                <small>
-                  {item.at ? formatDateTimeIST(item.at) : 'Time not reported'}
-                  {item.pumpName ? ` · ${item.pumpName}` : ''}
-                  {item.place ? ` · ${item.place}` : ''}
-                </small>
-              </div>
+              <span
+                className={`intel-fuel-incident-fuel${(signedChange(item) ?? 0) < 0 ? ' is-drop' : ''}`}
+              >
+                {fuelLine(item)}
+              </span>
+              {item.pumpName || item.place ? (
+                <span className="intel-fuel-incident-where" title={item.place || undefined}>
+                  {[item.pumpName, item.place].filter(Boolean).join(' · ')}
+                </span>
+              ) : null}
             </li>
           ))}
         </ol>

@@ -41,10 +41,36 @@ describe('HotspotIncidents', () => {
     const link = await screen.findByRole('link', { name: 'WB11S6162' });
     expect(link).toHaveAttribute('href', '/vehicles/WB11S6162?tab=fuel');
     expect(screen.getByText('−40 L (180 → 140 L)')).toBeInTheDocument();
+    expect(screen.getByText('−40 L (180 → 140 L)')).toHaveClass('is-drop');
     expect(screen.getByText(/Kharagpur/)).toBeInTheDocument();
-    expect(screen.getByText('Refuel at an unapproved pump')).toBeInTheDocument();
+    expect(screen.getByText(/Refuel at an unapproved pump/)).toBeInTheDocument();
     expect(screen.getByText(/Cash pump/)).toBeInTheDocument();
     expect(getHotspotIncidents).toHaveBeenCalledWith('h1', expect.any(Object));
+  });
+
+  it('signs the change by the fuel levels, as FleetEdge reports a drop as a positive size', async () => {
+    getHotspotIncidents.mockResolvedValue({
+      hotspotId: 'h1',
+      shared: false,
+      windowDays: 90,
+      incidentCount: 2,
+      otherFleets: 0,
+      items: [
+        // Seen on prod: 289 → 272 L arrived with fuelDifferenceL 17.
+        {
+          id: 'a1',
+          registrationNumber: 'WB11F4462',
+          kind: 'THEFT',
+          fuelBeforeL: 289,
+          fuelAfterL: 272,
+          fuelChangeL: 17,
+        },
+        { id: 'a2', registrationNumber: 'WB11F4962', kind: 'THEFT', fuelChangeL: 24 },
+      ],
+    });
+    renderIt();
+    expect(await screen.findByText('−17 L (289 → 272 L)')).toBeInTheDocument();
+    expect(screen.getByText('−24 L')).toBeInTheDocument();
   });
 
   it('says how many incidents of a shared hotspot came from other fleets', async () => {
