@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, FileSpreadsheet, FileText, Loader2, ChevronDown } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Loader2, ChevronDown, Mail } from 'lucide-react';
 import { toast } from 'react-toastify';
-import exportTable from '../../lib/exportTable';
+import exportTable, { buildTableFile } from '../../lib/exportTable';
 import NewButton from './NewButton/NewButton';
+import EmailReportDialog from './EmailReportDialog.jsx';
 
 /**
  * ExportButton — the one export affordance for every fleet table.
@@ -29,6 +30,12 @@ import NewButton from './NewButton/NewButton';
  * `compact` renders the trigger as a small pill matching DataTable's own
  * toolbar (`.dt-tool`) for pages that mount this inside the table instead of
  * a separate filter row.
+ *
+ * `email` adds a third menu item, "Email…", which opens the e-mail dialog:
+ *   { report: 'fuel-cycles', params: {...}, label: 'Oil report' }
+ *     — the server builds the file from the same filters the download uses;
+ *   { label: 'Vehicle report' }
+ *     — the browser builds the same file the download builds and uploads it.
  */
 export default function ExportButton({
   rows = [],
@@ -36,6 +43,7 @@ export default function ExportButton({
   filename = 'export',
   fetchAll = null,
   onExport = null,
+  email = null,
   meta = {},
   disabled = false,
   newButtonStyle = false,
@@ -45,7 +53,11 @@ export default function ExportButton({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const rootRef = useRef(null);
+  // The trigger keeps the focus while the dialog is open, and gets it back
+  // when the dialog closes.
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -93,6 +105,13 @@ export default function ExportButton({
     }
   };
 
+  /** The file the e-mail carries: the same workbook the Excel download builds. */
+  const buildEmailFile = async () => {
+    const allRows = fetchAll ? await fetchAll() : rows;
+    const safeRows = Array.isArray(allRows) ? allRows : [];
+    return buildTableFile({ rows: safeRows, columns, filename, format: 'xlsx', meta });
+  };
+
   const icon = pending ? (
     <Loader2 size={15} className="xbtn-spin" aria-hidden="true" />
   ) : (
@@ -109,6 +128,7 @@ export default function ExportButton({
         <button
           type="button"
           className="dt-tool"
+          ref={triggerRef}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -120,6 +140,7 @@ export default function ExportButton({
       ) : newButtonStyle ? (
         <NewButton
           type="button"
+          ref={triggerRef}
           variant="secondary"
           text={label}
           prependIcon={icon}
@@ -134,6 +155,7 @@ export default function ExportButton({
         <button
           type="button"
           className={buttonClass || 'pshell-btn'}
+          ref={triggerRef}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -164,8 +186,34 @@ export default function ExportButton({
               <small>Plain text — opens anywhere</small>
             </span>
           </button>
+          {email ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="xbtn-item"
+              onClick={() => {
+                setOpen(false);
+                setEmailOpen(true);
+              }}
+            >
+              <Mail size={14} aria-hidden="true" />
+              <span>
+                <strong>Email…</strong>
+                <small>Send the Excel file to people</small>
+              </span>
+            </button>
+          ) : null}
         </div>
       )}
+      {emailOpen ? (
+        <EmailReportDialog
+          label={email.label}
+          server={email.report ? { report: email.report, params: email.params } : null}
+          buildFile={email.report ? null : email.buildFile || buildEmailFile}
+          returnFocusRef={triggerRef}
+          onClose={() => setEmailOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

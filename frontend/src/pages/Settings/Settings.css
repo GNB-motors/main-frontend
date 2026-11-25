@@ -599,6 +599,31 @@ button.stx-status:hover {
   font-weight: 600;
   color: var(--stx-ink-2);
 }
+/* A setting that is on or off: the box on the left, the words on the right. */
+.stx-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  cursor: pointer;
+}
+.stx-toggle input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+}
+.stx-toggle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stx-toggle small {
+  font-size: 12.5px;
+  color: var(--stx-ink-3);
+}
+.stx-toggle input:disabled + span {
+  opacity: 0.6;
+}
 .stx-input-unit {
   display: inline-flex;
   align-items: stretch;

@@ -216,6 +216,17 @@ const FuelCyclesReport = () => {
               errorMessage: 'Could not export the oil report.',
             })
           }
+          email={{
+            report: 'fuel-cycles',
+            label: 'Oil report',
+            // The same filters the download sends, so the mailed file is the
+            // oil report of what is on screen.
+            params: {
+              ...params,
+              ...(search.trim() ? { search: search.trim() } : {}),
+              format: 'xlsx',
+            },
+          }}
           disabled={!filtered.length}
         />
       }

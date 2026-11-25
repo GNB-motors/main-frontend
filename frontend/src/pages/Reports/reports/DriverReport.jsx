@@ -169,6 +169,7 @@ const DriverReport = () => {
           columns={DRIVER_EXPORT_COLUMNS}
           filename="driver-report"
           buttonClass="rpt-btn"
+          email={{ label: 'Driver report' }}
           fetchAll={() =>
             ReportsService.fetchAllReportRows(ReportsService.getDriverReports, requestParams)
           }

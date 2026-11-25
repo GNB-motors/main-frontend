@@ -173,6 +173,7 @@ const AdBlueComparisonReport = () => {
           columns={EXPORT_COLUMNS}
           filename="adblue-comparison"
           buttonClass="rpt-btn"
+          email={{ label: 'AdBlue comparison report' }}
           fetchAll={() =>
             ReportsService.fetchAllReportRows(ReportsService.getAdBlueComparison, requestParams)
           }

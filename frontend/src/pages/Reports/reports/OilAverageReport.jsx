@@ -271,6 +271,7 @@ export default function OilAverageReport() {
           columns={EXPORT_COLUMNS}
           filename="oil-average-report"
           buttonClass="rpt-btn"
+          email={{ label: 'Oil average report' }}
           fetchAll={() => filtered.map(exportRowOf)}
           meta={{
             filters: exportFilterMeta({

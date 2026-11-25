@@ -1,0 +1,177 @@
+/*
+ * EmailReportDialog — its own modal styles.
+ *
+ * The dialog is mounted from the ExportButton on many routes (reports, the
+ * digest, the employees list), so it cannot lean on a page stylesheet that only
+ * one of those routes loads. Everything it needs is here, under erd-*.
+ */
+
+.erd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.erd-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.28);
+  color: #0f172a;
+}
+
+.erd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.erd-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.erd-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.erd-close:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.erd-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erd-hint {
+  margin: 10px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.erd-label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.erd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.erd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 999px;
+  background: #e0edff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.erd-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.erd-chip-remove:hover:not(:disabled) {
+  background: rgba(29, 78, 216, 0.14);
+}
+
+.erd-chip-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erd-input {
+  flex: 1 1 160px;
+  min-width: 160px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+}
+
+.erd-input:focus {
+  outline: none;
+}
+
+.erd-note {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.erd-note:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.erd-error {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fef2f2;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+.erd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
