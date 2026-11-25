@@ -419,7 +419,11 @@ export default function InstancesTab({
               </div>
             ) : null
           }
-          emptyTitle={INSTANCE_EMPTY_COPY[activeKind] ?? 'Nothing of this kind in this period.'}
+          emptyTitle={
+            includeShort && activeKind === 'idle'
+              ? 'No idling in this period.'
+              : (INSTANCE_EMPTY_COPY[activeKind] ?? 'Nothing of this kind in this period.')
+          }
         />
       </IntelligenceDataState>
     </div>
