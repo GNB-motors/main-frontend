@@ -154,13 +154,26 @@ export const checkFacts = (draft) => {
   const rows = [];
   let needs = 0;
   let unknown = 0;
+  const UNKNOWN = ['UNKNOWN', 'NOT_RUN', 'SKIPPED', 'NA', 'N/A', 'PENDING'];
+
   entries.forEach(([name, value]) => {
-    const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
-    const bad = value?.ok === false || value?.valid === false || BAD.includes(status);
-    // A check passes only when it says so. A missing, empty or unrecognised
-    // result is a check that could not run, never a check that passed.
-    const explicitPass = PASS.includes(status) || value?.ok === true || value?.valid === true;
-    const isUnknown = !bad && !explicitPass;
+    // Every text field is read, so a row that says pass in one field and
+    // unknown in another is not reported as a pass.
+    const said = [value?.status, value?.result, value?.state]
+      .filter((v) => v != null && v !== '')
+      .map((v) => String(v).toUpperCase());
+    const badSaid = said.find((s) => BAD.includes(s));
+    const bad = value?.ok === false || value?.valid === false || badSaid != null;
+    // A check passes only when it says so and nothing else on it says
+    // unknown. A missing, empty or unrecognised result is a check that could
+    // not run, never a check that passed.
+    const explicitUnknown = said.some((s) => UNKNOWN.includes(s));
+    const explicitPass =
+      said.some((s) => PASS.includes(s)) || value?.ok === true || value?.valid === true;
+    const isUnknown = !bad && (explicitUnknown || !explicitPass);
+    let status = 'PASS';
+    if (bad) status = badSaid || 'FAIL';
+    else if (isUnknown) status = 'UNKNOWN';
     const detail = value?.detail || value?.message || value?.reason || '';
     if (bad) needs += 1;
     if (isUnknown) unknown += 1;

@@ -273,6 +273,23 @@ describe('ChatProofCard — spec 5: what our own data showed', () => {
     expect(screen.queryByText(/^0:/)).toBeNull();
   });
 
+  it('shows a failed result for a check that only says ok: false', () => {
+    const draft = { ...wb11s5962, checks: { MATH: { ok: false, detail: 'Mismatch' } } };
+    render(<ChatProofCard draft={draft} />);
+
+    expect(screen.getByText('MATH: FAIL — Mismatch')).toBeTruthy();
+  });
+
+  it('shows unknown when one field says unknown and another says pass', () => {
+    const draft = {
+      ...wb11s5962,
+      checks: [{ name: 'TRUCK', result: 'unknown', ok: true, detail: 'No truck.' }],
+    };
+    render(<ChatProofCard draft={draft} />);
+
+    expect(screen.getByText('TRUCK: UNKNOWN — No truck.')).toBeTruthy();
+  });
+
   it('shows the fill time and the system note', () => {
     render(<ChatProofCard draft={wb11s5962} />);
 

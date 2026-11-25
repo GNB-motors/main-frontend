@@ -234,7 +234,7 @@ const ChatProofCard = ({ draft }) => {
             {checks.rows.map((row, index) => (
               <li key={row.name || index}>
                 {row.name}
-                {row.status ? `: ${row.status}` : ''}
+                {`: ${row.status}`}
                 {row.detail ? ` — ${row.detail}` : ''}
               </li>
             ))}

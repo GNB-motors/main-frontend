@@ -4,6 +4,7 @@ import {
   evaluateOcrQuality,
   getOdometerMeta,
   crossVerifyStation,
+  checkFacts,
 } from './receiptVerification';
 
 describe('verifyFuelMath', () => {
@@ -143,5 +144,32 @@ describe('crossVerifyStation', () => {
     const result = crossVerifyStation({});
     expect(result.stationName).toBeNull();
     expect(result.billRate).toBeNull();
+  });
+});
+
+describe('checkFacts', () => {
+  it('an explicit unknown wins over ok: true or a pass status', () => {
+    const arr = checkFacts({ checks: [{ name: 'TRUCK', result: 'unknown', ok: true }] });
+    const keyed = checkFacts({ checks: { TRUCK: { status: 'pass', result: 'unknown' } } });
+
+    for (const facts of [arr, keyed]) {
+      expect(facts.unknown).toBe(1);
+      expect(facts.needs).toBe(0);
+      expect(facts.rows[0].status).toBe('UNKNOWN');
+    }
+  });
+
+  it('a boolean-only check gets a normalised result', () => {
+    const facts = checkFacts({ checks: { MATH: { ok: false }, ODO: { valid: true } } });
+
+    expect(facts.rows.map((r) => r.status)).toEqual(['FAIL', 'PASS']);
+    expect(facts.needs).toBe(1);
+    expect(facts.unknown).toBe(0);
+  });
+
+  it('a bad result is still flagged when another field says pass', () => {
+    const facts = checkFacts({ checks: { LITRES: { status: 'pass', result: 'mismatch' } } });
+
+    expect(facts.rows[0]).toMatchObject({ bad: true, status: 'MISMATCH' });
   });
 });
