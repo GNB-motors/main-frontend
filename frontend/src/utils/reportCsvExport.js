@@ -82,6 +82,54 @@ export function triggerFileDownload(content, filename, mimeType = 'text/csv;char
 }
 
 /**
+ * Build the file of a filtered report in memory — the same file the download
+ * produces — without downloading it. E-mailing a report uploads exactly this
+ * file, so the attachment and the download can never drift apart.
+ *
+ * @param {{ headers: string[], rows: Array, mapRow: (row) => Array,
+ *           filenamePrefix: string, extension?: string, filename?: string }} opts
+ * @returns {Promise<{ blob: Blob, filename: string, rows: number }>}
+ */
+export async function buildFilteredReportFile({
+  headers,
+  rows,
+  mapRow,
+  filenamePrefix,
+  extension = 'xlsx',
+  filename = null,
+} = {}) {
+  if (!filenamePrefix) {
+    throw new Error('buildFilteredReportFile requires filenamePrefix');
+  }
+  if (!Array.isArray(headers) || !Array.isArray(rows) || typeof mapRow !== 'function') {
+    throw new Error('Provide headers + rows + mapRow');
+  }
+
+  const mimeType = getReportExportMime(extension);
+  const name = filename || `${filenamePrefix}_${istDayString()}.${extension}`;
+  const rowArrays = rows.map((row) => mapRow(row));
+
+  if (extension === 'xlsx') {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rowArrays]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    return {
+      blob: new Blob([excelBuffer], { type: mimeType }),
+      filename: name,
+      rows: rows.length,
+    };
+  }
+
+  return {
+    blob: new Blob([buildCsvString(headers, rowArrays)], { type: mimeType }),
+    filename: name,
+    rows: rows.length,
+  };
+}
+
+/**
  * Export a filtered report as CSV/XLSX.
  *
  * Provide either:
@@ -126,18 +174,15 @@ export async function exportFilteredReportCsv({
         content = blob instanceof Blob ? blob : new Blob([blob], { type: mimeType });
       }
     } else if (Array.isArray(headers) && Array.isArray(rows) && typeof mapRow === 'function') {
-      const rowArrays = rows.map((row) => mapRow(row));
-
-      if (extension === 'xlsx') {
-        const XLSX = await import('xlsx');
-        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rowArrays]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        content = new Blob([excelBuffer], { type: mimeType });
-      } else {
-        content = buildCsvString(headers, rowArrays);
-      }
+      const file = await buildFilteredReportFile({
+        headers,
+        rows,
+        mapRow,
+        filenamePrefix,
+        extension,
+        filename,
+      });
+      content = file.blob;
     } else {
       throw new Error('Provide fetchExport, or headers + rows + mapRow');
     }

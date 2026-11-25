@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { exportFilteredReportCsv } from './reportCsvExport';
+import { exportFilteredReportCsv, buildFilteredReportFile } from './reportCsvExport';
 
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -53,5 +53,67 @@ describe('exportFilteredReportCsv — server export', () => {
     });
     // A zip (xlsx) starts with "PK".
     expect([bytes[0], bytes[1]]).toEqual([0x50, 0x4b]);
+  });
+});
+
+describe('buildFilteredReportFile — the file a searched report e-mails', () => {
+  let saved;
+
+  const bytesOf = (blob) =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.readAsArrayBuffer(blob);
+    });
+
+  beforeEach(() => {
+    saved = [];
+    URL.createObjectURL = vi.fn((blob) => {
+      saved.push(blob);
+      return 'blob:test';
+    });
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  const rows = [{ vehicleNumber: 'WB25W1040', km: 120, purpose: 'delivery' }];
+  const headers = ['Vehicle', 'Km', 'Purpose'];
+  const mapRow = (r) => [r.vehicleNumber, r.km, r.purpose];
+
+  it('spec 3: builds the same file the download builds', async () => {
+    const file = await buildFilteredReportFile({
+      headers,
+      rows,
+      mapRow,
+      filenamePrefix: 'non_business_report',
+      extension: 'xlsx',
+    });
+    await exportFilteredReportCsv({
+      headers,
+      rows,
+      mapRow,
+      filenamePrefix: 'non_business_report',
+      extension: 'xlsx',
+      showToast: false,
+    });
+
+    expect(saved).toHaveLength(1);
+    expect(file.rows).toBe(1);
+    expect(file.filename).toMatch(/^non_business_report_\d{4}-\d{2}-\d{2}\.xlsx$/);
+    expect(await bytesOf(file.blob)).toEqual(await bytesOf(saved[0]));
+  });
+
+  it('spec 3: the CSV file carries the same text as the download', async () => {
+    const file = await buildFilteredReportFile({
+      headers,
+      rows,
+      mapRow,
+      filenamePrefix: 'non_business_report',
+      extension: 'csv',
+    });
+    expect(file.blob.type).toBe('text/csv;charset=utf-8;');
+    expect(file.filename).toMatch(/^non_business_report_\d{4}-\d{2}-\d{2}\.csv$/);
   });
 });
