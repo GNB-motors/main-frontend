@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Mail, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import NewButton from './NewButton/NewButton';
@@ -22,12 +22,23 @@ import './EmailReportDialog.css';
  *
  * Nothing is dropped silently: an address that is not an address, and a list
  * longer than the maximum, are shown and block the send.
+ *
+ * Accessibility: the overlay is only a backdrop (role="presentation"), the
+ * dialog is the real modal. Focus moves into the first field when the dialog
+ * opens, Tab stays inside it, Escape closes it while nothing is being sent,
+ * and focus goes back to the button that opened it when it closes.
  */
+
+/** Everything a keyboard can reach inside the dialog. */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function EmailReportDialog({
   label,
   server = null,
   buildFile = null,
   onClose,
+  returnFocusRef = null,
 }) {
   const [list, setList] = useState(() => {
     const me = getUserEmail();
@@ -37,6 +48,64 @@ export default function EmailReportDialog({
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const dialogRef = useRef(null);
+  const inputRef = useRef(null);
+  const busyRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  busyRef.current = busy;
+
+  // Focus the first field when the dialog opens.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Give the focus back to the button that opened the dialog.
+  useEffect(
+    () => () => {
+      returnFocusRef?.current?.focus();
+    },
+    [returnFocusRef],
+  );
+
+  // Escape closes the dialog — but never while a send is in flight. Tab stays
+  // inside the dialog.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (busyRef.current) return;
+        e.stopPropagation();
+        onCloseRef.current?.();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusables = Array.from(dialog.querySelectorAll(FOCUSABLE));
+      if (!focusables.length) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (!active || !dialog.contains(active)) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, []);
 
   const addDraft = () => {
     const { valid, invalid } = parseRecipients(draft);
@@ -118,23 +187,9 @@ export default function EmailReportDialog({
   return (
     <div
       className="erd-overlay"
-      role="button"
-      tabIndex={-1}
-      aria-label="Close dialog"
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) close();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.stopPropagation();
-          close();
-          return;
-        }
-        if (e.target !== e.currentTarget) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          close();
-        }
       }}
     >
       <div
@@ -142,6 +197,7 @@ export default function EmailReportDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="erd-title"
+        ref={dialogRef}
       >
         <div className="erd-header">
           <h4 id="erd-title" className="erd-title">
@@ -183,6 +239,7 @@ export default function EmailReportDialog({
           ))}
           <input
             id="erd-to"
+            ref={inputRef}
             aria-labelledby="erd-to-label"
             className="erd-input"
             value={draft}

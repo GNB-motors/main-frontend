@@ -55,6 +55,9 @@ export default function ExportButton({
   const [pending, setPending] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const rootRef = useRef(null);
+  // The trigger keeps the focus while the dialog is open, and gets it back
+  // when the dialog closes.
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -125,6 +128,7 @@ export default function ExportButton({
         <button
           type="button"
           className="dt-tool"
+          ref={triggerRef}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -136,6 +140,7 @@ export default function ExportButton({
       ) : newButtonStyle ? (
         <NewButton
           type="button"
+          ref={triggerRef}
           variant="secondary"
           text={label}
           prependIcon={icon}
@@ -150,6 +155,7 @@ export default function ExportButton({
         <button
           type="button"
           className={buttonClass || 'pshell-btn'}
+          ref={triggerRef}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -204,6 +210,7 @@ export default function ExportButton({
           label={email.label}
           server={email.report ? { report: email.report, params: email.params } : null}
           buildFile={email.report ? null : email.buildFile || buildEmailFile}
+          returnFocusRef={triggerRef}
           onClose={() => setEmailOpen(false)}
         />
       ) : null}

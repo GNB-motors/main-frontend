@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import exportTable, { buildTableFile } from './exportTable';
+import baseExportTable from './__fixtures__/exportTable.base.js';
 
 /** The bytes of a blob, so two files can be compared exactly. */
 const readBytes = (blob) =>
@@ -75,6 +76,47 @@ describe('exportTable — buildTableFile (spec 1)', () => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     expect(await readBytes(file.blob)).toEqual(await readBytes(downloaded[0]));
+  });
+
+  it('spec 4: the builder produces the very bytes the pre-change implementation produced', async () => {
+    // The clock is fixed, so the file name and any stamp inside the file are
+    // the same for both implementations.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-06T10:00:00.000Z'));
+    try {
+      const baseResult = await baseExportTable(input('csv'));
+      const baseBytes = await readBytes(downloaded[0]);
+      downloaded.length = 0;
+
+      const file = await buildTableFile(input('csv'));
+
+      expect(baseResult).toEqual({ format: 'csv', rows: 2 });
+      expect(file.filename).toBe('fuel-spend-2026-09-06.csv');
+      expect(await readBytes(file.blob)).toEqual(baseBytes);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('spec 4: the workbook is byte for byte the one the pre-change implementation wrote', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-06T10:00:00.000Z'));
+    try {
+      const baseResult = await baseExportTable(input('xlsx'));
+      const baseBytes = await readBytes(downloaded[0]);
+      downloaded.length = 0;
+
+      const file = await buildTableFile(input('xlsx'));
+
+      expect(baseResult).toEqual({ format: 'xlsx', rows: 2 });
+      expect(file.filename).toBe('fuel-spend-2026-09-06.xlsx');
+      expect(file.blob.type).toBe(
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      expect(await readBytes(file.blob)).toEqual(baseBytes);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('spec 1: a table with no rows is still a file', async () => {

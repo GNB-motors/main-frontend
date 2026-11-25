@@ -135,4 +135,51 @@ describe('EmailReportDialog', () => {
     expect(screen.getByText('owner@gnb.com')).toBeInTheDocument();
     expect(screen.getByLabelText('Note (optional)')).toHaveValue('for the office');
   });
+
+  it('spec 4: the dialog takes the focus when it opens', () => {
+    renderDialog();
+    expect(screen.getByLabelText('To')).toHaveFocus();
+  });
+
+  it('spec 4: Tab stays inside the dialog', () => {
+    renderDialog();
+    const send = screen.getByRole('button', { name: 'Send' });
+    const closeButton = screen.getByLabelText('Close');
+    send.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(send).toHaveFocus();
+  });
+
+  it('spec 4: Escape closes the dialog while it is idle', () => {
+    const onClose = vi.fn();
+    renderDialog({ onClose });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('spec 4: Escape does not close the dialog while a send is in flight', async () => {
+    const onClose = vi.fn();
+    let fail;
+    ReportEmailService.sendServerReport.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          fail = reject;
+        }),
+    );
+    renderDialog({ onClose });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sending…' })).toBeDisabled());
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    fail(new Error('nope'));
+  });
+
+  it('spec 4: the overlay is a backdrop, not a button around the dialog', () => {
+    renderDialog();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.closest('[role="button"]')).toBeNull();
+    expect(dialog.parentElement).toHaveAttribute('role', 'presentation');
+  });
 });

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { exportFilteredReportCsv, buildFilteredReportFile } from './reportCsvExport';
+import { exportFilteredReportCsv as baseExportFilteredReportCsv } from './__fixtures__/reportCsvExport.base.js';
 
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -105,7 +106,7 @@ describe('buildFilteredReportFile — the file a searched report e-mails', () =>
     expect(await bytesOf(file.blob)).toEqual(await bytesOf(saved[0]));
   });
 
-  it('spec 3: the CSV file carries the same text as the download', async () => {
+  it('spec 3: the CSV file is byte for byte the file the download saves', async () => {
     const file = await buildFilteredReportFile({
       headers,
       rows,
@@ -113,7 +114,106 @@ describe('buildFilteredReportFile — the file a searched report e-mails', () =>
       filenamePrefix: 'non_business_report',
       extension: 'csv',
     });
+    await exportFilteredReportCsv({
+      headers,
+      rows,
+      mapRow,
+      filenamePrefix: 'non_business_report',
+      extension: 'csv',
+      showToast: false,
+    });
+
     expect(file.blob.type).toBe('text/csv;charset=utf-8;');
     expect(file.filename).toMatch(/^non_business_report_\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(saved).toHaveLength(1);
+    expect(await bytesOf(file.blob)).toEqual(await bytesOf(saved[0]));
+  });
+});
+
+describe('buildFilteredReportFile — the bytes the pre-change implementation produced (spec 4)', () => {
+  let saved;
+
+  const bytesOf = (blob) =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.readAsArrayBuffer(blob);
+    });
+
+  beforeEach(() => {
+    saved = [];
+    URL.createObjectURL = vi.fn((blob) => {
+      saved.push(blob);
+      return 'blob:test';
+    });
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  const rows = [{ vehicleNumber: 'WB25W1040', km: 120, purpose: 'delivery' }];
+  const headers = ['Vehicle', 'Km', 'Purpose'];
+  const mapRow = (r) => [r.vehicleNumber, r.km, r.purpose];
+
+  it('spec 4: the workbook is byte for byte the one the pre-change implementation wrote', async () => {
+    // The clock is fixed, so both implementations stamp the same day.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-06T10:00:00.000Z'));
+    try {
+      await baseExportFilteredReportCsv({
+        headers,
+        rows,
+        mapRow,
+        filenamePrefix: 'non_business_report',
+        extension: 'xlsx',
+        showToast: false,
+      });
+      const baseBytes = await bytesOf(saved[0]);
+      saved.length = 0;
+
+      const file = await buildFilteredReportFile({
+        headers,
+        rows,
+        mapRow,
+        filenamePrefix: 'non_business_report',
+        extension: 'xlsx',
+      });
+
+      expect(file.filename).toBe('non_business_report_2026-09-06.xlsx');
+      expect(await bytesOf(file.blob)).toEqual(baseBytes);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('spec 4: the CSV file is byte for byte the one the pre-change implementation wrote', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-06T10:00:00.000Z'));
+    try {
+      await baseExportFilteredReportCsv({
+        headers,
+        rows,
+        mapRow,
+        filenamePrefix: 'non_business_report',
+        extension: 'csv',
+        showToast: false,
+      });
+      const baseBytes = await bytesOf(saved[0]);
+      saved.length = 0;
+
+      const file = await buildFilteredReportFile({
+        headers,
+        rows,
+        mapRow,
+        filenamePrefix: 'non_business_report',
+        extension: 'csv',
+      });
+
+      expect(file.filename).toBe('non_business_report_2026-09-06.csv');
+      expect(await bytesOf(file.blob)).toEqual(baseBytes);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

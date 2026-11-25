@@ -48,4 +48,21 @@ describe('ExportButton — the Email… item', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(/Email Oil report/)).toBeInTheDocument();
   });
+
+  it('spec 6: closing the dialog gives the focus back to the Export button', () => {
+    render(
+      <ExportButton
+        rows={[]}
+        columns={[]}
+        filename="fleet-alerts"
+        email={{ label: 'Fleet alerts report' }}
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: /Export/ });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: /Email/ }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(trigger).toHaveFocus();
+  });
 });

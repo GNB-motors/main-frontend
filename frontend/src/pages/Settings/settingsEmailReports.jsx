@@ -12,6 +12,15 @@ import { parseRecipients, MAX_RECIPIENTS } from '../../components/ui/recipients'
  * The controls are guidance for the UI — the backend is what decides who may
  * read and who may write these settings.
  */
+const sameRecipients = (a, b) => {
+  const norm = (list) =>
+    (Array.isArray(list) ? list : [])
+      .map((x) => String(x).trim().toLowerCase())
+      .sort()
+      .join(',');
+  return norm(a) === norm(b);
+};
+
 export function EmailReportSettings({ canEdit }) {
   const { data, error, refetch } = useApi(
     (signal) => SettingsService.getEmailReportSettings({ signal }),
@@ -33,7 +42,9 @@ export function EmailReportSettings({ canEdit }) {
       // The answer is merged with the patch, so a backend that answers with
       // only the changed key still leaves the form in the state that was saved.
       setSaved({ ...(settings || {}), ...(res || {}), ...patch });
-      setDraftRecipients(null);
+      // Only a recipients save clears the draft. A daily/weekly toggle must
+      // leave what the owner typed in the recipients box alone.
+      if ('recipients' in patch) setDraftRecipients(null);
       toast.success('Email reports saved');
     } catch (err) {
       toast.error(err?.message || 'Could not save.');
@@ -54,6 +65,12 @@ export function EmailReportSettings({ canEdit }) {
       return;
     }
     // An empty list is allowed: the backend then mails the company owner(s).
+    // Nothing that says the same thing twice is worth a request.
+    if (sameRecipients(valid, recipients)) {
+      setDraftRecipients(null);
+      toast.info('The recipients did not change.');
+      return;
+    }
     await save({ recipients: valid });
   };
 

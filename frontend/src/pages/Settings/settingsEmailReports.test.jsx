@@ -11,7 +11,9 @@ vi.mock('./SettingsService', () => ({
     updateEmailReportSettings: vi.fn(),
   },
 }));
-vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('react-toastify', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
 
 const settings = {
   daily: false,
@@ -103,5 +105,27 @@ describe('Settings — email reports', () => {
     });
     render(<EmailReportSettings canEdit />);
     expect(await screen.findByText('Off on the server')).toBeInTheDocument();
+  });
+
+  it('spec 5: a daily toggle keeps the recipients draft', async () => {
+    render(<EmailReportSettings canEdit />);
+    const input = await screen.findByLabelText('Emails');
+    fireEvent.change(input, { target: { value: 'a@x.com' } });
+    fireEvent.click(screen.getByLabelText(/Daily fuel report/));
+    await waitFor(() =>
+      expect(SettingsService.updateEmailReportSettings).toHaveBeenCalledWith({ daily: true }),
+    );
+    expect(screen.getByLabelText('Emails')).toHaveValue('a@x.com');
+  });
+
+  it('spec 5: the same recipients again send no request', async () => {
+    render(<EmailReportSettings canEdit />);
+    const input = await screen.findByLabelText('Emails');
+    // The saved list is owner@gnb.com; the same address in another case is
+    // still the same list.
+    fireEvent.change(input, { target: { value: 'OWNER@GNB.COM' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(toast.info).toHaveBeenCalled());
+    expect(SettingsService.updateEmailReportSettings).not.toHaveBeenCalled();
   });
 });
