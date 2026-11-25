@@ -337,7 +337,8 @@ describe('OwnerReportPanel', () => {
     renderPanel();
     expect(await screen.findByRole('heading', { name: 'Needs attention' })).toBeTruthy();
     const card = screen.getByRole('region', { name: 'Needs attention' });
-    expect(within(card).getByText('Possible fuel loss')).toBeTruthy();
+    // The heading can paint before the report's rows; wait for the rows.
+    expect(await within(card).findByText('Possible fuel loss')).toBeTruthy();
     expect(within(card).getByRole('link', { name: 'Review SOS and breakdowns' })).toBeTruthy();
     expect(within(card).getByText('Still open now')).toBeTruthy();
     expect(within(card).getByText('No bills to approve right now.')).toBeTruthy();
