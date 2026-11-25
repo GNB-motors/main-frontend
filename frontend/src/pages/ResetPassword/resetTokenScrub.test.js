@@ -174,4 +174,22 @@ describe('reset token scrub', () => {
     // The token is put aside for the page.
     expect(head).toContain(`'${TOKEN_STORAGE_KEY}'`);
   });
+
+  it('review 5: a blocked sessionStorage getter does not crash; the window copy is used', () => {
+    const replaced = [];
+    const target = {
+      location: new URL('https://app.gnb.in/reset-password'),
+      history: { state: null, replaceState: (_s, _t, next) => replaced.push(next) },
+      __gnbResetToken: 'tok-window',
+    };
+    Object.defineProperty(target, 'sessionStorage', {
+      get() {
+        throw new Error('SecurityError: storage is disabled');
+      },
+    });
+
+    expect(takeResetToken({ target })).toBe('tok-window');
+    expect(target.__gnbResetToken).toBeUndefined();
+    expect(replaced).toEqual(['/reset-password']);
+  });
 });

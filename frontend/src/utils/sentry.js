@@ -123,7 +123,7 @@ const scrubStacktrace = (stacktrace) => {
 const scrubExceptionValue = (value) => {
   if (!value || typeof value !== 'object') return value;
   const next = { ...value };
-  if (typeof next.value === 'string') next.value = scrubUrl(next.value);
+  if (typeof next.value === 'string') next.value = scrubValue(next.value);
   if (next.stacktrace) next.stacktrace = scrubStacktrace(next.stacktrace);
   return next;
 };
@@ -170,7 +170,7 @@ export function scrubEvent(event) {
       if (!crumb || typeof crumb !== 'object') return crumb;
       const next = { ...crumb };
       if (typeof next.url === 'string') next.url = scrubUrl(next.url);
-      if (typeof next.message === 'string') next.message = scrubUrl(next.message);
+      if (typeof next.message === 'string') next.message = scrubValue(next.message);
       if (next.data && typeof next.data === 'object') next.data = scrubValue(next.data);
       return next;
     });
@@ -179,7 +179,7 @@ export function scrubEvent(event) {
     out.exception = out.exception.map((entry) => {
       if (!entry || typeof entry !== 'object') return entry;
       const next = { ...entry };
-      if (typeof next.value === 'string') next.value = scrubUrl(next.value);
+      if (typeof next.value === 'string') next.value = scrubValue(next.value);
       if (Array.isArray(next.values)) next.values = next.values.map(scrubExceptionValue);
       if (next.stacktrace) next.stacktrace = scrubStacktrace(next.stacktrace);
       return next;

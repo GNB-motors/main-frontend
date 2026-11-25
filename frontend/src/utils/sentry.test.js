@@ -224,4 +224,15 @@ describe('sentry scrubbing', () => {
 
     expect(scrubAxiosError(error).config.data).toEqual({ name: 'Asha' });
   });
+
+  it('review 5: serialised secrets in exception values and breadcrumb messages are redacted', () => {
+    const body = JSON.stringify({ token: TOKEN, password: 'longenough1' });
+    const event = scrubEvent({
+      exception: { values: [{ type: 'Error', value: `request failed: ${body}` }] },
+      breadcrumbs: [{ category: 'console', message: `sent ${body}` }],
+    });
+
+    expect(JSON.stringify(event)).not.toContain(TOKEN);
+    expect(JSON.stringify(event)).not.toContain('longenough1');
+  });
 });

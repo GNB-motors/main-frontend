@@ -82,6 +82,20 @@ export function clearStashedToken(storage) {
 }
 
 /**
+ * The session storage, or undefined when the browser blocks it: the getter
+ * itself throws then (privacy mode, sandboxed frames), and the window copy
+ * still carries the token.
+ */
+function storageOf(options, target) {
+  if (options.storage !== undefined) return options.storage;
+  try {
+    return target?.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Move the reset token out of the address bar (the inline script in index.html
  * does the same before the app boots).
  *
@@ -98,7 +112,7 @@ export function scrubResetToken(options = {}) {
   const target = options.target ?? (typeof window !== 'undefined' ? window : undefined);
   const loc = options.location ?? target?.location;
   const hist = options.history ?? target?.history;
-  const storage = options.storage ?? target?.sessionStorage;
+  const storage = storageOf(options, target);
   if (!loc || !hist) return null;
   try {
     if (loc.pathname !== RESET_PATH) return null;
@@ -129,7 +143,7 @@ export function takeResetToken(options = {}) {
   const target = options.target ?? (typeof window !== 'undefined' ? window : undefined);
   const loc = options.location ?? target?.location;
   const hist = options.history ?? target?.history;
-  const storage = options.storage ?? target?.sessionStorage;
+  const storage = storageOf(options, target);
   const found =
     readTokenFromLocation(loc) ||
     readStashedToken(storage) ||
