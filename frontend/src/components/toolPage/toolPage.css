@@ -1,0 +1,344 @@
+/* Fleet tool pages (Refuel Advisory, Optimal Speed, Driving DNA) — the shared
+   design system (.claude/skills/gnb-ui-design): PageShell, stat cards (6.4) and
+   the Intelligence table shell restyled to section 9. Each page keeps only its
+   own cells in its own file. */
+
+.pshell.tp-page {
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+  container: tp / inline-size;
+}
+
+/* ── Stat cards (6.4) ────────────────────────────────────────────── */
+
+.tp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.tp-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 18px 20px;
+  background: var(--ui-card);
+  border: 1px solid var(--ui-card-edge-on-grey);
+  border-radius: var(--ui-r-card);
+  box-shadow: var(--ui-shadow-card);
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+  text-align: left;
+}
+
+button.tp-card {
+  cursor: pointer;
+}
+
+button.tp-card:hover {
+  background: var(--ui-sunk);
+}
+
+button.tp-card:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+button.tp-card[aria-pressed='true'] {
+  border-color: var(--ui-link);
+  box-shadow:
+    inset 0 0 0 1px var(--ui-link),
+    var(--ui-shadow-card);
+}
+
+.tp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.tp-card-title {
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tp-figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.tp-figure strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-ink);
+  font: 500 26px/1 var(--ui-font-figure);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tp-figure strong.is-bad {
+  color: var(--ui-bad-ink);
+}
+
+.tp-figure strong.is-ok {
+  color: var(--ui-ok);
+}
+
+.tp-figure > span {
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+
+.tp-track {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ui-line);
+}
+
+.tp-track > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--ui-brand);
+}
+
+.tp-stat-note {
+  margin-top: auto;
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tp-stat-note.is-warn {
+  color: var(--ui-warn-ink);
+}
+
+.tp-stat-note.is-bad {
+  color: var(--ui-bad-ink);
+}
+
+/* ── Table (9) inside the Intelligence table shell ───────────────── */
+
+.tp-page .intel-assessments-table {
+  border-color: var(--ui-card-edge-on-grey);
+}
+
+.tp-page .intel-assessments-table .dt-table {
+  min-width: 860px;
+}
+
+.tp-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  width: 100%;
+}
+
+.tp-table-head {
+  min-width: 0;
+  margin-right: auto;
+}
+
+.tp-page .tp-table-head h2 {
+  margin: 0;
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: 0;
+}
+
+.tp-page .tp-table-head p {
+  margin: 4px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+
+/* Segmented filter (6.13). */
+.tp-segment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--ui-r-pill);
+  background: var(--ui-line);
+}
+
+.tp-segment button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: var(--ui-r-pill);
+  background: transparent;
+  color: var(--ui-ink-3);
+  font-family: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tp-segment button:hover {
+  color: var(--ui-ink);
+}
+
+.tp-segment button[aria-pressed='true'] {
+  background: var(--ui-card);
+  color: var(--ui-ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tp-segment button > span {
+  margin-left: 6px;
+  color: var(--ui-ink-5);
+  font-family: var(--ui-font-mono);
+  font-size: 12px;
+}
+
+.tp-segment button:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 1px;
+}
+
+.tp-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 220px;
+  min-width: 160px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: var(--ui-r-control);
+  background: var(--ui-card);
+  color: var(--ui-ink-4);
+}
+
+.tp-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ui-ink);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.tp-search input::placeholder {
+  color: var(--ui-ink-5);
+}
+
+.tp-search button {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ui-divider);
+  color: var(--ui-ink-3);
+  cursor: pointer;
+}
+
+/* ── Cells shared by the tool tables ─────────────────────────────── */
+
+.tp-plate {
+  color: var(--ui-link);
+  text-decoration: none;
+}
+
+.tp-plate:hover {
+  color: var(--ui-link-hover);
+  text-decoration: underline;
+}
+
+.tp-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tp-num {
+  font: 12.5px var(--ui-font-mono);
+  white-space: nowrap;
+}
+
+.tp-num.is-stale {
+  color: var(--ui-warn-ink);
+}
+
+/* A value with a short level bar under or beside it. */
+.tp-level {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 120px;
+}
+
+.tp-level-row {
+  display: grid;
+  grid-template-columns: 40px minmax(56px, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.tp-level-row b {
+  font: 500 12.5px var(--ui-font-mono);
+}
+
+.tp-level-track {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ui-divider);
+  overflow: hidden;
+}
+
+.tp-level-track > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--ui-brand);
+}
+
+.tp-level-track > span.is-ok {
+  background: var(--ui-ok);
+}
+
+.tp-level-track > span.is-warn {
+  background: var(--ui-warn);
+}
+
+.tp-level-track > span.is-bad {
+  background: var(--ui-bad);
+}
+
+.tp-level small {
+  color: var(--ui-ink-5);
+  font-size: 11.5px;
+}
+
+@container tp (max-width: 1000px) {
+  .tp-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container tp (max-width: 520px) {
+  .tp-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tp-search {
+    flex-basis: 100%;
+  }
+}

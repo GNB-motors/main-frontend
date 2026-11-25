@@ -31,6 +31,9 @@ const profileSchema = z
     potentialSavingsInr: num,
     bands: z.array(bandSchema).nullish(),
     sampleWindows: num,
+    windowFrom: str,
+    windowTo: str,
+    computedAt: str,
   })
   .passthrough();
 
@@ -39,5 +42,6 @@ export const optimalSpeedResponseSchema = z
     success: z.boolean().optional(),
     profiles: z.array(profileSchema).nullish(),
     summary: z.object({ count: num, totalPotentialSavingsInr: num }).passthrough().nullish(),
+    window: z.object({ lookbackDays: num }).passthrough().nullish(),
   })
   .passthrough();

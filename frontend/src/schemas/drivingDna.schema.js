@@ -24,6 +24,9 @@ const profileSchema = z
     drivingScore: num,
     grade: str,
     sampleCount: num,
+    windowFrom: str,
+    windowTo: str,
+    computedAt: str,
   })
   .passthrough();
 
@@ -32,5 +35,13 @@ export const drivingDnaResponseSchema = z
     success: z.boolean().optional(),
     profiles: z.array(profileSchema).nullish(),
     summary: z.object({ count: num, avgScore: num }).passthrough().nullish(),
+    rules: z
+      .object({
+        lookbackDays: num,
+        overspeedThresholdKmh: num,
+        gradeThresholds: z.object({ a: num, b: num, c: num }).passthrough().nullish(),
+      })
+      .passthrough()
+      .nullish(),
   })
   .passthrough();

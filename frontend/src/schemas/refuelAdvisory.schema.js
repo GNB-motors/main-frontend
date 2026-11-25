@@ -19,6 +19,7 @@ const advisorySchema = z
     litresToFull: num,
     estimatedFillCostInr: num,
     lastReadingAt: str,
+    computedAt: str,
   })
   .passthrough();
 
@@ -28,6 +29,16 @@ export const refuelAdvisoryResponseSchema = z
     advisories: z.array(advisorySchema).nullish(),
     summary: z
       .object({ count: num, OK: num, REFUEL_SOON: num, CRITICAL: num })
+      .passthrough()
+      .nullish(),
+    thresholds: z
+      .object({
+        criticalRangeKm: num,
+        refuelSoonRangeKm: num,
+        criticalPctFull: num,
+        refuelSoonPctFull: num,
+        staleReadingHours: num,
+      })
       .passthrough()
       .nullish(),
   })
