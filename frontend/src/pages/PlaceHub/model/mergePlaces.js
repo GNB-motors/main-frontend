@@ -104,7 +104,7 @@ export function fromSite(s) {
     groupParts: s.areaGroup?.anchor ? partsOf(s.areaGroup.polygon) : null,
     groupMembers: Array.isArray(s.areaGroup?.members) ? s.areaGroup.members.map(String) : [],
     purpose: purposeOf(s),
-    subtitle: s.locality?.label || s.address?.locality || s.address?.formatted || '',
+    subtitle: s.address?.locality || s.address?.formatted || '',
     erp,
     readOnly: erp,
     readOnlyReason: erp

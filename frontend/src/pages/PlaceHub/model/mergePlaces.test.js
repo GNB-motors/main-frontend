@@ -99,11 +99,10 @@ describe('mergePlaces — core, group and purpose', () => {
 describe('mergePlaces — the backend label for a place with no name', () => {
   const LABEL = 'Unmarked, near Bhadutala (1.0 km), Medinipur, Paschim Medinipur, West Bengal';
 
-  it('spec 6: the subtitle comes from the label before the address', () => {
-    const [p] = mergePlaces({
-      sites: [site({ name: null, locality: { label: LABEL }, address: { locality: 'Medinipur' } })],
-    });
-    expect(p.subtitle).toBe(LABEL);
+  it('spec 6: the label is the title, so the subtitle never repeats it', () => {
+    const [p] = mergePlaces({ sites: [site({ name: null, locality: { label: LABEL } })] });
+    expect(p.name).toBe('Loading point, near Bhadutala (1.0 km), Medinipur, Paschim Medinipur, West Bengal');
+    expect(p.subtitle).not.toContain('Bhadutala');
   });
 
   it('spec 6: without a label the address locality is still the subtitle', () => {
