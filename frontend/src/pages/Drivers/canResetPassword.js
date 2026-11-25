@@ -5,9 +5,9 @@ import { getUserId } from '../../utils/session.js';
  * backend rule; the backend still decides (branch scope, the `drivers`
  * permission), this only hides buttons that would surely be refused.
  *
- * Fail closed: the row must carry a role, and it must be known that the row is
- * not the organisation's owner. A row without a role, or a row that belongs to
- * the owner, never gets the button.
+ * Fail closed: the row must carry a role and an id, the role must not be
+ * OWNER/SUPER_ADMIN, and it must be known WHO is looking — an unknown viewer
+ * or an unknown row never gets the button.
  */
 const OWNER_CAN_RESET = new Set([
   'DRIVER',
@@ -25,11 +25,14 @@ export function canResetRow(viewerRole, row, permissions, viewerId = getUserId()
   // an owner, so there is no button.
   const role = String(row.role || '').toUpperCase();
   if (!role) return false;
-  // Ownership: either the row says so, or its role says so. An owner row never
-  // gets the button — not for an owner, not for a superadmin.
-  if (row.isOwner === true || role === 'OWNER') return false;
-  // Never offer to reset the viewer's own password.
-  if (viewerId && row.id != null && String(row.id) === String(viewerId)) return false;
+  // The role is the truth (normalizeDriver keeps it): an owner or a superadmin
+  // row never gets the button — not for an owner, not for a superadmin.
+  if (role === 'OWNER' || role === 'SUPER_ADMIN') return false;
+  // The row must be identifiable, and it must not be the viewer's own row.
+  const rowId = row.id;
+  if (rowId === undefined || rowId === null || rowId === '') return false;
+  if (!viewerId) return false; // we do not know who is looking
+  if (String(rowId) === String(viewerId)) return false;
 
   const viewer = String(viewerRole || '').toUpperCase();
   if (viewer === 'OWNER' || viewer === 'SUPER_ADMIN') return OWNER_CAN_RESET.has(role);

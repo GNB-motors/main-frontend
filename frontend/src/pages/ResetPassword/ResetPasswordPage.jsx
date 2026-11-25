@@ -1,37 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, KeyRound, LinkIcon } from 'lucide-react';
 import AuthHelpLayout from '../../components/auth/AuthHelpLayout.jsx';
 import PasswordField from '../../components/auth/PasswordField.jsx';
 import { checkNewPassword } from '../../components/auth/passwordRules';
 import { PasswordResetService } from '../../services/PasswordResetService';
+import { releaseResetToken, takeResetToken } from './resetTokenScrub.js';
 import '../../components/ui/forms.css';
 
 /**
- * /reset-password?token=…  The link from the reset email.
- * 1. Read the token once (the inline script in index.html has already moved it
- *    out of the address bar), then drop it from the URL.
+ * /reset-password#token=…  The link from the reset email (the old
+ * /reset-password?token=… link still works).
+ * 1. Read the token once, synchronously, in the state initializer — the
+ *    fragment, then the query string, then the copy the inline script in
+ *    index.html left behind — and drop it from the URL in the same breath, so
+ *    no effect, router or telemetry ever sees it.
  * 2. Ask the API whether it is still good, and whose it is.
  * 3. New password twice -> complete -> "Sign in".
  */
 export default function ResetPasswordPage() {
-  const [params] = useSearchParams();
   const navigate = useNavigate();
 
   // The token is read exactly once, then thrown away: it must never sit in the
   // history, in a log line or in any other URL.
-  const [token] = useState(() => {
-    const fromWindow = typeof window !== 'undefined' ? window.__gnbResetToken : null;
-    const fromQuery = params.get('token');
-    if (typeof window !== 'undefined') {
-      try {
-        delete window.__gnbResetToken;
-      } catch {
-        window.__gnbResetToken = undefined;
-      }
-    }
-    return String(fromWindow || fromQuery || '').trim();
-  });
+  const [token] = useState(() => takeResetToken());
 
   const [phase, setPhase] = useState(token ? 'checking' : 'invalid'); // checking|form|saving|done|invalid
   const [who, setWho] = useState(null);
@@ -40,13 +32,9 @@ export default function ResetPasswordPage() {
   const [touched, setTouched] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  // The token leaves the address bar before anything else can see it. The
-  // router's own history state is kept, so Back still works.
-  useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.history?.replaceState === 'function') {
-      window.history.replaceState(window.history.state, '', '/reset-password');
-    }
-  }, []);
+  // The token leaves the address bar in the initializer above. When the page
+  // goes away the copy the initializer kept is forgotten as well.
+  useEffect(() => () => releaseResetToken(), []);
 
   useEffect(() => {
     if (!token) return undefined;

@@ -32,6 +32,16 @@ const SECRET_ASSIGNMENT = new RegExp(`(^|[^A-Za-z0-9_])(${SECRET_PARAM})=([^&#\\
 
 const REDACTED = '[redacted]';
 
+// A secret inside a JSON body that was serialised into a string:
+// '{"token":"…","password":"…"}'. The body of a reset call is exactly that.
+const JSON_REDACTED = '[REDACTED]';
+const JSON_SECRET_KEY =
+  '(token|resetToken|reset_token|accessToken|access_token|refreshToken|refresh_token|password|newPassword|new_password|otp|code|secret)';
+const JSON_SECRET = new RegExp(`("${JSON_SECRET_KEY}"\\s*:\\s*)"(?:[^"\\\\]|\\\\.)*"`, 'gi');
+
+// A route whose request body is a secret (a reset, or a password change).
+const SECRET_ROUTE = /(password-reset|reset-password|\/password)/i;
+
 // The keys are matched case-insensitively ("Authorization" is "authorization").
 const SECRET_KEYS_LOWER = new Set(
   [
@@ -61,12 +71,22 @@ export function scrubUrl(url) {
 }
 
 /**
+ * Redact the secrets of a JSON body that was serialised into a string.
+ * @param {string} text
+ * @returns {string}
+ */
+export function scrubJsonSecrets(text) {
+  if (typeof text !== 'string') return text;
+  return text.replace(JSON_SECRET, (_m, key) => `${key}"${JSON_REDACTED}"`);
+}
+
+/**
  * Copy a value with every secret field and every secret query value redacted.
  * @param {*} value
  * @returns {*}
  */
 export function scrubValue(value) {
-  if (typeof value === 'string') return scrubUrl(value);
+  if (typeof value === 'string') return scrubJsonSecrets(scrubUrl(value));
   if (Array.isArray(value)) return value.map((item) => scrubValue(item));
   if (value && typeof value === 'object') {
     const out = {};
@@ -118,12 +138,24 @@ export function scrubEvent(event) {
   if (!event || typeof event !== 'object') return event;
   const out = { ...event };
 
+  // The message and the transaction name are plain strings and can carry the
+  // reset URL (or a serialised body) just as well.
+  if (typeof out.message === 'string') out.message = scrubValue(out.message);
+  if (typeof out.transaction === 'string') out.transaction = scrubValue(out.transaction);
+
   if (out.request && typeof out.request === 'object') {
     const request = { ...out.request };
     if (typeof request.url === 'string') request.url = scrubUrl(request.url);
     if (typeof request.query_string === 'string') request.query_string = scrubUrl(request.query_string);
-    // The body of a reset call is a secret — it never gets attached.
-    delete request.data;
+    // The body of a reset call is a secret — it never gets attached. Any other
+    // body stays, but its secrets are redacted.
+    if (SECRET_ROUTE.test(String(request.url || ''))) {
+      delete request.data;
+      delete request.body;
+    } else {
+      if (request.data !== undefined) request.data = scrubValue(request.data);
+      if (request.body !== undefined) request.body = scrubValue(request.body);
+    }
     if (request.headers && typeof request.headers === 'object') {
       request.headers = scrubValue(request.headers);
     }
@@ -186,6 +218,25 @@ function lemuFingerprint(error, message) {
 }
 
 /**
+ * The captured axios error carries the request body in `config.data`. For a
+ * reset or a password change that body holds the token and the new password,
+ * so it is dropped before the error is handed to Sentry or to LEMU.
+ * @param {*} error
+ * @returns {*} the error, without the body
+ */
+export function scrubAxiosError(error) {
+  if (!error || typeof error !== 'object') return error;
+  const config = error.config;
+  if (!config || !config.data) return error;
+  if (!SECRET_ROUTE.test(String(config.url || ''))) return error;
+  const next = Object.assign(new Error(error?.message || 'Request failed'), error);
+  next.name = error?.name || 'Error';
+  next.config = { ...config };
+  delete next.config.data;
+  return next;
+}
+
+/**
  * The event that goes to LEMU. Everything in it is scrubbed first: the error
  * message and the stack can carry the reset URL (and with it the token), and
  * so can the context the caller passed in.
@@ -194,7 +245,7 @@ function lemuFingerprint(error, message) {
  */
 export function buildLemuEvent(error, context = {}) {
   const rawMessage = String(error?.message || error || 'Unknown error').slice(0, 500);
-  const message = scrubUrl(rawMessage);
+  const message = scrubValue(rawMessage);
   const extra = {
     ...(context.extra || {}),
     ...(context.tags || {}),
@@ -208,7 +259,7 @@ export function buildLemuEvent(error, context = {}) {
     layer: 'UI',
     errorName: error?.name || 'Error',
     message,
-    stack: error?.stack ? scrubUrl(String(error.stack)) : null,
+    stack: error?.stack ? scrubValue(String(error.stack)) : null,
     fingerprint: lemuFingerprint(error, message),
     timestamp: new Date().toISOString(),
     environment: import.meta.env.MODE,
@@ -269,12 +320,14 @@ function report(error, context) {
  * @param {{tags?: Object, extra?: Object}} [context]
  */
 export function captureException(error, context = {}) {
+  // The request body of a reset call never leaves the browser.
+  const safe = scrubAxiosError(error);
   // Always mirror to the in-house LEMU pipeline (works without a Sentry DSN).
-  reportToLemu(error, context);
+  reportToLemu(safe, context);
   if (sdk) {
-    report(error, context);
+    report(safe, context);
   } else if (pending.length < BUFFER_CAP) {
-    pending.push({ error, context });
+    pending.push({ error: safe, context });
   }
 }
 

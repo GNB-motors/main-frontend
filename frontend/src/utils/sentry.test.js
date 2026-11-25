@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { scrubUrl, scrubValue, scrubEvent, buildLemuEvent } from './sentry.js';
+import {
+  scrubUrl,
+  scrubValue,
+  scrubEvent,
+  buildLemuEvent,
+  scrubAxiosError,
+} from './sentry.js';
 
 const TOKEN = 'tok-SECRET-123';
 
@@ -141,5 +147,81 @@ describe('sentry scrubbing', () => {
     expect(event.extra.token).toBe('[redacted]');
     expect(event.context.token).toBe('[redacted]');
     expect(event.fingerprint).not.toContain(TOKEN);
+  });
+
+  it('review 4: scrubs the secrets of a JSON body that was serialised into a string', () => {
+    const body = JSON.stringify({
+      token: TOKEN,
+      password: 'longenough1',
+      otp: '999111',
+      role: 'DRIVER',
+    });
+
+    const scrubbed = scrubValue(body);
+    expect(scrubbed).not.toContain(TOKEN);
+    expect(scrubbed).not.toContain('longenough1');
+    expect(scrubbed).not.toContain('999111');
+    expect(scrubbed).toContain('[REDACTED]');
+    expect(scrubbed).toContain('"role":"DRIVER"');
+  });
+
+  it('review 4: scrubs the top level message and the transaction name', () => {
+    const event = scrubEvent({
+      message: `reset failed for {"token":"${TOKEN}"}`,
+      transaction: `POST /api/auth/password-reset/complete?token=${TOKEN}`,
+    });
+
+    expect(event.message).not.toContain(TOKEN);
+    expect(event.transaction).not.toContain(TOKEN);
+    expect(event.transaction).toContain('[redacted]');
+  });
+
+  it('review 4: the body of another request is redacted, not dropped', () => {
+    const event = scrubEvent({
+      request: { url: '/api/drivers', data: { token: TOKEN, name: 'Asha' } },
+    });
+
+    expect(event.request.data.token).toBe('[redacted]');
+    expect(event.request.data.name).toBe('Asha');
+  });
+
+  it('review 4: the body of a reset request never leaves the browser', () => {
+    const event = scrubEvent({
+      request: {
+        url: '/api/auth/password-reset/complete',
+        data: { token: TOKEN, password: 'longenough1' },
+        body: JSON.stringify({ token: TOKEN, password: 'longenough1' }),
+      },
+    });
+
+    expect(event.request.data).toBeUndefined();
+    expect(event.request.body).toBeUndefined();
+    expect(JSON.stringify(event)).not.toContain(TOKEN);
+  });
+
+  it('review 4: the captured axios error never carries the body of a reset call', () => {
+    const error = new Error('Request failed with status code 400');
+    error.name = 'AxiosError';
+    error.config = {
+      url: '/api/auth/password-reset/complete',
+      method: 'post',
+      data: JSON.stringify({ token: TOKEN, password: 'longenough1' }),
+    };
+    error.isAxiosError = true;
+
+    const safe = scrubAxiosError(error);
+
+    expect(safe.config.data).toBeUndefined();
+    expect(safe.config.url).toBe('/api/auth/password-reset/complete');
+    expect(safe.message).toContain('400');
+    expect(JSON.stringify(safe)).not.toContain(TOKEN);
+    expect(error.config.data).toContain(TOKEN); // the original error is untouched
+  });
+
+  it('review 4: the body of another axios call stays', () => {
+    const error = new Error('boom');
+    error.config = { url: '/api/drivers', data: { name: 'Asha' } };
+
+    expect(scrubAxiosError(error).config.data).toEqual({ name: 'Asha' });
   });
 });

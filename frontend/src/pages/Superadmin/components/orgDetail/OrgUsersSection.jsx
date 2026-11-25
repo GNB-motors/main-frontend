@@ -30,14 +30,25 @@ const roleLabel = (role) => ROLE_LABELS[role] || role || 'Employee';
  * "Reset password" action on each (never on the superadmin's own account).
  */
 export default function OrgUsersSection({ orgId }) {
-  const [rows, setRows] = useState([]);
-  const [meta, setMeta] = useState(EMPTY_META);
+  // The rows, the count and the reset target belong to the organisation they
+  // were loaded for. They are only shown while that organisation is the one on
+  // screen — decided during the render, so a new organisation never shows the
+  // accounts of the previous one, not even for a frame.
+  const [rowsState, setRowsState] = useState({ orgId, rows: [] });
+  const [metaState, setMetaState] = useState({ orgId, meta: EMPTY_META });
   const [pageState, setPageState] = useState({ orgId, page: 1 });
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [target, setTarget] = useState(null);
+  const [targetState, setTargetState] = useState({ orgId, target: null });
+
+  const rows = useMemo(
+    () => (rowsState.orgId === orgId ? rowsState.rows : []),
+    [rowsState, orgId],
+  );
+  const meta = metaState.orgId === orgId ? metaState.meta : EMPTY_META;
+  const target = targetState.orgId === orgId ? targetState.target : null;
 
   // Every request gets a number; only the newest one may write to the state.
   const requestId = useRef(0);
@@ -66,15 +77,15 @@ export default function OrgUsersSection({ orgId }) {
 
   // The reset target belongs to the organisation it was opened for.
   useEffect(() => {
-    setTarget(null);
+    setTargetState({ orgId, target: null });
   }, [orgId]);
 
   // Another organisation: the rows on screen belong to the previous one, so
   // they go immediately (not when the new answer arrives).
   useEffect(() => {
     requestId.current += 1; // nothing in flight may write to the state any more
-    setRows([]);
-    setMeta(EMPTY_META);
+    setRowsState({ orgId, rows: [] });
+    setMetaState({ orgId, meta: EMPTY_META });
     setPageState({ orgId, page: 1 });
     setError('');
     setLoading(Boolean(orgId));
@@ -83,8 +94,8 @@ export default function OrgUsersSection({ orgId }) {
   useEffect(() => {
     if (!orgId) {
       requestId.current += 1;
-      setRows([]);
-      setMeta(EMPTY_META);
+      setRowsState({ orgId, rows: [] });
+      setMetaState({ orgId, meta: EMPTY_META });
       setLoading(false);
       return undefined;
     }
@@ -100,8 +111,8 @@ export default function OrgUsersSection({ orgId }) {
     )
       .then((res) => {
         if (requestId.current !== id) return; // a newer request already answered
-        setRows(res?.rows ?? []);
-        setMeta(res?.meta ?? EMPTY_META);
+        setRowsState({ orgId, rows: res?.rows ?? [] });
+        setMetaState({ orgId, meta: res?.meta ?? EMPTY_META });
         setError('');
       })
       .catch((err) => {
@@ -135,6 +146,16 @@ export default function OrgUsersSection({ orgId }) {
   const viewerId = getUserId();
   const currentPage = meta?.page ?? page;
   const totalPages = meta?.pages ?? 1;
+
+  // Fail closed: without a known viewer we cannot tell the superadmin's own
+  // account from the others, so no row gets the button. The superadmin's own
+  // row never gets it either — not for an owner row, not for a SUPER_ADMIN one.
+  const canResetFor = (user) => {
+    if (!viewerId) return false;
+    const id = user?.id;
+    if (id === undefined || id === null || id === '') return false;
+    return String(id) !== String(viewerId);
+  };
 
   const submitReset = async (body) => {
     if (!target) throw new Error('No account selected.');
@@ -207,16 +228,16 @@ export default function OrgUsersSection({ orgId }) {
                     </span>
                   </td>
                   <td>
-                    {viewerId && String(user.id) === String(viewerId) ? null : (
+                    {canResetFor(user) ? (
                       <button
                         type="button"
                         className="btn btn-secondary"
                         aria-label={`Reset password for ${fullName(user)}`}
-                        onClick={() => setTarget(user)}
+                        onClick={() => setTargetState({ orgId, target: user })}
                       >
                         <KeyRound size={14} aria-hidden="true" /> Reset password
                       </button>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -258,7 +279,7 @@ export default function OrgUsersSection({ orgId }) {
 
       <ResetPasswordDialog
         open={!!target}
-        onClose={() => setTarget(null)}
+        onClose={() => setTargetState({ orgId, target: null })}
         user={
           target
             ? {

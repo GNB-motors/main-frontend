@@ -14,9 +14,12 @@ vi.mock('../../../../utils/axiosConfig', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+// The viewer is the superadmin; the tests can make it unknown.
+const { viewerState } = vi.hoisted(() => ({ viewerState: { id: 'u2' } }));
+
 vi.mock('../../../../utils/session.js', async (importOriginal) => ({
   ...(await importOriginal()),
-  getUserId: () => 'u2',
+  getUserId: () => viewerState.id,
 }));
 
 const OWNER = {
@@ -244,6 +247,69 @@ describe('OrgUsersSection', () => {
 
     await waitFor(() => expect(screen.queryByText('Asha Rao')).not.toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /Reset password/i })).not.toBeInTheDocument();
+  });
+
+  it('review 4: the rows on screen belong to the organisation, not to the last answer', async () => {
+    let resolveOld;
+    OrgUsersService.listOrgUsers.mockImplementation((orgId) => {
+      if (orgId === 'org-a') {
+        return new Promise((resolve) => {
+          resolveOld = () =>
+            resolve({ rows: [OWNER], meta: { page: 1, limit: 50, total: 1, pages: 1 } });
+        });
+      }
+      return new Promise(() => {}); // the new organisation never answers
+    });
+
+    const { rerender } = render(<OrgUsersSection orgId="org-a" />);
+    resolveOld();
+    await screen.findByText('Asha Rao');
+
+    // The reset dialog of the old organisation is open…
+    fireEvent.click(screen.getByRole('button', { name: /Reset password for Asha Rao/i }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    // …and another organisation means: no old rows and no old dialog, in the
+    // very same render — before the new answer arrives.
+    rerender(<OrgUsersSection orgId="org-b" />);
+    expect(screen.queryByText('Asha Rao')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
+  });
+
+  it('review 4: a late answer of the previous organisation is dropped', async () => {
+    let resolveOld;
+    OrgUsersService.listOrgUsers.mockImplementation((orgId) => {
+      if (orgId === 'org-a') {
+        return new Promise((resolve) => {
+          resolveOld = () =>
+            resolve({
+              rows: [{ id: 'a1', firstName: 'Old', lastName: 'Org', role: 'OWNER' }],
+              meta: { page: 1, limit: 50, total: 1, pages: 1 },
+            });
+        });
+      }
+      return new Promise(() => {}); // the new organisation never answers
+    });
+
+    const { rerender } = render(<OrgUsersSection orgId="org-a" />);
+    rerender(<OrgUsersSection orgId="org-b" />);
+
+    resolveOld();
+    await waitFor(() => expect(screen.queryByText('Old Org')).not.toBeInTheDocument());
+    expect(screen.queryByText('Old Org')).not.toBeInTheDocument();
+  });
+
+  it('review 4: an unknown viewer gets no reset button at all', async () => {
+    viewerState.id = null;
+    try {
+      render(<OrgUsersSection orgId="org-1" />);
+      await screen.findByText('Asha Rao');
+
+      expect(screen.queryByRole('button', { name: /Reset password for/i })).not.toBeInTheDocument();
+    } finally {
+      viewerState.id = 'u2';
+    }
   });
 });
 

@@ -8,45 +8,57 @@ describe('canResetRow', () => {
   it('spec 4: an owner may reset drivers, managers and the other staff rows', () => {
     ['DRIVER', 'MANAGER', 'FIELD_AGENT', 'KAM', 'OPS_EXECUTIVE', 'ACCOUNTS', 'APPROVER'].forEach(
       (role) => {
-        expect(canResetRow('OWNER', { id: 'u1', role })).toBe(true);
+        expect(canResetRow('OWNER', { id: 'u1', role }, {}, 'me')).toBe(true);
       },
     );
   });
 
   it('spec 4: an owner never gets a button on an owner row', () => {
-    expect(canResetRow('OWNER', { id: 'u1', role: 'OWNER' })).toBe(false);
-    expect(canResetRow('OWNER', { id: 'u1', role: 'DRIVER', isOwner: true })).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1', role: 'OWNER' }, {}, 'me')).toBe(false);
+  });
+
+  it('review 4: the role is the truth — a DRIVER row is a driver row', () => {
+    // normalizeDriver keeps the role of the account; an owner row carries the
+    // role OWNER, so the button follows the role and nothing else.
+    expect(canResetRow('OWNER', { id: 'u1', role: 'DRIVER', isOwner: true }, {}, 'me')).toBe(true);
   });
 
   it('spec 4: a manager may reset driver rows only', () => {
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: true })).toBe(true);
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'MANAGER' }, { drivers: true })).toBe(false);
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'KAM' }, { drivers: true })).toBe(false);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(true);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'MANAGER' }, { drivers: true }, 'me')).toBe(
+      false,
+    );
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'KAM' }, { drivers: true }, 'me')).toBe(false);
   });
 
   it('spec 4/D4: a manager without the drivers permission gets no button', () => {
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, {})).toBe(false);
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' })).toBe(false);
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: false })).toBe(false);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, {}, 'me')).toBe(false);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, undefined, 'me')).toBe(false);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: false }, 'me')).toBe(false);
   });
 
   it('spec 4/D3: a row without a role gets no button', () => {
-    expect(canResetRow('OWNER', { id: 'u1' })).toBe(false);
-    expect(canResetRow('OWNER', { id: 'u1', role: '' })).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1' }, {}, 'me')).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1', role: '' }, {}, 'me')).toBe(false);
   });
 
   it('review 4: a row with unknown data gets no button', () => {
-    expect(canResetRow('OWNER', {})).toBe(false);
-    expect(canResetRow('OWNER', { id: 'u1', role: null })).toBe(false);
-    expect(canResetRow('SUPER_ADMIN', { id: 'u1', role: undefined })).toBe(false);
-    expect(canResetRow('MANAGER', { id: 'u1' }, { drivers: true })).toBe(false);
-    expect(canResetRow('OWNER', null)).toBe(false);
+    expect(canResetRow('OWNER', {}, {}, 'me')).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1', role: null }, {}, 'me')).toBe(false);
+    expect(canResetRow('SUPER_ADMIN', { id: 'u1', role: undefined }, {}, 'me')).toBe(false);
+    expect(canResetRow('MANAGER', { id: 'u1' }, { drivers: true }, 'me')).toBe(false);
+    expect(canResetRow('OWNER', null, {}, 'me')).toBe(false);
   });
 
   it('review 4: an owner row is refused for every viewer', () => {
     ['OWNER', 'SUPER_ADMIN', 'MANAGER'].forEach((viewer) => {
-      expect(canResetRow(viewer, { id: 'u1', role: 'OWNER' }, { drivers: true })).toBe(false);
+      expect(canResetRow(viewer, { id: 'u1', role: 'OWNER' }, { drivers: true }, 'me')).toBe(false);
     });
+  });
+
+  it('review 4: a superadmin row is refused as well', () => {
+    expect(canResetRow('SUPER_ADMIN', { id: 'u1', role: 'SUPER_ADMIN' }, {}, 'me')).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1', role: 'SUPER_ADMIN' }, {}, 'me')).toBe(false);
   });
 
   it('spec 4/D5: the viewer never gets a button on their own row', () => {
@@ -54,10 +66,22 @@ describe('canResetRow', () => {
     expect(canResetRow('OWNER', { id: 'other', role: 'DRIVER' }, {}, 'me')).toBe(true);
   });
 
+  it('review 4: an unknown viewer gets no button at all', () => {
+    expect(canResetRow('OWNER', { id: 'u1', role: 'DRIVER' }, {}, null)).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1', role: 'DRIVER' }, {}, undefined)).toBe(false);
+    expect(canResetRow('OWNER', { id: 'u1', role: 'DRIVER' }, {}, '')).toBe(false);
+  });
+
+  it('review 4: a row without an id gets no button at all', () => {
+    expect(canResetRow('OWNER', { role: 'DRIVER' }, {}, 'me')).toBe(false);
+    expect(canResetRow('OWNER', { id: null, role: 'DRIVER' }, {}, 'me')).toBe(false);
+    expect(canResetRow('OWNER', { id: '', role: 'DRIVER' }, {}, 'me')).toBe(false);
+  });
+
   it('spec 4: any other viewer gets no button at all', () => {
-    expect(canResetRow('DRIVER', { id: 'u1', role: 'DRIVER' }, { drivers: true })).toBe(false);
-    expect(canResetRow('KAM', { id: 'u1', role: 'DRIVER' }, { drivers: true })).toBe(false);
-    expect(canResetRow(undefined, { id: 'u1', role: 'DRIVER' })).toBe(false);
+    expect(canResetRow('DRIVER', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(false);
+    expect(canResetRow('KAM', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(false);
+    expect(canResetRow(undefined, { id: 'u1', role: 'DRIVER' }, {}, 'me')).toBe(false);
   });
 });
 

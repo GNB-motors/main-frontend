@@ -23,6 +23,13 @@ describe('ResetPasswordPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete window.__gnbResetToken;
+    // A clean address bar and no stash: every test starts from scratch.
+    window.history.replaceState(window.history.state, '', '/reset-password');
+    try {
+      window.sessionStorage.removeItem('gnb.resetToken');
+    } catch {
+      /* storage disabled */
+    }
   });
 
   it('spec 1: without a token the page says the link does not work', async () => {
@@ -63,6 +70,41 @@ describe('ResetPasswordPage', () => {
     );
     const [url] = apiClient.post.mock.calls[0];
     expect(url).not.toContain('tok-body');
+  });
+
+  it('review 4: a link with the token in the FRAGMENT works', async () => {
+    window.location.hash = '#token=tok-frag';
+    apiClient.post.mockResolvedValue({
+      data: { data: { valid: true, firstName: 'Asha', orgName: 'GNB Motors', role: 'DRIVER' } },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText(/Asha/)).toBeInTheDocument();
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/auth/password-reset/verify',
+      { token: 'tok-frag' },
+      expect.objectContaining({ skipAuthRedirect: true }),
+    );
+    expect(window.location.href).not.toContain('tok-frag');
+    expect(window.location.hash).toBe('');
+  });
+
+  it('review 4: the token the inline script left behind is used', async () => {
+    window.sessionStorage.setItem('gnb.resetToken', 'tok-stash');
+    apiClient.post.mockResolvedValue({
+      data: { data: { valid: true, firstName: 'Asha', orgName: 'GNB Motors', role: 'DRIVER' } },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText(/Asha/)).toBeInTheDocument();
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/auth/password-reset/verify',
+      { token: 'tok-stash' },
+      expect.objectContaining({ skipAuthRedirect: true }),
+    );
+    expect(window.sessionStorage.getItem('gnb.resetToken')).toBeNull();
   });
 
   it('spec 1/D6: the token is read once and deleted from the page after the first read', async () => {

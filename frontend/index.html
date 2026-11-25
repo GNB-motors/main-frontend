@@ -2,21 +2,37 @@
 <html lang="en">
   <head>
     <!--
-      Password-reset links carry a one-time token in the query string. This
+      Password-reset links carry a one-time token in the FRAGMENT
+      (/reset-password#token=…); the fragment is never sent to a server. This
       script is the FIRST thing in <head>, so it runs before any image, script
       or telemetry can see the URL: the token is moved to
-      window.__gnbResetToken and taken out of the address bar. The address bar
-      becomes exactly /reset-password — the other query parameters and the
-      fragment go too. The same logic lives in
+      window.__gnbResetToken (and to sessionStorage, key 'gnb.resetToken') and
+      taken out of the address bar. The address bar becomes exactly
+      /reset-password — the query string and the fragment go too. The old
+      /reset-password?token=… link still works. The same logic lives in
       src/pages/ResetPassword/resetTokenScrub.js (and is tested there).
     -->
     <script>
       (() => {
         try {
           if (window.location.pathname === '/reset-password') {
-            const url = new URL(window.location.href);
-            const token = url.searchParams.get('token');
+            const readToken = (raw) => {
+              try {
+                const value = String(raw || '').replace(/^[#?]/, '');
+                const query = value.includes('?') ? value.slice(value.indexOf('?') + 1) : value;
+                return (new URLSearchParams(query).get('token') || '').trim();
+              } catch (e) {
+                return '';
+              }
+            };
+            const token =
+              readToken(window.location.hash) || readToken(window.location.search);
             if (token) {
+              try {
+                window.sessionStorage.setItem('gnb.resetToken', token);
+              } catch (e) {
+                /* storage disabled: the window copy is the fallback */
+              }
               window.__gnbResetToken = token;
               window.history.replaceState(window.history.state, '', '/reset-password');
             }
