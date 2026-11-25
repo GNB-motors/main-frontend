@@ -22,32 +22,42 @@ const BUFFER_CAP = 20;
 // ── Redaction ───────────────────────────────────────────────────────────────
 // A password-reset token must never reach Sentry (or LEMU): it is a one-time
 // credential and the reset URL is the one place it travels.
-const SECRET_KEYS = new Set([
-  'token',
-  'resetToken',
-  'reset_token',
-  'accessToken',
-  'access_token',
-  'refreshToken',
-  'refresh_token',
-  'password',
-  'newPassword',
-  'new_password',
-  'authorization',
-]);
+const SECRET_PARAM =
+  '(token|resetToken|reset_token|accessToken|access_token|refreshToken|refresh_token)';
 
-const SECRET_QUERY = /([?&])(token|resetToken|reset_token|accessToken|access_token|refreshToken|refresh_token)=([^&#]*)/gi;
+// A secret assignment anywhere: "?token=…", "&token=…", "token=…" in a bare
+// query string or in a stack trace. The boundary keeps "my_token=…" apart
+// from "reset_token=…" (which is matched as a whole).
+const SECRET_ASSIGNMENT = new RegExp(`(^|[^A-Za-z0-9_])(${SECRET_PARAM})=([^&#\\s]*)`, 'gim');
 
 const REDACTED = '[redacted]';
 
+// The keys are matched case-insensitively ("Authorization" is "authorization").
+const SECRET_KEYS_LOWER = new Set(
+  [
+    'token',
+    'resetToken',
+    'reset_token',
+    'accessToken',
+    'access_token',
+    'refreshToken',
+    'refresh_token',
+    'password',
+    'newPassword',
+    'new_password',
+    'authorization',
+  ].map((key) => key.toLowerCase()),
+);
+
 /**
- * Replace the value of every secret query parameter in a URL.
+ * Replace the value of every secret query parameter in a URL (or in a bare
+ * query string).
  * @param {string} url
  * @returns {string}
  */
 export function scrubUrl(url) {
   if (typeof url !== 'string') return url;
-  return url.replace(SECRET_QUERY, (_m, sep, key) => `${sep}${key}=${REDACTED}`);
+  return url.replace(SECRET_ASSIGNMENT, (_m, boundary, key) => `${boundary}${key}=${REDACTED}`);
 }
 
 /**
@@ -61,7 +71,7 @@ export function scrubValue(value) {
   if (value && typeof value === 'object') {
     const out = {};
     Object.keys(value).forEach((key) => {
-      if (SECRET_KEYS.has(key)) {
+      if (SECRET_KEYS_LOWER.has(String(key).toLowerCase())) {
         out[key] = REDACTED;
       } else {
         out[key] = scrubValue(value[key]);
@@ -71,6 +81,32 @@ export function scrubValue(value) {
   }
   return value;
 }
+
+const scrubFrames = (frames) =>
+  Array.isArray(frames)
+    ? frames.map((frame) => {
+        if (!frame || typeof frame !== 'object') return frame;
+        const next = { ...frame };
+        if (next.vars) next.vars = scrubValue(next.vars);
+        if (typeof next.filename === 'string') next.filename = scrubUrl(next.filename);
+        return next;
+      })
+    : frames;
+
+const scrubStacktrace = (stacktrace) => {
+  if (!stacktrace || typeof stacktrace !== 'object') return stacktrace;
+  const next = { ...stacktrace };
+  if (next.frames) next.frames = scrubFrames(next.frames);
+  return next;
+};
+
+const scrubExceptionValue = (value) => {
+  if (!value || typeof value !== 'object') return value;
+  const next = { ...value };
+  if (typeof next.value === 'string') next.value = scrubUrl(next.value);
+  if (next.stacktrace) next.stacktrace = scrubStacktrace(next.stacktrace);
+  return next;
+};
 
 /**
  * Scrub an event before it leaves the browser: no token in the URL, no
@@ -98,17 +134,29 @@ export function scrubEvent(event) {
   if (out.extra) out.extra = scrubValue(out.extra);
   if (out.contexts) out.contexts = scrubValue(out.contexts);
   if (Array.isArray(out.breadcrumbs)) {
-    out.breadcrumbs = out.breadcrumbs.map((crumb) =>
-      crumb && typeof crumb === 'object'
-        ? { ...crumb, message: scrubUrl(crumb.message), data: crumb.data ? scrubValue(crumb.data) : crumb.data }
-        : crumb,
-    );
+    out.breadcrumbs = out.breadcrumbs.map((crumb) => {
+      if (!crumb || typeof crumb !== 'object') return crumb;
+      const next = { ...crumb };
+      if (typeof next.url === 'string') next.url = scrubUrl(next.url);
+      if (typeof next.message === 'string') next.message = scrubUrl(next.message);
+      if (next.data && typeof next.data === 'object') next.data = scrubValue(next.data);
+      return next;
+    });
   }
   if (Array.isArray(out.exception)) {
-    out.exception = out.exception.map((entry) => ({
-      ...entry,
-      value: scrubUrl(entry?.value),
-    }));
+    out.exception = out.exception.map((entry) => {
+      if (!entry || typeof entry !== 'object') return entry;
+      const next = { ...entry };
+      if (typeof next.value === 'string') next.value = scrubUrl(next.value);
+      if (Array.isArray(next.values)) next.values = next.values.map(scrubExceptionValue);
+      if (next.stacktrace) next.stacktrace = scrubStacktrace(next.stacktrace);
+      return next;
+    });
+  } else if (out.exception && typeof out.exception === 'object') {
+    const next = { ...out.exception };
+    if (Array.isArray(next.values)) next.values = next.values.map(scrubExceptionValue);
+    if (next.stacktrace) next.stacktrace = scrubStacktrace(next.stacktrace);
+    out.exception = next;
   }
   return out;
 }
@@ -131,40 +179,55 @@ const LEMU_ENDPOINT = lemuEndpoint(import.meta.env.VITE_API_BASE_URL);
 const LEMU_DEDUPE_MS = 60_000;
 const lemuSeen = new Map();
 
-function lemuFingerprint(error) {
+function lemuFingerprint(error, message) {
   const name = error?.name || 'Error';
-  const msg = (error?.message || String(error) || '').slice(0, 120);
+  const msg = (message || String(error) || '').slice(0, 120);
   return `web:${name}:${msg}`;
+}
+
+/**
+ * The event that goes to LEMU. Everything in it is scrubbed first: the error
+ * message and the stack can carry the reset URL (and with it the token), and
+ * so can the context the caller passed in.
+ * @param {Error} error
+ * @param {{tags?: Object, extra?: Object}} [context]
+ */
+export function buildLemuEvent(error, context = {}) {
+  const rawMessage = String(error?.message || error || 'Unknown error').slice(0, 500);
+  const message = scrubUrl(rawMessage);
+  const extra = {
+    ...(context.extra || {}),
+    ...(context.tags || {}),
+    path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
+    orgId: getOrgId() || undefined,
+    userId: getUserId() || undefined,
+  };
+  return {
+    source: 'FRONTEND',
+    severity: 'ERROR',
+    layer: 'UI',
+    errorName: error?.name || 'Error',
+    message,
+    stack: error?.stack ? scrubUrl(String(error.stack)) : null,
+    fingerprint: lemuFingerprint(error, message),
+    timestamp: new Date().toISOString(),
+    environment: import.meta.env.MODE,
+    extra: scrubValue(extra),
+    context: scrubValue(context.extra || {}),
+  };
 }
 
 function reportToLemu(error, context = {}) {
   try {
     if (!import.meta.env.VITE_API_BASE_URL) return;
-    const fp = lemuFingerprint(error);
+    const event = buildLemuEvent(error, context);
+    const fp = event.fingerprint;
     const now = Date.now();
     const last = lemuSeen.get(fp);
     if (last && now - last < LEMU_DEDUPE_MS) return;
     if (lemuSeen.size > 100) lemuSeen.clear();
     lemuSeen.set(fp, now);
 
-    const event = {
-      source: 'FRONTEND',
-      severity: 'ERROR',
-      layer: 'UI',
-      errorName: error?.name || 'Error',
-      message: (error?.message || String(error) || 'Unknown error').slice(0, 500),
-      stack: error?.stack || null,
-      fingerprint: fp,
-      timestamp: new Date().toISOString(),
-      environment: import.meta.env.MODE,
-      extra: {
-        ...(context.extra || {}),
-        ...(context.tags || {}),
-        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
-        orgId: getOrgId() || undefined,
-        userId: getUserId() || undefined,
-      },
-    };
     const token = getToken();
     // keepalive lets the POST survive an unload (e.g. an error during navigation).
     fetch(LEMU_ENDPOINT, {

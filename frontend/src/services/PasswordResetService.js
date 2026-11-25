@@ -15,14 +15,19 @@ const requestReset = async (email) => {
   }
 };
 
-/** Is the link still good, and whose is it? */
+/**
+ * Is the link still good, and whose is it?
+ *
+ * The token travels in the BODY, never in the URL: a URL ends up in browser
+ * history, proxy logs and referrer headers, a body does not.
+ */
 const verifyReset = async (token, { signal } = {}) => {
   try {
-    const res = await apiClient.get('/api/auth/password-reset/verify', {
-      ...PUBLIC,
-      params: { token },
-      signal,
-    });
+    const res = await apiClient.post(
+      '/api/auth/password-reset/verify',
+      { token },
+      { ...PUBLIC, signal },
+    );
     return res.data?.data ?? { valid: false };
   } catch (error) {
     throw ApiError.from(error);

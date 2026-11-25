@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyRound, Search } from 'lucide-react';
 import { OrgUsersService } from './OrgUsersService';
 import ResetPasswordDialog from '../../../../components/auth/ResetPasswordDialog.jsx';
 import { getUserId } from '../../../../utils/session.js';
 
 const PAGE_LIMIT = 50;
+
+const EMPTY_META = { page: 1, limit: PAGE_LIMIT, total: 0, pages: 1 };
 
 const fullName = (user) =>
   `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email || '—';
@@ -29,8 +31,8 @@ const roleLabel = (role) => ROLE_LABELS[role] || role || 'Employee';
  */
 export default function OrgUsersSection({ orgId }) {
   const [rows, setRows] = useState([]);
-  const [meta, setMeta] = useState({ page: 1, limit: PAGE_LIMIT, total: 0, pages: 1 });
-  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState(EMPTY_META);
+  const [pageState, setPageState] = useState({ orgId, page: 1 });
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,6 +42,19 @@ export default function OrgUsersSection({ orgId }) {
   // Every request gets a number; only the newest one may write to the state.
   const requestId = useRef(0);
 
+  // The page belongs to the organisation it was chosen for: a new organisation
+  // always starts at page 1, in the very same render.
+  const page = pageState.orgId === orgId ? pageState.page : 1;
+  const setPage = useCallback(
+    (next) =>
+      setPageState((prev) => {
+        const current = prev.orgId === orgId ? prev.page : 1;
+        const value = typeof next === 'function' ? next(current) : next;
+        return { orgId, page: value };
+      }),
+    [orgId],
+  );
+
   // Debounce the search box, so typing does not fire a request per keystroke.
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -47,15 +62,32 @@ export default function OrgUsersSection({ orgId }) {
       setPage(1);
     }, 300);
     return () => clearTimeout(handle);
-  }, [searchInput]);
+  }, [searchInput, setPage]);
 
   // The reset target belongs to the organisation it was opened for.
   useEffect(() => {
     setTarget(null);
   }, [orgId]);
 
+  // Another organisation: the rows on screen belong to the previous one, so
+  // they go immediately (not when the new answer arrives).
   useEffect(() => {
-    if (!orgId) return undefined;
+    requestId.current += 1; // nothing in flight may write to the state any more
+    setRows([]);
+    setMeta(EMPTY_META);
+    setPageState({ orgId, page: 1 });
+    setError('');
+    setLoading(Boolean(orgId));
+  }, [orgId]);
+
+  useEffect(() => {
+    if (!orgId) {
+      requestId.current += 1;
+      setRows([]);
+      setMeta(EMPTY_META);
+      setLoading(false);
+      return undefined;
+    }
     const id = requestId.current + 1;
     requestId.current = id;
     const controller = new AbortController();
@@ -63,13 +95,13 @@ export default function OrgUsersSection({ orgId }) {
 
     OrgUsersService.listOrgUsers(
       orgId,
-      { page, limit: PAGE_LIMIT, ...(search ? { q: search } : {}) },
+      { page, limit: PAGE_LIMIT, ...(search ? { search } : {}) },
       { signal: controller.signal },
     )
       .then((res) => {
         if (requestId.current !== id) return; // a newer request already answered
         setRows(res?.rows ?? []);
-        setMeta(res?.meta ?? { page, limit: PAGE_LIMIT, total: 0, pages: 1 });
+        setMeta(res?.meta ?? EMPTY_META);
         setError('');
       })
       .catch((err) => {
@@ -82,7 +114,11 @@ export default function OrgUsersSection({ orgId }) {
         setLoading(false);
       });
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      // The answer that is on its way belongs to a state that no longer exists.
+      requestId.current += 1;
+    };
   }, [orgId, page, search]);
 
   const users = useMemo(() => {

@@ -6,7 +6,8 @@ const PAGE_LIMIT = 50;
 /**
  * The accounts of one organisation (SUPER_ADMIN).
  *
- * The list endpoint answers with { rows, meta: { page, limit, total, pages } }.
+ * The list endpoint answers with { status, data: [...rows], meta: { page, limit,
+ * total, pages } } — the rows ARE the data array, the meta is its sibling.
  * The password reset needs a reason for the audit trail, so the call carries
  * X-Audit-Reason.
  */
@@ -17,10 +18,11 @@ export const OrgUsersService = {
         params: { page: 1, limit: PAGE_LIMIT, ...params },
         signal,
       });
-      const data = response.data?.data ?? response.data ?? {};
+      const body = response.data ?? {};
+      const rows = Array.isArray(body.data) ? body.data : [];
       return {
-        rows: data.rows ?? data.users ?? [],
-        meta: data.meta ?? { page: 1, limit: PAGE_LIMIT, total: 0, pages: 1 },
+        rows,
+        meta: body.meta ?? { page: 1, limit: PAGE_LIMIT, total: 0, pages: 1 },
       };
     } catch (error) {
       throw ApiError.from(error);

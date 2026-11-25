@@ -37,6 +37,22 @@ describe('ForgotPasswordPage', () => {
     expect(button).not.toBeDisabled();
   });
 
+  it('review 6: the email field keeps its visible label and its accessible name', () => {
+    render(
+      <MemoryRouter>
+        <ForgotPasswordPage />
+      </MemoryRouter>,
+    );
+
+    const label = screen.getByText('Email');
+    expect(label.tagName).toBe('LABEL');
+    expect(label).toHaveAttribute('for', 'fp-email');
+
+    const input = screen.getByLabelText('Email');
+    expect(input).toHaveAttribute('id', 'fp-email');
+    expect(input).toHaveAccessibleName('Email');
+  });
+
   it('goal: sending the link shows "Check your email" with the address', async () => {
     PasswordResetService.requestReset.mockResolvedValue({ status: 'success' });
     render(

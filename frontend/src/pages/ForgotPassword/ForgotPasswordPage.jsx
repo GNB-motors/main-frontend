@@ -76,7 +76,7 @@ const ForgotPasswordPage = () => {
         </section>
       ) : (
         <form className="fp-form" onSubmit={submit} noValidate>
-          <label htmlFor="fp-email" className="pwf-label">
+          <label htmlFor="fp-email" id="fp-email-label" className="pwf-label">
             Email
           </label>
           <input
@@ -84,6 +84,7 @@ const ForgotPasswordPage = () => {
             type="email"
             inputMode="email"
             autoComplete="email"
+            aria-labelledby="fp-email-label"
             className="pwf-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

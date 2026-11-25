@@ -30,12 +30,12 @@ describe('ResetPasswordPage', () => {
     expect(
       await screen.findByRole('heading', { name: /This link does not work/i }),
     ).toBeInTheDocument();
-    expect(apiClient.get).not.toHaveBeenCalled();
+    expect(apiClient.post).not.toHaveBeenCalled();
   });
 
   it('spec 1: a valid link shows the form for that person and drops the token from the URL', async () => {
     window.__gnbResetToken = 'tok-123';
-    apiClient.get.mockResolvedValue({
+    apiClient.post.mockResolvedValue({
       data: { data: { valid: true, firstName: 'Asha', orgName: 'GNB Motors', role: 'DRIVER' } },
     });
 
@@ -47,9 +47,27 @@ describe('ResetPasswordPage', () => {
     expect(window.location.href).not.toContain('tok-123');
   });
 
+  it('contract: the token is verified in the BODY, never in a URL', async () => {
+    window.__gnbResetToken = 'tok-body';
+    apiClient.post.mockResolvedValue({
+      data: { data: { valid: true, firstName: 'Asha', orgName: 'GNB Motors', role: 'DRIVER' } },
+    });
+
+    renderPage();
+
+    await screen.findByText(/Asha/);
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/auth/password-reset/verify',
+      { token: 'tok-body' },
+      expect.objectContaining({ skipAuthRedirect: true }),
+    );
+    const [url] = apiClient.post.mock.calls[0];
+    expect(url).not.toContain('tok-body');
+  });
+
   it('spec 1/D6: the token is read once and deleted from the page after the first read', async () => {
     window.__gnbResetToken = 'tok-456';
-    apiClient.get.mockResolvedValue({ data: { data: { valid: true, firstName: 'Asha' } } });
+    apiClient.post.mockResolvedValue({ data: { data: { valid: true, firstName: 'Asha' } } });
 
     renderPage();
 
@@ -59,7 +77,7 @@ describe('ResetPasswordPage', () => {
 
   it('spec 2: the signed-out calls carry skipAuthRedirect and a 401 never redirects to /login', async () => {
     window.__gnbResetToken = 'tok-789';
-    apiClient.get.mockRejectedValue({ response: { status: 401, data: { message: 'bad token' } } });
+    apiClient.post.mockRejectedValue({ response: { status: 401, data: { message: 'bad token' } } });
 
     renderPage();
 
@@ -67,15 +85,16 @@ describe('ResetPasswordPage', () => {
       await screen.findByRole('heading', { name: /This link does not work/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText('the login page')).not.toBeInTheDocument();
-    expect(apiClient.get).toHaveBeenCalledWith(
+    expect(apiClient.post).toHaveBeenCalledWith(
       '/api/auth/password-reset/verify',
-      expect.objectContaining({ skipAuthRedirect: true, params: { token: 'tok-789' } }),
+      { token: 'tok-789' },
+      expect.objectContaining({ skipAuthRedirect: true }),
     );
   });
 
   it('spec 3: two different passwords show an inline error and never complete', async () => {
     window.__gnbResetToken = 'tok-abc';
-    apiClient.get.mockResolvedValue({ data: { data: { valid: true, firstName: 'Asha' } } });
+    apiClient.post.mockResolvedValue({ data: { data: { valid: true, firstName: 'Asha' } } });
 
     renderPage();
 
@@ -85,13 +104,15 @@ describe('ResetPasswordPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Save new password/i }));
 
     expect(await screen.findByText('The two passwords do not match.')).toBeInTheDocument();
-    expect(apiClient.post).not.toHaveBeenCalled();
+    // Only the verification call went out — the reset itself never did.
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
   });
 
   it('spec 3: a good password completes and shows "Password changed" with a Sign in button', async () => {
     window.__gnbResetToken = 'tok-ok';
-    apiClient.get.mockResolvedValue({ data: { data: { valid: true, firstName: 'Asha' } } });
-    apiClient.post.mockResolvedValue({ data: { status: 'success', message: 'done' } });
+    apiClient.post
+      .mockResolvedValueOnce({ data: { data: { valid: true, firstName: 'Asha' } } })
+      .mockResolvedValueOnce({ data: { status: 'success', message: 'done' } });
 
     renderPage();
 

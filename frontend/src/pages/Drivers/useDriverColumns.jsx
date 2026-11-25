@@ -71,38 +71,39 @@ function DriverInlineActions({
           <ToggleRight size={16} />
         </button>
       ) : (
-        <>
-          <button
-            className="vehicle-inline-btn vehicle-inline-btn--edit"
-            onClick={handleEdit}
-            disabled={isSubmitting}
-            title="Edit employee"
-            type="button"
-          >
-            <Pencil size={16} />
-          </button>
-          {canReset ? (
-            <button
-              className="vehicle-inline-btn vehicle-inline-btn--key"
-              onClick={handleReset}
-              disabled={isSubmitting}
-              title="Reset password"
-              aria-label="Reset password"
-              type="button"
-            >
-              <KeyRound size={16} />
-            </button>
-          ) : null}
-          <button
-            className="vehicle-inline-btn vehicle-inline-btn--delete"
-            onClick={handleDelete}
-            disabled={isSubmitting}
-            title="Delete employee"
-            type="button"
-          >
-            <Trash2 size={16} />
-          </button>
-        </>
+        <button
+          className="vehicle-inline-btn vehicle-inline-btn--edit"
+          onClick={handleEdit}
+          disabled={isSubmitting}
+          title="Edit employee"
+          type="button"
+        >
+          <Pencil size={16} />
+        </button>
+      )}
+      {/* The reset key is not an edit: a deactivated employee needs it too. */}
+      {canReset ? (
+        <button
+          className="vehicle-inline-btn vehicle-inline-btn--key"
+          onClick={handleReset}
+          disabled={isSubmitting}
+          title="Reset password"
+          aria-label="Reset password"
+          type="button"
+        >
+          <KeyRound size={16} />
+        </button>
+      ) : null}
+      {isDeactivatedHere ? null : (
+        <button
+          className="vehicle-inline-btn vehicle-inline-btn--delete"
+          onClick={handleDelete}
+          disabled={isSubmitting}
+          title="Delete employee"
+          type="button"
+        >
+          <Trash2 size={16} />
+        </button>
       )}
     </div>
   );
