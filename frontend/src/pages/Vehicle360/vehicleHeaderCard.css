@@ -171,12 +171,16 @@
   flex: 1;
   min-height: 220px;
   position: relative;
+  overflow: hidden;
 }
+/* The old hero's `.v360-minimap` margin (-15px -17px) pulled the map up and
+   left, out of this column and under the card's header. */
 .vhcard-map-canvas > .v360-minimap {
   position: absolute;
   inset: 0;
   height: 100%;
   min-height: 220px;
+  margin: 0;
   border-radius: 0;
 }
 .vhcard-map-caption {
@@ -272,4 +276,9 @@
   .vhcard-identity h1 {
     font-size: 26px;
   }
+}
+/* Top-left, clear of Google's logo and attribution along the bottom edge. */
+.vhcard-map-canvas .v360-minimap-badge {
+  top: 10px;
+  bottom: auto;
 }

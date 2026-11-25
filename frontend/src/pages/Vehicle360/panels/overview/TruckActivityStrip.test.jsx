@@ -29,3 +29,16 @@ it('loads only the selected truck and preserves its dates in activity links', as
   expect(target.searchParams.get('vehicle')).toBe('WB11G1234');
   expect(target.searchParams.get('from')).not.toBe(first.from);
 });
+
+it('shows a quiet day as zero, not as unknown', async () => {
+  IntelligenceService.getInstances.mockResolvedValue({
+    summary: { count: 0, totalMin: null, totalL: null },
+  });
+  render(
+    <MemoryRouter>
+      <TruckActivityStrip vehicle="WB11S1962" />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText('0 min')).toBeInTheDocument();
+  expect(screen.getByText('0 L')).toBeInTheDocument();
+});

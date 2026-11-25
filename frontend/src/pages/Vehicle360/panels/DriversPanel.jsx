@@ -10,7 +10,8 @@ import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
 import './overview/referenceOverview.css';
 import './vehicleDrivers.css';
 
-const ASSIGNMENTS = '/vehicle-assignments';
+// Drivers and their trucks are managed under Employees.
+const ASSIGNMENTS = '/drivers';
 const stamp = (value) =>
   value && Number.isFinite(new Date(value).getTime()) ? new Date(value).getTime() : null;
 const date = (value) => (stamp(value) != null ? formatDateIST(value) : 'Not recorded');

@@ -40,7 +40,9 @@ function TooltipContent({
         collisionBoundary={collisionBoundary}
         collisionPadding={collisionPadding}
         collisionAvoidance={collisionAvoidance}
-        className="isolate z-50"
+        // Above the sidebar drawer (z-index 1004) and its page overlay: a
+        // tooltip always belongs on top of whatever opened it.
+        className="isolate z-[2000]"
       >
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"

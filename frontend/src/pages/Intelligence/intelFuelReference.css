@@ -486,3 +486,9 @@
   color: #5b5b63;
   font-size: 12px;
 }
+.intel-fuel-incident-review {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
