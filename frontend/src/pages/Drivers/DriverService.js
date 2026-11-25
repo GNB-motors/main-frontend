@@ -181,6 +181,17 @@ export const DriverService = {
     }
   },
 
+  // --- Reset an employee's password (owner / manager action) ---
+  // body = { mode: 'set', password, signOut } | { mode: 'email' }
+  resetPassword: async (driverId, body) => {
+    try {
+      const response = await apiClient.post(`/api/employees/${driverId}/password`, body);
+      return response.data?.data ?? response.data;
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
   // --- Delete Driver ---
   deleteDriver: async (businessRefId, driverId) => {
     try {

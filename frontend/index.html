@@ -4,7 +4,35 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/gnb-truck.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- The reset token must not travel to anyone else. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>TMS — Fleet Management</title>
+    <!--
+      Password-reset links carry a one-time token in the query string. This
+      runs before any image, script or telemetry can see the URL: the token is
+      moved to window.__gnbResetToken and taken out of the address bar.
+    -->
+    <script>
+      (() => {
+        try {
+          if (window.location.pathname === '/reset-password') {
+            const url = new URL(window.location.href);
+            const token = url.searchParams.get('token');
+            if (token) {
+              window.__gnbResetToken = token;
+              url.searchParams.delete('token');
+              window.history.replaceState(
+                window.history.state,
+                '',
+                url.pathname + url.search + url.hash,
+              );
+            }
+          }
+        } catch (e) {
+          /* never break the app over this */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
