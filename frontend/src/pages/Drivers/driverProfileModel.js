@@ -40,3 +40,10 @@ export function weeklyTripFacts(trips, weeks) {
     };
   });
 }
+/** A four-week total, or null when any week is unmeasured: a partial sum would read as the whole. */
+export function weeklyTotal(weeks, key) {
+  const values = weeks.map((week) => week[key]);
+  return values.every((value) => value != null)
+    ? values.reduce((sum, value) => sum + value, 0)
+    : null;
+}

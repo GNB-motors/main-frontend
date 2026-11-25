@@ -1,54 +1,143 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useMemo, useState } from 'react';
 import useApi from '@/hooks/useApi';
-import PageShell from '@/components/ui/PageShell';
+import DataTable from '@/components/ui/DataTable';
+import DataTooltip from '@/components/ui/DataTooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 import ErrorCard from '@/components/redesign/ErrorCard';
-import { formatIstDate, formatNumber } from '@/utils/redesign/format';
+import { formatIstDate, formatNumber, humanizeCode } from '@/utils/redesign/format';
 import { getUserRole } from '@/utils/session';
 import PerformanceApi from '@/api/performance';
-import SourceCell from '../Performance/SourceCell';
+import { PerformanceBriefing, PerformanceNoNumbers } from '../Performance/PerformanceParts';
+import { DriverDna } from '../Performance/DriverDrawer';
+import { cellNumber, formatCellNumber, isUnknownCell } from '../Performance/performanceCells';
 import DriverProfileService from './DriverProfileService';
 import { formatRole } from './Component/driverPresenters';
 import { normalizeDriver } from './driverList';
-import { profileWeeks, weeklyTripFacts } from './driverProfileModel';
+import { profileWeeks, weeklyTotal, weeklyTripFacts } from './driverProfileModel';
 import './driverProfile.css';
 
-function ReadSection({ title, read, children, empty = 'No records yet.' }) {
+function statusPill(driver) {
+  if (driver.branchStatus === 'DEACTIVATED') return { label: 'Deactivated', tone: 'warn' };
+  if (!driver.status) return null;
+  const active = driver.status.toUpperCase() === 'ACTIVE';
+  return { label: humanizeCode(driver.status), tone: active ? 'ok' : 'warn' };
+}
+const documentName = (docType) =>
+  docType === 'DRIVING_LICENSE' ? 'Driving licence' : humanizeCode(docType) || 'Document';
+const plural = (count, one, many) => `${formatNumber(count)} ${count === 1 ? one : many}`;
+const KpiSkeleton = () => <Skeleton className="inline-block h-7 w-20 align-middle" />;
+
+function LoadingRows() {
   return (
-    <section className="driver-profile-card" aria-label={title}>
-      <h2>{title}</h2>
-      {read.loading ? (
-        <p role="status">Loading {title.toLowerCase()}…</p>
-      ) : read.error ? (
-        <ErrorCard error={read.error} onRetry={read.refetch} />
-      ) : read.data?.length === 0 ? (
-        <p>{empty}</p>
-      ) : (
-        children
-      )}
+    <div role="status" aria-busy="true" className="flex flex-col gap-3">
+      <span className="sr-only">Loading…</span>
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-2/3" />
+    </div>
+  );
+}
+function ProfileCard({ title, sub = null, className = '', children }) {
+  return (
+    <section className={`pf-card ${className}`.trim()} aria-label={title}>
+      <header className="pf-card-head">
+        <div>
+          <h3>{title}</h3>
+          {sub ? <p>{sub}</p> : null}
+        </div>
+      </header>
+      <div className="dprof-card-body">{children}</div>
     </section>
   );
 }
-function WeekChart({ rows, metric, title, unit }) {
-  const known = rows.some((row) => row[metric] != null);
+function ProfileTable({ title, sub = null, links = null, ...table }) {
   return (
-    <figure className="driver-profile-card" aria-label={title}>
-      <h3>{title}</h3>
-      {known ? (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={rows} accessibilityLayer margin={{ right: 20, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" />
-            <YAxis unit={` ${unit}`} width={65} domain={[0, 'auto']} />
-            <Tooltip formatter={(value) => [`${formatNumber(value)} ${unit}`, title]} />
-            <Bar dataKey={metric} name={title} fill="#4469f0" isAnimationActive={false} />
-          </BarChart>
-        </ResponsiveContainer>
-      ) : (
-        <p>Not measured for these weeks.</p>
-      )}
-      <figcaption>Seven-day periods in IST. Missing measurements are gaps.</figcaption>
+    <section className="dprof-table" aria-label={title}>
+      <DataTable
+        className="intel-assessments-table pf-table"
+        {...table}
+        toolbarExtra={
+          <div className="intel-tab-tools">
+            <div className="dprof-table-head">
+              <h3>{title}</h3>
+              {sub ? <p>{sub}</p> : null}
+            </div>
+            {links ? <div className="dprof-table-links">{links}</div> : null}
+          </div>
+        }
+      />
+    </section>
+  );
+}
+function WeekBars({ rows, metric, title, sub, unit, digits = 0 }) {
+  const [active, setActive] = useState(null);
+  const values = rows.map((row) => row[metric] ?? null);
+  const max = Math.max(0, ...values.filter((value) => value != null));
+  const format = (value) => `${formatNumber(value, { digits })} ${unit}`;
+  return (
+    <figure className="pf-card dprof-chart" aria-label={title}>
+      <header className="pf-card-head">
+        <div>
+          <h3>{title}</h3>
+          <p>{sub}</p>
+        </div>
+      </header>
+      <div className="dprof-card-body">
+        {values.some((value) => value != null) ? (
+          <div className="pf-bars-wrap">
+            <div
+              className="pf-bars"
+              role="group"
+              aria-label={`${title}, one bar per seven-day period. A short grey stub is a week without a reading.`}
+            >
+              {rows.map((row, index) => {
+                const value = values[index];
+                const height = value ? `${Math.max(4, (value / max) * 100)}%` : '2px';
+                return (
+                  <button
+                    type="button"
+                    key={row.from}
+                    className="pf-bar-hit"
+                    aria-label={`${row.label} · ${value == null ? 'not measured' : format(value)}`}
+                    onMouseEnter={() => setActive(index)}
+                    onMouseLeave={() => setActive(null)}
+                    onFocus={() => setActive(index)}
+                    onBlur={() => setActive(null)}
+                  >
+                    {value == null ? (
+                      <span className="pf-bar pf-bar--empty" />
+                    ) : (
+                      <span className="pf-bar" style={{ height }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="pf-dates" aria-hidden="true">
+              {rows.map((row) => (
+                <span key={row.from}>{formatIstDate(row.from)}</span>
+              ))}
+            </div>
+            {active === null ? null : (
+              <DataTooltip
+                aria-hidden="true"
+                className={`pf-bars-tooltip ${
+                  active < rows.length / 2 ? 'pf-bars-tooltip--right' : 'pf-bars-tooltip--left'
+                }`}
+                label={title}
+                value={values[active] == null ? '—' : format(values[active])}
+                details={[rows[active].label, values[active] == null ? 'Not measured' : null]}
+              />
+            )}
+          </div>
+        ) : (
+          <p className="pf-section-note">Not measured for these weeks.</p>
+        )}
+        <figcaption className="dprof-chart-note">
+          Seven-day periods in IST. Missing measurements are gaps.
+        </figcaption>
+      </div>
     </figure>
   );
 }
@@ -90,247 +179,408 @@ export default function DriverProfilePage() {
   const weekly = tripWeeks.map((week, index) => ({ ...week, ...events.data?.[index] }));
   const driver = employee.data ? normalizeDriver(employee.data) : null;
   const canEdit = ['OWNER', 'MANAGER'].includes(getUserRole());
-  return (
-    <PageShell
-      title={driver?.name || 'Employee profile'}
-      subtitle="Employee details and recorded activity"
-      onBack={() => navigate('/drivers')}
-      actions={
-        canEdit && driver ? (
-          <button
-            type="button"
-            onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
-          >
-            Edit employee
-          </button>
-        ) : null
-      }
-    >
-      <div className="driver-profile">
-        {employee.loading ? (
-          <p role="status">Loading employee…</p>
-        ) : employee.error ? (
-          <ErrorCard error={employee.error} onRetry={employee.refetch} />
-        ) : !driver ? (
-          <p>Employee not found in this location.</p>
-        ) : (
-          <>
-            <section className="driver-profile-card" aria-label="Employee details">
-              <h2>Employee details</h2>
-              <dl>
-                <div>
-                  <dt>Role</dt>
-                  <dd>{formatRole(driver.role)}</dd>
-                </div>
-                <div>
-                  <dt>Phone</dt>
-                  <dd>{driver.mobileNumber || 'Not recorded'}</dd>
-                </div>
-                <div>
-                  <dt>Email</dt>
-                  <dd>{driver.email || 'Not recorded'}</dd>
-                </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{driver.status || 'Not recorded'}</dd>
-                </div>
-              </dl>
-            </section>
-            <ReadSection
-              title="Truck assignments"
-              read={assignments}
-              empty="No truck assignment has been recorded."
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>Truck</th>
-                    <th>From</th>
-                    <th>Until</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignments.data?.map((row) => (
-                    <tr key={row._id}>
-                      <td>
-                        {row.vehicleId?.registrationNumber ? (
-                          <Link
-                            to={`/vehicles/${encodeURIComponent(row.vehicleId.registrationNumber)}`}
-                          >
-                            {row.vehicleId.registrationNumber}
-                          </Link>
-                        ) : (
-                          'Truck name not recorded'
-                        )}
-                      </td>
-                      <td>{formatIstDate(row.startDate)}</td>
-                      <td>{row.endDate ? formatIstDate(row.endDate) : 'Current'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </ReadSection>
-            {isDriver ? (
-              <>
-                <section className="driver-profile-card" aria-label="Recorded driving activity">
-                  <h2>Recorded driving activity</h2>
-                  <p>
-                    Latest recorded driving score:{' '}
-                    {score.loading ? (
-                      'Loading...'
-                    ) : score.error ? (
-                      <button type="button" onClick={score.refetch}>
-                        Retry score
-                      </button>
-                    ) : score.data?.dna?.drivingScore ? (
-                      <SourceCell cell={score.data.dna.drivingScore} decimals={0} />
-                    ) : (
-                      'Not recorded for this period.'
-                    )}
-                  </p>
-                  {score.data?.dna?.windowFrom && score.data?.dna?.windowTo ? (
-                    <p>
-                      Score readings: {formatIstDate(score.data.dna.windowFrom)} -{' '}
-                      {formatIstDate(score.data.dna.windowTo)}
-                    </p>
-                  ) : null}
+  const status = driver ? statusPill(driver) : null;
+  const title = driver?.name || 'Employee profile';
+  const contact = driver ? [driver.mobileNumber, driver.email].filter(Boolean).join(' · ') : '';
+  const period = `${formatIstDate(range.from)} – ${formatIstDate(range.to)}`;
 
-                  <p>
-                    {formatIstDate(range.from)} – {formatIstDate(range.to)}
-                  </p>
-                  <p>
-                    Distance covers recorded trips, grouped by the week each trip was created. Trips
-                    with missing distance stay unmeasured. Idling and overspeed use events
-                    attributed to this driver.
-                  </p>
-                  {trips.error ? <ErrorCard error={trips.error} onRetry={trips.refetch} /> : null}
-                  {events.error ? (
-                    <ErrorCard error={events.error} onRetry={events.refetch} />
-                  ) : null}
-                  {events.data?.some((row) => row.unavailable) ? (
-                    <p role="status">
-                      Some weekly event measurements are unavailable.{' '}
-                      <button type="button" onClick={events.refetch}>
-                        Retry activity
-                      </button>
-                    </p>
-                  ) : null}
-                  {trips.loading || events.loading ? (
-                    <p role="status">Loading weekly activity…</p>
-                  ) : null}
-                </section>
-                <div className="driver-profile-charts">
-                  <WeekChart rows={weekly} metric="km" title="Recorded trip distance" unit="km" />
-                  <WeekChart rows={weekly} metric="idleHours" title="Idling per week" unit="h" />
-                  <WeekChart
-                    rows={weekly}
-                    metric="overspeed"
-                    title="Overspeed per week"
-                    unit="events"
-                  />
-                </div>
-                <section className="driver-profile-card" aria-label="Weekly readings">
-                  <h2>Weekly readings</h2>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Period</th>
-                        <th>Trips</th>
-                        <th>Trip distance (km)</th>
-                        <th>Idling (h)</th>
-                        <th>Overspeed events</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weekly.map((row) => (
-                        <tr key={row.from}>
-                          <td>
-                            {formatIstDate(row.from)} – {formatIstDate(row.to)}
-                          </td>
-                          {['trips', 'km', 'idleHours', 'overspeed'].map((key) => (
-                            <td key={key}>
-                              {row[key] == null ? 'Not measured' : formatNumber(row[key])}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <Link
-                    to={`/intelligence?tab=idling&driver=${encodeURIComponent(id)}&from=${range.from}&to=${range.to}`}
-                  >
-                    See this driver’s idling
-                  </Link>
-                  {' · '}
-                  <Link
-                    to={`/intelligence?tab=overspeed&driver=${encodeURIComponent(id)}&from=${range.from}&to=${range.to}`}
-                  >
-                    See this driver’s overspeed
-                  </Link>
-                </section>
-                <ReadSection
-                  title="Recorded trips"
-                  read={trips}
-                  empty="No trips were recorded for this driver in these weeks."
-                >
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Recorded on</th>
-                        <th>Truck</th>
-                        <th>Route</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trips.data?.map((trip) => (
-                        <tr key={trip._id}>
-                          <td>{formatIstDate(trip.createdAt)}</td>
-                          <td>{trip.vehicleId?.registrationNumber || 'Not recorded'}</td>
-                          <td>
-                            {trip.routeSource || 'Start not recorded'} →{' '}
-                            {trip.routeDestination || 'Destination not recorded'}
-                          </td>
-                          <td>
-                            {trip.status}{' '}
-                            <Link to={`/trip-management/trip/${encodeURIComponent(trip._id)}`}>
-                              Open trip
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </ReadSection>
-              </>
-            ) : null}
-            <ReadSection
-              title="Employee documents"
-              read={documents}
-              empty="No employee documents have been uploaded."
+  const tripsReady = Boolean(trips.data) && !trips.error;
+  const eventsReady = Boolean(events.data) && !events.error;
+  const tripCount = tripsReady ? trips.data.length : null;
+  const km = tripsReady ? weeklyTotal(weekly, 'km') : null;
+  const idle = eventsReady ? weeklyTotal(weekly, 'idleHours') : null;
+  const overspeed = eventsReady ? weeklyTotal(weekly, 'overspeed') : null;
+  const dna = score.data?.dna ?? null;
+  const scoreCell = dna?.drivingScore && !isUnknownCell(dna.drivingScore) ? dna.drivingScore : null;
+
+  const lead = (
+    <>
+      {trips.error ? (
+        'Trips for these weeks could not be read.'
+      ) : !tripsReady ? (
+        'Reading the last four weeks of recorded trips…'
+      ) : (
+        <>
+          <b>{plural(tripCount, 'trip', 'trips')}</b> recorded in the last four weeks
+          {km != null && tripCount ? (
+            <>
+              , covering <b>{formatNumber(km)} km</b>
+            </>
+          ) : null}
+          .
+        </>
+      )}
+      {idle != null && overspeed != null ? (
+        <>
+          {' '}
+          <b>{formatNumber(idle, { digits: 1 })} h</b> of idling and{' '}
+          <b>{plural(overspeed, 'overspeed event', 'overspeed events')}</b> were attributed to this
+          driver.
+        </>
+      ) : null}
+    </>
+  );
+  const eventNote = (value) =>
+    events.error
+      ? 'Could not be read'
+      : value == null
+        ? 'Some weeks are unavailable'
+        : 'Attributed to this driver';
+
+  const assignmentColumns = [
+    {
+      key: 'truck',
+      label: 'Truck',
+      render: (row) =>
+        row.vehicleId?.registrationNumber ? (
+          <Link
+            className="pf-open dprof-plate-link"
+            to={`/vehicles/${encodeURIComponent(row.vehicleId.registrationNumber)}`}
+          >
+            {row.vehicleId.registrationNumber}
+          </Link>
+        ) : (
+          <span className="pf-none">Truck name not recorded</span>
+        ),
+    },
+    { key: 'from', label: 'From', render: (row) => formatIstDate(row.startDate) },
+    {
+      key: 'until',
+      label: 'Until',
+      render: (row) =>
+        row.endDate ? (
+          formatIstDate(row.endDate)
+        ) : (
+          <span className="pf-pill pf-pill--info">Current</span>
+        ),
+    },
+  ];
+  const weeklyColumns = [
+    {
+      key: 'period',
+      label: 'Period',
+      render: (row) => `${formatIstDate(row.from)} – ${formatIstDate(row.to)}`,
+    },
+    ...[
+      ['trips', 'Trips', 0],
+      ['km', 'Trip distance (km)', 0],
+      ['idleHours', 'Idling (h)', 1],
+      ['overspeed', 'Overspeed events', 0],
+    ].map(([key, label, digits]) => ({
+      key,
+      label,
+      align: 'right',
+      render: (row) =>
+        row[key] == null ? (
+          <span className="pf-none">Not measured</span>
+        ) : (
+          <span className="dprof-num">{formatNumber(row[key], { digits })}</span>
+        ),
+    })),
+  ];
+  const tripColumns = [
+    { key: 'recorded', label: 'Recorded on', render: (trip) => formatIstDate(trip.createdAt) },
+    {
+      key: 'truck',
+      label: 'Truck',
+      render: (trip) =>
+        trip.vehicleId?.registrationNumber ? (
+          <span className="pf-open">{trip.vehicleId.registrationNumber}</span>
+        ) : (
+          <span className="pf-none">Not recorded</span>
+        ),
+    },
+    {
+      key: 'route',
+      label: 'Route',
+      render: (trip) =>
+        `${trip.routeSource || 'Start not recorded'} → ${trip.routeDestination || 'Destination not recorded'}`,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (trip) => <span className="pf-pill">{humanizeCode(trip.status) || '—'}</span>,
+    },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right',
+      render: (trip) => (
+        <Link className="pf-link" to={`/trip-management/trip/${encodeURIComponent(trip._id)}`}>
+          Open trip →
+        </Link>
+      ),
+    },
+  ];
+
+  const documentsCard = (
+    <ProfileCard
+      title="Employee documents"
+      sub={documents.data?.length ? plural(documents.data.length, 'document', 'documents') : null}
+    >
+      {documents.loading ? (
+        <LoadingRows />
+      ) : documents.error ? (
+        <ErrorCard error={documents.error} onRetry={documents.refetch} />
+      ) : !documents.data?.length ? (
+        <p className="pf-section-note">No employee documents have been uploaded.</p>
+      ) : (
+        <ul className="pf-rows">
+          {documents.data.map((doc) => (
+            <li key={doc._id || doc.id}>
+              <strong>{documentName(doc.docType)}</strong>
+              <span className="dprof-doc-links">
+                {doc.files?.map((file, index) =>
+                  file.publicUrl ? (
+                    <a
+                      key={index}
+                      className="pf-link"
+                      href={file.publicUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open {file.side?.toLowerCase() || 'file'} →
+                    </a>
+                  ) : null,
+                )}
+              </span>
+              {doc.expiryDate ? <small>Expires {formatIstDate(doc.expiryDate)}</small> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </ProfileCard>
+  );
+
+  return (
+    <div className="pshell dprof">
+      <div className="dprof-top">
+        <nav className="dprof-crumbs" aria-label="Breadcrumb">
+          <Link to="/drivers">Employees</Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{employee.loading ? '…' : title}</span>
+        </nav>
+        <section className="pf-card dprof-hero" aria-labelledby="dprof-title">
+          <div className="dprof-hero-text">
+            <div className="dprof-hero-title-row">
+              <h1 id="dprof-title" className="dprof-hero-title">
+                {employee.loading ? <span className="dprof-muted">Loading employee…</span> : title}
+              </h1>
+              {driver ? <span className="pf-pill">{formatRole(driver.role)}</span> : null}
+              {status ? (
+                <span className={`pf-pill pf-pill--${status.tone}`}>{status.label}</span>
+              ) : null}
+            </div>
+            <p className="dprof-hero-desc">
+              {driver
+                ? contact || 'No phone or email on record'
+                : 'Employee details and recorded activity'}
+            </p>
+          </div>
+          {canEdit && driver ? (
+            <button
+              type="button"
+              className="dprof-btn"
+              onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
             >
-              <ul>
-                {documents.data?.map((doc) => (
-                  <li key={doc._id || doc.id}>
-                    {doc.docType === 'DRIVING_LICENSE'
-                      ? 'Driving licence'
-                      : doc.docType?.replace(/_/g, ' ').toLowerCase() || 'Document'}
-                    {doc.expiryDate ? ` · expires ${formatIstDate(doc.expiryDate)}` : ''}
-                    {doc.files?.map((file, index) =>
-                      file.publicUrl ? (
-                        <a key={index} href={file.publicUrl} target="_blank" rel="noreferrer">
-                          {' '}
-                          Open {file.side?.toLowerCase() || 'file'}
-                        </a>
-                      ) : null,
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </ReadSection>
-          </>
-        )}
+              Edit employee
+            </button>
+          ) : null}
+        </section>
       </div>
-    </PageShell>
+
+      {employee.loading ? (
+        <LoadingRows />
+      ) : employee.error ? (
+        <ErrorCard error={employee.error} onRetry={employee.refetch} />
+      ) : !driver ? (
+        <PerformanceNoNumbers
+          title="No employee here"
+          lead="Employee not found in this location."
+        />
+      ) : (
+        <>
+          {isDriver ? (
+            <>
+              <PerformanceBriefing
+                label="Driver activity read"
+                eyebrow={`Driver read · ${period}`}
+                lead={lead}
+                notes={[
+                  'Distance covers recorded trips, grouped by the week each trip was created. Trips with missing distance stay unmeasured.',
+                  'Idling and overspeed use events attributed to this driver.',
+                ]}
+                kpis={[
+                  {
+                    label: 'Driving score',
+                    value: score.loading ? (
+                      <KpiSkeleton />
+                    ) : scoreCell ? (
+                      formatCellNumber(cellNumber(scoreCell), 0)
+                    ) : (
+                      '—'
+                    ),
+                    note: score.error
+                      ? 'Could not be read'
+                      : scoreCell
+                        ? `out of 100${dna?.grade ? ` · grade ${dna.grade}` : ''}`
+                        : 'No DNA day in these weeks',
+                  },
+                  {
+                    label: 'Trip distance',
+                    value:
+                      !tripsReady && !trips.error ? (
+                        <KpiSkeleton />
+                      ) : km == null ? (
+                        '—'
+                      ) : (
+                        `${formatNumber(km)} km`
+                      ),
+                    note: trips.error
+                      ? 'Could not be read'
+                      : km == null
+                        ? 'Some trips have no distance'
+                        : `${plural(tripCount ?? 0, 'trip', 'trips')} recorded`,
+                  },
+                  {
+                    label: 'Idling',
+                    value:
+                      !eventsReady && !events.error ? (
+                        <KpiSkeleton />
+                      ) : idle == null ? (
+                        '—'
+                      ) : (
+                        `${formatNumber(idle, { digits: 1 })} h`
+                      ),
+                    note: eventNote(idle),
+                  },
+                  {
+                    label: 'Overspeed events',
+                    value:
+                      !eventsReady && !events.error ? (
+                        <KpiSkeleton />
+                      ) : overspeed == null ? (
+                        '—'
+                      ) : (
+                        formatNumber(overspeed)
+                      ),
+                    note: eventNote(overspeed),
+                  },
+                ]}
+              >
+                {trips.error ? <ErrorCard error={trips.error} onRetry={trips.refetch} /> : null}
+                {events.error ? <ErrorCard error={events.error} onRetry={events.refetch} /> : null}
+                {events.data?.some((row) => row.unavailable) ? (
+                  <small role="status">
+                    Some weekly event measurements are unavailable.{' '}
+                    <button type="button" onClick={events.refetch}>
+                      Retry activity
+                    </button>
+                  </small>
+                ) : null}
+              </PerformanceBriefing>
+
+              <div className="dprof-charts">
+                <WeekBars
+                  rows={weekly}
+                  metric="km"
+                  title="Recorded trip distance"
+                  sub="Kilometres per week"
+                  unit="km"
+                />
+                <WeekBars
+                  rows={weekly}
+                  metric="idleHours"
+                  title="Idling per week"
+                  sub="Hours per week"
+                  unit="h"
+                  digits={1}
+                />
+                <WeekBars
+                  rows={weekly}
+                  metric="overspeed"
+                  title="Overspeed per week"
+                  sub="Events per week"
+                  unit="events"
+                />
+              </div>
+
+              <div className="dprof-pair">
+                <ProfileCard
+                  title="Driving DNA"
+                  sub="The latest DNA day in these weeks, worked out from the truck’s own readings."
+                >
+                  {score.loading && !score.data ? (
+                    <LoadingRows />
+                  ) : score.error ? (
+                    <ErrorCard error={score.error} onRetry={score.refetch} />
+                  ) : (
+                    <DriverDna dna={dna} reason={score.data?.dnaReason} />
+                  )}
+                </ProfileCard>
+                {documentsCard}
+              </div>
+            </>
+          ) : null}
+
+          <ProfileTable
+            title="Truck assignments"
+            sub={
+              assignments.data?.length
+                ? plural(assignments.data.length, 'assignment', 'assignments')
+                : null
+            }
+            columns={assignmentColumns}
+            rows={assignments.data ?? []}
+            rowKey={(row) => row._id}
+            loading={assignments.loading}
+            error={assignments.error}
+            onRetry={assignments.refetch}
+            emptyTitle="No truck assignment has been recorded."
+          />
+
+          {isDriver ? (
+            <>
+              <ProfileTable
+                title="Weekly readings"
+                sub={period}
+                links={
+                  <>
+                    <Link
+                      className="pf-link"
+                      to={`/intelligence?tab=idling&driver=${encodeURIComponent(id)}&from=${range.from}&to=${range.to}`}
+                    >
+                      See this driver’s idling →
+                    </Link>
+                    <Link
+                      className="pf-link"
+                      to={`/intelligence?tab=overspeed&driver=${encodeURIComponent(id)}&from=${range.from}&to=${range.to}`}
+                    >
+                      See this driver’s overspeed →
+                    </Link>
+                  </>
+                }
+                columns={weeklyColumns}
+                rows={weekly}
+                rowKey={(row) => row.from}
+              />
+              <ProfileTable
+                title="Recorded trips"
+                sub={tripsReady ? `${plural(tripCount, 'trip', 'trips')} · ${period}` : period}
+                columns={tripColumns}
+                rows={trips.data ?? []}
+                rowKey={(trip) => trip._id}
+                loading={trips.loading}
+                error={trips.error}
+                onRetry={trips.refetch}
+                emptyTitle="No trips were recorded for this driver in these weeks."
+              />
+            </>
+          ) : (
+            documentsCard
+          )}
+        </>
+      )}
+    </div>
   );
 }

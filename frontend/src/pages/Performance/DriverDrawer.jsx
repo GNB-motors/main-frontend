@@ -33,7 +33,7 @@ function DnaBasis({ dna }) {
   return <p className="pf-section-note">{`Based on ${parts.join(' · ')}.`}</p>;
 }
 
-function DriverDna({ dna, reason }) {
+export function DriverDna({ dna, reason }) {
   if (!dna) {
     return (
       <p className="pf-section-note">

@@ -1,43 +1,277 @@
-.driver-profile {
+/* Employee profile — the gnb-ui-design system, drawn with the Intelligence page's
+   own parts: the briefing and table shells (reportCardsReference.css) and the
+   pf-* cards, rows, pills and bars (performancePanels.css). Only the page frame,
+   the header card and the grids live here. */
+
+.pshell.dprof {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding: 16px 20px 28px;
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+  container: dprof / inline-size;
+}
+
+.dprof > * {
+  min-width: 0;
+}
+
+/* The app canvas is grey here, where the 5% card edge disappears (skill 2.2). */
+.dprof .pf-card,
+.dprof .intel-assessments-table {
+  border-color: var(--ui-card-edge-on-grey);
+}
+
+/* ── Page top: breadcrumb + header card (skill 5) ────────────────── */
+
+.dprof-top {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
-.driver-profile-card {
-  padding: 20px;
-  background: var(--ds-surface, #fff);
-  border: 1px solid var(--ds-line);
-  border-radius: 12px;
-  min-width: 0;
-  overflow-x: auto;
+
+.dprof-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--ui-ink-3);
+  font-size: 13px;
 }
-.driver-profile-card h2,
-.driver-profile-card h3 {
-  margin-bottom: 12px;
+
+.dprof-crumbs a {
+  color: var(--ui-ink-3);
+  text-decoration: none;
+}
+
+.dprof-crumbs a:hover {
+  color: var(--ui-ink);
+}
+
+.dprof-crumbs a:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.dprof-crumbs > span[aria-hidden='true'] {
+  color: var(--ui-ink-6);
+}
+
+.dprof-crumbs > span[aria-current] {
+  color: var(--ui-ink);
   font-weight: 600;
 }
-.driver-profile-card table {
-  width: 100%;
-  text-align: left;
-  border-collapse: collapse;
+
+.dprof .dprof-hero {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 24px;
+  overflow: visible;
 }
-.driver-profile-card td,
-.driver-profile-card th {
-  padding: 10px;
-  border-bottom: 1px solid var(--ds-line);
+
+.dprof-hero-text {
+  min-width: 0;
 }
-.driver-profile-card dl {
+
+.dprof-hero-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dprof .dprof-hero-title {
+  margin: 0;
+  color: var(--ui-ink);
+  font: 500 30px/1.1 var(--ui-font-figure);
+  letter-spacing: -0.4px;
+  overflow-wrap: anywhere;
+}
+
+.dprof .dprof-hero-desc {
+  margin: 6px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 13.5px;
+}
+
+.dprof-muted {
+  color: var(--ui-ink-5);
+}
+
+/* Primary page action (skill 6.11). */
+.dprof-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid var(--ui-link);
+  border-radius: var(--ui-r-control);
+  background: var(--ui-brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dprof-btn:hover {
+  background: var(--ui-brand-strong);
+}
+
+.dprof-btn:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────── */
+
+.dprof .pf-card-head h3 {
+  font-size: 13px;
+}
+
+.dprof-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 0 20px 18px;
+}
+
+.dprof-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dprof .pf-rows strong {
+  font-weight: 500;
+}
+
+.dprof-doc-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
+  gap: 4px 14px;
 }
-.driver-profile-card dt,
-.driver-profile-card p,
-.driver-profile-card figcaption {
-  color: var(--ds-ink3);
+
+.dprof .pf-link {
+  text-decoration: none;
+  white-space: nowrap;
 }
-.driver-profile-charts {
+
+.dprof .pf-link:hover {
+  text-decoration: underline;
+}
+
+.dprof-plate-link {
+  color: var(--ui-link);
+  text-decoration: none;
+}
+
+.dprof-plate-link:hover {
+  color: var(--ui-link-hover);
+  text-decoration: underline;
+}
+
+.dprof-plate-link:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+/* ── Weekly bars (skill 7.2, the Intelligence drawer's pf-bars) ──── */
+
+.dprof-charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dprof-chart {
+  margin: 0;
+}
+
+.dprof-chart .pf-bars {
+  gap: 12px;
+}
+
+.dprof-chart .pf-bar-hit {
+  padding: 0 10%;
+}
+
+.dprof-chart .pf-dates {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  text-align: center;
+}
+
+.dprof-chart-note {
+  margin-top: auto;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ui-ink-5);
+}
+
+/* ── Tables: the Intelligence table shell with a title in its toolbar ── */
+
+.dprof .intel-assessments-table .dt-table {
+  min-width: 560px;
+}
+
+.dprof-table-head {
+  min-width: 0;
+}
+
+.dprof .dprof-table-head h3 {
+  margin: 0;
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.dprof .dprof-table-head p {
+  margin: 4px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.dprof-table-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-left: auto;
+}
+
+.dprof-num {
+  font: 12.5px var(--ui-font-mono);
+  white-space: nowrap;
+}
+
+@container dprof (max-width: 860px) {
+  .dprof-charts,
+  .dprof-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .pshell.dprof {
+    padding-inline: 16px;
+  }
+
+  .dprof .dprof-hero {
+    padding: 18px 16px;
+  }
 }

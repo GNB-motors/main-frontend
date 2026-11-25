@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { profileWeeks, weeklyTripFacts, tripsForDriver } from './driverProfileModel';
+import { profileWeeks, weeklyTripFacts, tripsForDriver, weeklyTotal } from './driverProfileModel';
 it('builds four consecutive seven-day IST periods', () => {
   const weeks = profileWeeks('2026-11-24');
   expect(weeks.map(({ from, to }) => [from, to])).toEqual([
@@ -30,4 +30,10 @@ it('assigns a trip created at IST midnight to the correct week', () => {
     profileWeeks('2026-11-24'),
   );
   expect(facts.at(-1)).toMatchObject({ trips: 1, km: 70 });
+});
+it('totals the four weeks only when every week was measured', () => {
+  const weeks = [{ km: 120 }, { km: 0 }, { km: 80 }, { km: 40 }];
+  expect(weeklyTotal(weeks, 'km')).toBe(240);
+  expect(weeklyTotal([...weeks.slice(0, 3), { km: null }], 'km')).toBeNull();
+  expect(weeklyTotal([{}, {}], 'trips')).toBeNull();
 });
