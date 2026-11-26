@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DataTable from '../../../components/ui/DataTable';
 import { BdReportService, BD_REPORT_MANAGER_ROLES } from '../../../services/BdReportService';
-import { getUserRole } from '../../../utils/session';
+import { getUserRole, getOrgId } from '../../../utils/session';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
 import { yesterdayIST } from './bdReportDays';
 import './BdReport.css';
@@ -56,20 +56,29 @@ const BdReport = () => {
 
   // A late answer of an older kind must never land on the screen.
   const requestRef = useRef(0);
+  // The kind on screen, readable without waiting for a re-render: a build that
+  // finishes later must know whether its kind is still the one being shown.
+  const kindRef = useRef(kind);
+  // The organization the rows on screen belong to.
+  const orgRef = useRef(null);
 
   const canBuild = useMemo(() => BD_REPORT_MANAGER_ROLES.includes(getUserRole()), []);
 
   const load = useCallback(async (targetKind) => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
+    const orgAtRequest = getOrgId();
     setLoading(true);
     try {
       const rows = await BdReportService.list(targetKind);
       if (requestRef.current !== requestId) return;
+      // The organization changed while we waited: the answer is not ours.
+      if (getOrgId() !== orgAtRequest) return;
       setReports(newestFirst(rows));
       setError(null);
     } catch (err) {
       if (requestRef.current !== requestId) return;
+      if (getOrgId() !== orgAtRequest) return;
       setError(err.message || 'Could not load the BD reports.');
     } finally {
       if (requestRef.current === requestId) setLoading(false);
@@ -77,17 +86,36 @@ const BdReport = () => {
   }, []);
 
   useEffect(() => {
+    kindRef.current = kind;
     load(kind);
   }, [kind, load]);
 
+  // The organization changed while the report was open: the rows on screen
+  // belong to the previous organization, so they go and the new ones are read.
+  useEffect(() => {
+    const orgId = getOrgId();
+    if (orgRef.current === null) {
+      orgRef.current = orgId;
+      return;
+    }
+    if (orgRef.current === orgId) return;
+    orgRef.current = orgId;
+    setReports([]);
+    load(kindRef.current);
+  });
+
   const onBuild = async () => {
     if (building) return;
+    const buildKind = kind;
+    const orgAtBuild = getOrgId();
     setBuilding(true);
     setBuildError(null);
     try {
-      await BdReportService.build({ day: buildDay, kind });
-      // Only a confirmed build refreshes the list.
-      await load(kind);
+      await BdReportService.build({ day: buildDay, kind: buildKind });
+      // Only a confirmed build of the kind on screen refreshes the list.
+      if (kindRef.current !== buildKind) return;
+      if (getOrgId() !== orgAtBuild) return;
+      await load(kindRef.current);
     } catch (err) {
       setBuildError(err.message || 'Could not build the report.');
     } finally {
@@ -130,12 +158,12 @@ const BdReport = () => {
     {
       key: 'flagged',
       label: 'Needs a check',
-      render: (row) =>
-        typeof row.flagged === 'number' && row.flagged > 0 ? (
-          <span className="bd-flagged">{row.flagged} rows need a check</span>
-        ) : (
-          '—'
-        ),
+      render: (row) => {
+        // A count the backend did not report stays unknown — it is never 0.
+        if (typeof row.flagged !== 'number') return '—';
+        if (row.flagged <= 0) return '0';
+        return <span className="bd-flagged">{row.flagged} rows need a check</span>;
+      },
     },
     {
       key: 'createdAt',
