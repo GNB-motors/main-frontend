@@ -60,6 +60,7 @@ const BdReport = () => {
   // finishes later must know whether its kind is still the one being shown.
   const kindRef = useRef(kind);
   // The organization the rows on screen belong to.
+  const orgId = getOrgId();
   const orgRef = useRef(null);
 
   const canBuild = useMemo(() => BD_REPORT_MANAGER_ROLES.includes(getUserRole()), []);
@@ -93,7 +94,6 @@ const BdReport = () => {
   // The organization changed while the report was open: the rows on screen
   // belong to the previous organization, so they go and the new ones are read.
   useEffect(() => {
-    const orgId = getOrgId();
     if (orgRef.current === null) {
       orgRef.current = orgId;
       return;
@@ -102,7 +102,7 @@ const BdReport = () => {
     orgRef.current = orgId;
     setReports([]);
     load(kindRef.current);
-  });
+  }, [orgId, load]);
 
   const onBuild = async () => {
     if (building) return;
