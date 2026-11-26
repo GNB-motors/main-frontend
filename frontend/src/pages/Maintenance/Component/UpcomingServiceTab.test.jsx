@@ -78,7 +78,29 @@ it('does not show a telemetry start as a completed service and excludes retired 
   expect(await screen.findByRole('link', { name: 'ACTIVE' })).toBeInTheDocument();
   expect(screen.getByText('Not recorded')).toBeInTheDocument();
   expect(screen.queryByText(/15 Sep|RETIRED|REMOVED/)).not.toBeInTheDocument();
-  expect(screen.getByText('Showing 1 of 1 active vehicles.')).toBeInTheDocument();
+  expect(screen.getByText('Showing 1–1 of 1 vehicles')).toBeInTheDocument();
+});
+
+it('paginates upcoming service rows and reports the visible range', async () => {
+  const vehicles = Array.from({ length: 12 }, (_, index) => ({
+    registrationNumber: `WB-${String(index + 1).padStart(2, '0')}`,
+  }));
+  getVehicleList.mockResolvedValue(vehicles);
+  FleetDataService.getMaintenancePredictions.mockResolvedValue({ records: [] });
+  render(
+    <MemoryRouter>
+      <UpcomingServiceTab />
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByRole('link', { name: 'WB-01' })).toBeInTheDocument();
+  expect(screen.getByText('Showing 1–10 of 12 vehicles')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'WB-11' })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+  expect(await screen.findByRole('link', { name: 'WB-11' })).toBeInTheDocument();
+  expect(screen.getByText('Showing 11–12 of 12 vehicles')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'WB-01' })).not.toBeInTheDocument();
 });
 
 it('shows a retry after failure instead of zero service counts', async () => {
