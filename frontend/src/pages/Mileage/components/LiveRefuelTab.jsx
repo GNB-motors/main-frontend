@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowUpDown, MapPin } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import SegmentedChips from './SegmentedChips';
@@ -165,6 +165,7 @@ export default function LiveRefuelTab({
   vehicleId = null,
   onOpenDrawer,
   onMeta = null,
+  onQuery = null,
   refreshKey = 0,
 }) {
   const [page, setPage] = useState(1);
@@ -183,22 +184,24 @@ export default function LiveRefuelTab({
     setPage(1);
   }
 
+  // Everything but the page: what an export of this view asks for.
+  const query = useMemo(
+    () => ({
+      search: searchQuery || undefined,
+      fuelType: fuelType || undefined,
+      vehicleId: vehicleId || undefined,
+      status: status !== 'all' ? status : undefined,
+      // desc is the API default; only the non-default goes on the wire.
+      sort: newestFirst ? undefined : 'asc',
+    }),
+    [searchQuery, fuelType, vehicleId, status, newestFirst],
+  );
+  useEffect(() => {
+    onQuery?.(query);
+  }, [query, onQuery]);
+
   const { data, loading, error, refetch } = useApi(
-    (signal) =>
-      MileageApi.unifiedFeed(
-        range,
-        {
-          page,
-          limit: pageSize,
-          search: searchQuery || undefined,
-          fuelType: fuelType || undefined,
-          vehicleId: vehicleId || undefined,
-          status: status !== 'all' ? status : undefined,
-          // desc is the API default; only the non-default goes on the wire.
-          sort: newestFirst ? undefined : 'asc',
-        },
-        signal,
-      ),
+    (signal) => MileageApi.unifiedFeed(range, { page, limit: pageSize, ...query }, signal),
     [
       range.manufacturer,
       range.from,
