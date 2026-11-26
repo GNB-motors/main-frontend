@@ -8,6 +8,7 @@ import {
   driverAssignedOf,
   pumpOf,
   truckCandidates,
+  truckReasonOf,
 } from './chatDraft';
 import { isPhotoSource, sourceText, sourceWord } from './sourceWords';
 import CollapsibleSection from './CollapsibleSection';
@@ -121,9 +122,7 @@ const DrawerDetailsPane = ({
     uploader && uploader !== '—' ? `Uploaded by ${uploader}` : 'Uploader unknown';
 
   // Why the truck is unsure — only when the server said why in words.
-  const truckSource = String(draft.truck?.source || '').trim();
-  const truckReason =
-    draft.checks?.TRUCK_ONE?.detail || (truckSource && truckSource !== 'CHAT' ? truckSource : '');
+  const truckReason = truckReasonOf(draft);
 
   return (
     <div className="ra-drawer__details-pane">

@@ -7,7 +7,7 @@ import {
   matchedRiseText,
 } from './predictedTime';
 import { fmtDate } from './receiptFormat';
-import { truckCandidates, vehicleIdOf } from './chatDraft';
+import { truckCandidates, truckReasonOf, vehicleIdOf } from './chatDraft';
 import { missingKeyFields } from './keyFields';
 
 /**
@@ -58,9 +58,7 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
   }
 
   // Why the truck is unsure — only when the server said why in words.
-  const truckSource = String(draft.truck?.source || '').trim();
-  const truckReason =
-    draft.checks?.TRUCK_ONE?.detail || (truckSource && truckSource !== 'CHAT' ? truckSource : '');
+  const truckReason = truckReasonOf(draft);
 
   // The overall level of the match, when the server sent one.
   const overallLevel = draft.truck?.level || draft.truck?.overallLevel || '';
