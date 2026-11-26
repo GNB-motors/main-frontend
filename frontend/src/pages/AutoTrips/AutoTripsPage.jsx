@@ -141,15 +141,18 @@ export default function AutoTripsPage() {
   // ── Sorting: the server sorts the whole list, and the URL keeps the choice. ──
   const urlSortBy = searchParams.get('sortBy');
   const urlOrder = searchParams.get('order');
+  // A sort is a key and a direction. The server knows only some keys and only
+  // two directions, so a URL that says anything else is ignored: the list opens
+  // the way it opens without a sort, and no header claims a direction.
   const sortBy = SORT_KEYS.includes(urlSortBy) ? urlSortBy : null;
-  // With a sort and no usable order, the server sorts the newest first.
-  const sortOrder = sortBy ? (urlOrder === 'asc' ? 'asc' : 'desc') : null;
+  const sortOrder = urlOrder === 'asc' || urlOrder === 'desc' ? urlOrder : null;
+  const sorting = Boolean(sortBy && sortOrder);
   // The cycle: down, up, and back to the newest first. A new sort starts the
   // list again at the first page.
   const onSort = (key) => {
     const next = new URLSearchParams(searchParams);
     next.delete('page');
-    if (sortBy === key) {
+    if (sorting && sortBy === key) {
       if (sortOrder === 'desc') {
         next.set('sortBy', key);
         next.set('order', 'asc');
@@ -221,7 +224,7 @@ export default function AutoTripsPage() {
     ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
     ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
     ...(urlSearch ? { search: urlSearch } : {}),
-    ...(sortBy ? { sortBy, order: sortOrder } : {}),
+    ...(sorting ? { sortBy, order: sortOrder } : {}),
     ...periodParams,
   };
 
@@ -659,8 +662,8 @@ export default function AutoTripsPage() {
             total={total}
             pagination={pagination}
             toolbarExtra={tools}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
+            sortBy={sorting ? sortBy : null}
+            sortOrder={sorting ? sortOrder : null}
             onSort={onSort}
             onRowClick={(r) => navigate(tripDetailHref(r._id, searchParams))}
             emptyTitle={

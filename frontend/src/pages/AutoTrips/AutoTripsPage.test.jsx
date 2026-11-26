@@ -688,6 +688,23 @@ it('spec 1: the sort in the URL is the sort the list asks for, and an unknown on
   );
 });
 
+it('spec 1: an order nobody knows is ignored, and the header shows no arrow', async () => {
+  open('/auto-trips?range=7d&sortBy=vehicle&order=invalid');
+  await screen.findByText('WB-ACTUAL');
+  // The unknown order is not sent, and the sort it belonged to goes with it:
+  // the list opens the way it opens without a sort.
+  expect(AutoTripService.list).not.toHaveBeenCalledWith(
+    expect.objectContaining({ sortBy: expect.anything() }),
+    expect.anything(),
+  );
+  expect(AutoTripService.list).not.toHaveBeenCalledWith(
+    expect.objectContaining({ order: expect.anything() }),
+    expect.anything(),
+  );
+  // And no arrow claims a direction the URL never said.
+  expect(screen.getByRole('columnheader', { name: /Truck/ })).not.toHaveAttribute('aria-sort');
+});
+
 it('spec 2: a ?vehicle= link filters the list by that truck', async () => {
   getVehicleList.mockResolvedValue([{ _id: 'v1', registrationNumber: 'WB11F4262' }]);
   open('/auto-trips?range=7d&vehicle=WB11F4262');
