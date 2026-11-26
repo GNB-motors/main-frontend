@@ -26,6 +26,8 @@ import { LONG_PLANT_MIN, timelinePlan, timelineTrip } from './timelineModel';
 import { legBarSegments, unattributedKm } from './tripLegModel.js';
 import { partialFlags, runKmOf, runningCostAmount } from './tripMeasureModel';
 import TripCostNote from './TripCostNote';
+import TripCostCard from './TripCostCard';
+import TripFuelCard from './TripFuelCard';
 import TripStatusNotes, { TripFlagChips } from './TripStatusNotes';
 import { PARTIAL_LABEL } from '../../utils/measured';
 import { tollClassText, tollSummary, tollLedgerText, withTollPasses } from './tripTolls';
@@ -143,6 +145,16 @@ export default function AutoTripDetailPage() {
   const deviations = deviationData?.records || null;
   // Toll plazas the truck drove through. Optional: the page works the same without them.
   const { data: tolls } = useApi((signal) => AutoTripService.tolls(id, { signal }), [id]);
+  // The litres this trip burnt, and the fuel that left the tank without the
+  // engine burning it. Its own read, scoped to this trip, so the last trip's
+  // litres never show under this one.
+  const {
+    data: fuelSummary,
+    loading: fuelLoading,
+    error: fuelError,
+  } = useApi((signal) => AutoTripService.fuelSummary(id, { signal }), [id], {
+    scopeKey: `fuel:${id}`,
+  });
 
   const confirmM = useMutation(AutoTripService.confirm);
   const dropM = useMutation(AutoTripService.drop);
@@ -421,7 +433,7 @@ export default function AutoTripDetailPage() {
               <span className="atx-cost-title">
                 Running cost
                 <InfoTip
-                  text="Fuel cost plus estimated vehicle maintenance cost based on distance travelled, covering things like tyres and servicing. This is an estimate, not an actual maintenance bill. When the full cost is unavailable, only known costs are shown as partly measured. Toll costs are shown separately."
+                  text="Fuel cost plus estimated vehicle maintenance cost based on distance travelled, covering things like tyres and servicing. This is an estimate, not an actual maintenance bill. When the full cost is unavailable, only known costs are shown as partly measured."
                   label="How running cost is estimated"
                 />
               </span>
@@ -599,6 +611,8 @@ export default function AutoTripDetailPage() {
             ) : null}
           </div>
           <div className="atx-detail-side">
+            <TripFuelCard summary={fuelSummary} loading={fuelLoading} error={fuelError} />
+            <TripCostCard trip={trip} tolls={tolls} role={getUserRole()} />
             <RouteSapCard key={id} trip={trip} />
             {canEdit ? (
               <TripDeviationsCard

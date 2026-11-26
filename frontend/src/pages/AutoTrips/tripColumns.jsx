@@ -40,6 +40,9 @@ export default function tripColumns({
       key: 'registrationNumber',
       width: '122px',
       label: 'Truck',
+      // The sort keys are the ones the server sorts by (vehicle, date, distance, duration).
+      sortable: true,
+      sortKey: 'vehicle',
       render: (r) => (
         <Link
           className="atx-truck"
@@ -65,6 +68,8 @@ export default function tripColumns({
       key: 'departedAt',
       width: '128px',
       label: 'Left plant',
+      sortable: true,
+      sortKey: 'date',
       render: (r) => <span className="atx-num">{fmtDayTime(r.pickup?.departedAt)}</span>,
     },
     {
@@ -72,6 +77,8 @@ export default function tripColumns({
       width: '104px',
       label: 'Trip time',
       align: 'right',
+      sortable: true,
+      sortKey: 'duration',
       render: (r) => <TimeCell trip={r} now={now} />,
     },
     {
@@ -79,6 +86,8 @@ export default function tripColumns({
       width: '112px',
       label: 'Loaded km',
       align: 'right',
+      sortable: true,
+      sortKey: 'distance',
       render: (r) => {
         const km = loadedKm(r);
         const badge = r.kmPartial ? (
