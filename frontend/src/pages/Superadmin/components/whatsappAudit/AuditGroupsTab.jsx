@@ -142,7 +142,14 @@ const AuditGroupsTab = () => {
           text: `${group.name || 'Group'} now feeds ${orgName || 'no organisation'}.`,
         });
       } catch (err) {
-        delete confirmedRef.current[group._id];
+        // The PATCH failed, so the server still holds the previous mapping: record it
+        // as the saved one, so a reload that started earlier cannot bring back an
+        // even older state.
+        confirmedRef.current[group._id] = {
+          orgId: previousOrgId || null,
+          orgName: previousOrgName,
+          at: Date.now(),
+        };
         setGroupOrg(group._id, previousOrgId, previousOrgName);
         setToastMessage({
           type: 'error',

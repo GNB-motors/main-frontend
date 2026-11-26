@@ -187,6 +187,46 @@ describe('WhatsApp groups tab (spec 1)', () => {
     expect(screen.getByLabelText('Organisation for Fleet Ops').value).toBe('org-2');
   });
 
+  it('keeps the saved mapping when a later remap fails while an old reload is in flight', async () => {
+    render(<AuditGroupsTab />);
+    await screen.findByLabelText('Organisation for Fleet Ops');
+
+    let resolveReload;
+    WhatsAppAuditService.getGroups.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReload = resolve;
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    await waitFor(() => expect(WhatsAppAuditService.getGroups).toHaveBeenCalledTimes(2));
+
+    const select = screen.getByLabelText('Organisation for Fleet Ops');
+    fireEvent.change(select, { target: { value: 'org-2' } });
+    await waitFor(() => expect(select.value).toBe('org-2'));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Organisation for Fleet Ops')).not.toBeDisabled(),
+    );
+
+    // A second remap fails: the screen goes back to org-2, the saved mapping.
+    WhatsAppAuditService.updateGroupOrg.mockRejectedValueOnce(new Error('remap failed'));
+    fireEvent.change(screen.getByLabelText('Organisation for Fleet Ops'), {
+      target: { value: 'org-1' },
+    });
+    await waitFor(() =>
+      expect(WhatsAppAuditService.updateGroupOrg).toHaveBeenCalledWith('g-unmapped', 'org-1'),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Organisation for Fleet Ops').value).toBe('org-2'),
+    );
+
+    // The reload started before both changes now arrives with the old empty mapping.
+    await act(async () => {
+      resolveReload([{ ...unmappedGroup, orgId: null, orgName: null }, mappedGroup]);
+    });
+
+    expect(screen.getByLabelText('Organisation for Fleet Ops').value).toBe('org-2');
+  });
+
   it('says that the organization list failed and offers a retry', async () => {
     WhatsAppAuditService.getOrganizationsStrict.mockRejectedValue(
       new Error('organization list failed'),
