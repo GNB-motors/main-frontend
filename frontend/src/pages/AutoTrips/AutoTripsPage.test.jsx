@@ -72,6 +72,23 @@ beforeEach(() => {
   TripPlanService.list.mockResolvedValue({ items: [], total: 0, tabCounts: { PLANNED: 0 } });
   getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
 });
+it('sends the typed search to the server and starts again from page 1', async () => {
+  open('/auto-trips?page=3');
+  await screen.findByText('WB-ACTUAL');
+  fireEvent.change(screen.getByLabelText('Search trips by truck, driver or place'), {
+    target: { value: ' wb11f4362 ' },
+  });
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'wb11f4362', page: 1, limit: 50 }),
+      expect.anything(),
+    ),
+  );
+  expect(screen.getByLabelText('Current location')).toHaveTextContent(
+    '/auto-trips?search=wb11f4362',
+  );
+});
+
 it('asks the backend for the counts with the list and reads the tab counts from there', async () => {
   AutoTripService.list.mockImplementation(async () => ({
     items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],

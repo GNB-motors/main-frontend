@@ -120,8 +120,9 @@ export default function AutoTripsPage() {
     setSearchParams(updated, { replace: true });
   };
 
-  // Place search. Keeps the input responsive while the URL (and the query it drives)
-  // only changes once the user pauses; writing to ?search keeps it bookmarkable.
+  // Trip search (truck, driver or place), answered and paged by the server. Keeps the input
+  // responsive while the URL (and the query it drives) only changes once the user pauses;
+  // writing to ?search keeps it bookmarkable.
   const urlSearch = searchParams.get('search') || '';
   const [searchInput, setSearchInput] = useState(urlSearch);
   const debouncedSearch = useDebouncedValue(searchInput.trim(), 350);
@@ -411,8 +412,8 @@ export default function AutoTripsPage() {
           <input
             type="search"
             className="atx-search-input"
-            placeholder="Search a place, e.g. Buxar"
-            aria-label="Search trips by place"
+            placeholder="Search truck, driver or place"
+            aria-label="Search trips by truck, driver or place"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -596,7 +597,7 @@ export default function AutoTripsPage() {
             }
             emptyHint={
               urlSearch
-                ? 'Search looks at pickup and drop place names. Try a shorter term or a different spelling.'
+                ? 'Search looks at truck numbers, driver names and pickup / drop places. Try a shorter term or a different spelling.'
                 : range.range !== 'all'
                   ? 'No truck left a pickup in this period. Try a longer range.'
                   : statusTab
