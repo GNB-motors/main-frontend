@@ -265,9 +265,11 @@ it.each(['COMPLETE', 'CONFIRMED'])(
       roleEconomics: null,
     });
     open();
+    // The reason is said by the facts strip and by the cost card; the page
+    // says it either way.
     expect(
-      await screen.findByText('Cost calculation unavailable for this completed trip.'),
-    ).toBeInTheDocument();
+      (await screen.findAllByText('Cost calculation unavailable for this completed trip.')).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText('priced once the trip ends')).not.toBeInTheDocument();
   },
 );
@@ -283,7 +285,9 @@ it('uses the backend cost-availability reason and reserves pending copy for a ru
     },
   });
   open();
-  expect(await screen.findByText(/more than one matching trip record/)).toBeInTheDocument();
+  expect((await screen.findAllByText(/more than one matching trip record/)).length).toBeGreaterThan(
+    0,
+  );
   cleanup();
   AutoTripService.get.mockResolvedValue({
     ...trip,
@@ -294,16 +298,16 @@ it('uses the backend cost-availability reason and reserves pending copy for a ru
   });
   open();
   expect(
-    await screen.findByText('Cost calculation pending while the trip is running.'),
-  ).toBeInTheDocument();
+    (await screen.findAllByText('Cost calculation pending while the trip is running.')).length,
+  ).toBeGreaterThan(0);
 });
 
 it('shows an available total without claiming it is waiting for pricing when its breakdown is absent', async () => {
   AutoTripService.get.mockResolvedValue({ ...trip, roleEconomics: { laden: null, return: null } });
   open();
   expect(
-    await screen.findByText('Estimated running cost; breakdown unavailable.'),
-  ).toBeInTheDocument();
+    (await screen.findAllByText('Estimated running cost; breakdown unavailable.')).length,
+  ).toBeGreaterThan(0);
 });
 
 it('keeps the delivery timeline at the last drop and explicitly includes return stops on request', async () => {
@@ -513,6 +517,25 @@ it('spec 4: a partly known running cost is still partly known without tolls', as
   const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
   expect(within(card).getByText('Total (without tolls)')).toBeInTheDocument();
   expect(within(card).getByText('Partial: ₹1,000 known')).toBeInTheDocument();
+});
+
+it('spec 4: the cost card says why there is no running cost', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    totalCostInr: null,
+    roleEconomics: null,
+    economicsAvailability: {
+      status: 'UNAVAILABLE',
+      reason: 'Cost calculation unavailable: more than one matching trip record was found.',
+    },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(
+    within(card).getByText(
+      'Cost calculation unavailable: more than one matching trip record was found.',
+    ),
+  ).toBeInTheDocument();
 });
 
 it('spec 4: the cost card never adds another trip’s tolls to this trip', async () => {

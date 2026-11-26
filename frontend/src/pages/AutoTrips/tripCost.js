@@ -1,6 +1,6 @@
 import { formatINR } from '../../utils/formatters';
 import { isMeasured } from '../../utils/measured';
-import { runningCostAmount, runningCostParts } from './tripMeasureModel';
+import { costReason, runningCostAmount, runningCostParts } from './tripMeasureModel';
 import { tollSummary } from './tripTolls';
 
 /**
@@ -26,7 +26,11 @@ export function tripCostView(trip, tolls, role) {
   const tollInr = fares && isMeasured(tolls?.total?.inr) ? Number(tolls.total.inr) : null;
 
   const runningText = running.inr != null ? formatINR(running.inr) : '—';
-  const runningNote = parts ? `fuel ${parts.fuel} · estimated maintenance cost ${parts.wear}` : null;
+  // The running cost keeps its own words: what the legs cost, or why there is
+  // no breakdown to read.
+  const runningNote = parts
+    ? `fuel ${parts.fuel} · estimated maintenance cost ${parts.wear}`
+    : costReason(trip);
   const tollText = tollInr != null ? formatINR(tollInr) : '—';
   const tollNote = fares ? tollSummary(tolls) : null;
 
