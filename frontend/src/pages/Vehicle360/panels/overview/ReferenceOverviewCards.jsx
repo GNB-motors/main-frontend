@@ -11,6 +11,15 @@ import {
 } from 'recharts';
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { X } from 'lucide-react';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '../../../../components/ui/dialog';
 import { formatKm, formatNum } from '../../../../utils/formatters';
 import { formatDateIST } from '../../../../utils/dateUtils';
 import { coverageSources, daysSince } from '../../vehicle360Logic';
@@ -34,6 +43,7 @@ function CardHead({ title, children }) {
 }
 
 export function DistanceCard({ series, prediction, overview, loading }) {
+  const [dailyDistancesOpen, setDailyDistancesOpen] = useState(false);
   const measured = series.filter((day) => day.km != null);
   const total = measured.length ? measured.reduce((sum, day) => sum + day.km, 0) : null;
   const pace = numeric(prediction?.avgKmPerDay);
@@ -105,35 +115,65 @@ export function DistanceCard({ series, prediction, overview, loading }) {
         {hasGpsAfter ? (
           <p>Engine data stopped · {shortDate(`${series[lastEngineIndex].day}T12:00:00+05:30`)}</p>
         ) : null}
-        <details>
-          <summary>View daily distances</summary>
-          <table>
-            <caption>Recorded daily distance</caption>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Distance (km)</th>
-                <th>Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {series.map((day) => (
-                <tr key={day.day}>
-                  <td>{shortDate(`${day.day}T12:00:00+05:30`)}</td>
-                  <td>{day.km == null ? 'Not measured' : formatNum(day.km)}</td>
-                  <td>
-                    {day.km == null
-                      ? 'Not available'
-                      : day.gpsOnly
-                        ? 'GPS estimate'
-                        : 'Engine reading'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </details>
       </figure>
+      <Dialog open={dailyDistancesOpen} onOpenChange={setDailyDistancesOpen}>
+        <div className="vdo-distance-details">
+          <DialogTrigger className="vdo-distance-toggle">
+            <span>View daily distances</span>
+            <span className="vdo-distance-toggle__hint">
+              {series.length} days <span aria-hidden="true">→</span>
+            </span>
+          </DialogTrigger>
+        </div>
+        <DialogContent className="vdo-distance-modal">
+          <div className="vdo-distance-modal__header">
+            <div>
+              <DialogTitle className="vdo-distance-modal__title">Daily distances</DialogTitle>
+              <DialogDescription className="vdo-distance-modal__description">
+                Last 30 days · {measured.length} of {series.length} days measured
+              </DialogDescription>
+            </div>
+            <DialogClose className="vdo-distance-modal__close" aria-label="Close daily distances">
+              <X size={18} aria-hidden="true" />
+            </DialogClose>
+          </div>
+          <div className="vdo-distance-table-wrap">
+            <table className="vdo-distance-table">
+              <caption className="sr-only">Recorded daily distance</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col" className="vdo-distance-table__number">
+                    Distance (km)
+                  </th>
+                  <th scope="col">Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {series.map((day) => (
+                  <tr key={day.day}>
+                    <td>{shortDate(`${day.day}T12:00:00+05:30`)}</td>
+                    <td className="vdo-distance-table__number">
+                      {day.km == null ? 'Not measured' : formatNum(day.km)}
+                    </td>
+                    <td>
+                      <span
+                        className={`vdo-distance-source${day.gpsOnly && day.km != null ? ' vdo-distance-source--estimate' : ''}`}
+                      >
+                        {day.km == null
+                          ? 'Not available'
+                          : day.gpsOnly
+                            ? 'GPS estimate'
+                            : 'Engine reading'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
