@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { render, screen, cleanup, within, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import AutoTripDetailPage from './AutoTripDetailPage';
 import AutoTripService from '../../services/AutoTripService';
 import { FUEL_LOSS_TIP } from './tripFuel';
@@ -69,6 +69,27 @@ function open() {
       <Routes>
         <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
       </Routes>
+    </MemoryRouter>,
+  );
+}
+
+/** The page stays mounted while the trip under it changes. */
+function GoToOtherTrip() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate('/auto-trips/trip-2')}>
+      other trip
+    </button>
+  );
+}
+
+function openWithSwitch() {
+  render(
+    <MemoryRouter initialEntries={['/auto-trips/trip-1']}>
+      <Routes>
+        <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
+      </Routes>
+      <GoToOtherTrip />
     </MemoryRouter>,
   );
 }
@@ -492,4 +513,40 @@ it('spec 4: a partly known running cost is still partly known without tolls', as
   const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
   expect(within(card).getByText('Total (without tolls)')).toBeInTheDocument();
   expect(within(card).getByText('Partial: ₹1,000 known')).toBeInTheDocument();
+});
+
+it('spec 4: the cost card never adds another trip’s tolls to this trip', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.get.mockImplementation(async (id) =>
+    id === 'trip-2' ? { ...trip, _id: 'trip-2', totalCostInr: 1000 } : trip,
+  );
+  AutoTripService.tolls.mockImplementation(async (id) => {
+    if (id === 'trip-2') {
+      // The new trip's tolls take their time; the old trip's must not stand
+      // in for them.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return {
+      tripId: id,
+      status: 'OK',
+      passes: [],
+      total: { inr: id === 'trip-1' ? 500 : 200, priced: 1, unknown: 0, complete: true },
+    };
+  });
+  openWithSwitch();
+  const first = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  await waitFor(() =>
+    expect(within(first).getByText('₹3,837 + ₹500 = ₹4,337')).toBeInTheDocument(),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'other trip' }));
+  // The new trip's card never shows the old trip's tolls.
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Trip cost' })).toBeInTheDocument());
+  const second = screen.getByRole('heading', { name: 'Trip cost' }).closest('.atx-card');
+  expect(within(second).queryByText('₹500')).not.toBeInTheDocument();
+  expect(within(second).getByText('₹1,000')).toBeInTheDocument();
+  // Once the new trip's own tolls arrive, they are the ones on the card.
+  await waitFor(
+    () => expect(within(second).getByText('₹1,000 + ₹200 = ₹1,200')).toBeInTheDocument(),
+    { timeout: 3000 },
+  );
 });

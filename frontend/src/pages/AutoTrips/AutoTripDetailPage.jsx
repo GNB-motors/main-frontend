@@ -89,12 +89,14 @@ export default function AutoTripDetailPage() {
   const [replayScope, setReplayScope] = useState('DELIVERY');
   const canEdit = CAN_EDIT.includes(getUserRole());
 
+  // The trip itself, scoped to this trip: when the route changes to another
+  // one, the last trip's numbers go with it and never stand in for the new.
   const {
     data: trip,
     loading,
     error,
     refetch,
-  } = useApi((signal) => AutoTripService.get(id, { signal }), [id]);
+  } = useApi((signal) => AutoTripService.get(id, { signal }), [id], { scopeKey: `trip:${id}` });
   const {
     data: track,
     loading: trackLoading,
@@ -144,7 +146,11 @@ export default function AutoTripDetailPage() {
   );
   const deviations = deviationData?.records || null;
   // Toll plazas the truck drove through. Optional: the page works the same without them.
-  const { data: tolls } = useApi((signal) => AutoTripService.tolls(id, { signal }), [id]);
+  // Scoped to this trip too: another trip's tolls are never added to this one,
+  // and a failed read of these tolls leaves the card without any.
+  const { data: tolls } = useApi((signal) => AutoTripService.tolls(id, { signal }), [id], {
+    scopeKey: `tolls:${id}`,
+  });
   // The litres this trip burnt, and the fuel that left the tank without the
   // engine burning it. Its own read, scoped to this trip, so the last trip's
   // litres never show under this one.
