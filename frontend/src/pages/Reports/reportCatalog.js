@@ -18,6 +18,10 @@ export const REPORT_GROUPS = [
       { id: 'modelComparison', label: 'Model Comparison', flag: 'vehicleActivity' },
       { id: 'dieselReport', label: 'Diesel Report' },
       { id: 'adblueReport', label: 'AdBlue Report', flag: 'fuelIntegrity' },
+      // The BD oil & DEF report (GF): one file per day per kind, built and
+      // downloaded from this hub. No feature flag — the backend decides which
+      // organizations may open it.
+      { id: 'bdReport', label: 'BD Oil & DEF Report' },
     ],
   },
   {

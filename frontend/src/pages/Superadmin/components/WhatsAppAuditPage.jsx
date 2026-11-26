@@ -9,6 +9,13 @@ import AuditAnalytics from './whatsappAudit/AuditAnalytics';
 import AuditKpiCards from './whatsappAudit/AuditKpiCards';
 import AuditHeader from './whatsappAudit/AuditHeader';
 import AuditToast from './whatsappAudit/AuditToast';
+import AuditGroupsTab from './whatsappAudit/AuditGroupsTab';
+
+/** The two tabs of the WhatsApp audit page (GF). */
+const TABS = [
+  { id: 'audit', label: 'Reliability' },
+  { id: 'groups', label: 'Groups' },
+];
 
 const WhatsAppAuditPage = () => {
   const [stats, setStats] = useState(null);
@@ -29,6 +36,9 @@ const WhatsAppAuditPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Which tab of the page is open. The audit data keeps loading either way.
+  const [activeTab, setActiveTab] = useState('audit');
 
   // Trace Drawer
   const [selectedRequestId, setSelectedRequestId] = useState(null);
@@ -177,6 +187,24 @@ const WhatsAppAuditPage = () => {
       {/* Toast */}
       {toastMessage && <AuditToast setToastMessage={setToastMessage} toastMessage={toastMessage} />}
 
+      <nav aria-label="WhatsApp audit sections" className="wa-audit-tabs">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`wa-audit-tab${activeTab === tab.id ? ' wa-audit-tab--active' : ''}`}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === 'groups' ? (
+        <AuditGroupsTab />
+      ) : (
+        <>
       {/* Top Header */}
       <AuditHeader
         autoRefreshInterval={autoRefreshInterval}
@@ -237,6 +265,8 @@ const WhatsAppAuditPage = () => {
         stageFilter={stageFilter}
         statusFilter={statusFilter}
       />
+        </>
+      )}
 
       {/* Slide-Out Request Trace Drawer */}
       {selectedRequestId && (
