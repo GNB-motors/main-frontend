@@ -89,6 +89,26 @@ it('sends the typed search to the server and starts again from page 1', async ()
   );
 });
 
+it('shows the loaded mileage of the latest delivered trips', async () => {
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (params.status === 'DELIVERED' && params.limit === 100) {
+      return {
+        items: [2.5, 3, 2, 3, 2.8].map((kmpl, i) => ({
+          _id: `d${i}`,
+          status: 'COMPLETE',
+          km: { laden: 100 * kmpl },
+          roleEconomics: { laden: { fuelL: 100, fuelBasis: 'AVAILABLE' } },
+        })),
+        total: 5,
+      };
+    }
+    return { items: [], total: 0, tabCounts: { COMPLETE: 5 } };
+  });
+  open();
+  expect(await screen.findByText('2.80 km/L')).toBeInTheDocument();
+  expect(screen.getByText('median of 5 trips')).toBeInTheDocument();
+});
+
 it('asks the backend for the counts with the list and reads the tab counts from there', async () => {
   AutoTripService.list.mockImplementation(async () => ({
     items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],

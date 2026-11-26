@@ -24,7 +24,7 @@ import PlaceQuestionsTab from './PlaceQuestionsTab';
 import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
 import AutoTripCoverage from './AutoTripCoverage';
-import { actualTripCount, typicalRun } from './tripListModel';
+import { actualTripCount, typicalMileage, typicalRun } from './tripListModel';
 import { listTripsWithCounts, resolveTabCounts } from './tripCounts';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
@@ -264,6 +264,10 @@ export default function AutoTripsPage() {
   const todayCounts = today.data?.tabCounts;
   const todayCount = todayCounts ? actualTripCount(todayCounts) : null;
   const run = useMemo(() => typicalRun(deliveredSample.data?.items), [deliveredSample.data]);
+  const mileage = useMemo(
+    () => typicalMileage(deliveredSample.data?.items),
+    [deliveredSample.data],
+  );
 
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
@@ -473,6 +477,7 @@ export default function AutoTripsPage() {
           selectedTab={kpiTab}
           onSelect={changeTab}
           run={run}
+          mileage={mileage}
           runLoading={deliveredSample.loading}
           runFailed={Boolean(deliveredSample.error)}
         />

@@ -1,13 +1,13 @@
 import InfoTip from '../../components/redesign/InfoTip';
 import { formatNum } from '../../utils/formatters';
 import { fmtDuration, fmtKm } from './autoTripFormat';
-import { MIN_SAMPLE, shareText } from './tripListModel';
+import { MIN_MILEAGE_KM, MIN_SAMPLE, shareText } from './tripListModel';
 
 /**
  * The Trips KPI strip. The four status tiles are also the list's status tabs:
  * the count you read is the filter you click, so the page never shows the same
- * number twice. The fifth tile is the typical loaded run, measured on the latest
- * delivered trips of the period.
+ * number twice. The last two tiles, the typical loaded run and the loaded
+ * mileage, are measured on the latest delivered trips of the period.
  */
 function KpiTab({ tabKey, label, count, sub, tone, selected, onSelect }) {
   return (
@@ -61,6 +61,38 @@ function RunTile({ run, loading, failed }) {
   );
 }
 
+function MileageTile({ mileage, loading, failed }) {
+  const known = mileage?.kmpl != null;
+  let sub;
+  if (known) {
+    sub = `median of ${formatNum(mileage.measured)} trips`;
+  } else if (loading) {
+    sub = 'Measuring…';
+  } else if (failed) {
+    sub = 'Could not load delivered trips';
+  } else {
+    sub = `Needs ${MIN_SAMPLE} trips with a fuel reading`;
+  }
+  return (
+    <div className="atx-kpi">
+      <span className="atx-kpi-label">
+        Loaded mileage
+        <InfoTip
+          text={`The middle km per litre of the loaded run (plant to last drop) of the latest delivered trips in this period: loaded km ÷ the diesel the truck's fuel sensor says it burned on that run. Runs under ${MIN_MILEAGE_KM} km, and trips whose fuel was not measured for the whole run, are left out.`}
+          basis={
+            mileage && !loading && !failed
+              ? `${formatNum(mileage.measured)} of the latest ${formatNum(mileage.sample)} delivered trips had a full fuel reading.`
+              : null
+          }
+          label="How the loaded mileage is measured"
+        />
+      </span>
+      <span className="atx-kpi-value">{known ? `${mileage.kmpl.toFixed(2)} km/L` : '—'}</span>
+      <span className="atx-kpi-sub">{sub}</span>
+    </div>
+  );
+}
+
 export default function TripKpiStrip({
   counts,
   todayCount = null,
@@ -68,6 +100,7 @@ export default function TripKpiStrip({
   selectedTab,
   onSelect,
   run,
+  mileage = null,
   runLoading,
   runFailed,
 }) {
@@ -123,6 +156,7 @@ export default function TripKpiStrip({
         ))}
       </div>
       <RunTile run={run} loading={runLoading} failed={runFailed} />
+      <MileageTile mileage={mileage} loading={runLoading} failed={runFailed} />
     </section>
   );
 }

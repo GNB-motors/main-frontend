@@ -11,6 +11,7 @@ import {
   shareText,
   shortDuration,
   titleCasePlace,
+  typicalMileage,
   typicalRun,
 } from './tripListModel';
 
@@ -143,6 +144,27 @@ describe('KPI strip', () => {
 
   it('refuses a typical run from too few trips', () => {
     expect(typicalRun([{ km: { laden: 50 } }]).km).toBeNull();
+  });
+
+  it('measures loaded mileage as loaded km over the fuel burned on that run', () => {
+    const laden = (fuelL, fuelBasis = 'AVAILABLE') => ({
+      roleEconomics: { laden: { fuelL, fuelBasis } },
+    });
+    const rows = [
+      { km: { laden: 100 }, ...laden(40) }, // 2.5
+      { km: { laden: 120 }, ...laden(40) }, // 3
+      { km: { laden: 90 }, ...laden(45) }, // 2
+      { km: { laden: 150 }, fuelLadenL: 50 }, // 3, an older row
+      { km: { laden: 140 }, ...laden(50) }, // 2.8
+      { km: { laden: 200 }, ...laden(20, 'PARTIAL') }, // part of the fuel missing: left out
+      { km: { laden: 4 }, ...laden(0.3) }, // too short to read: left out
+      { km: { laden: 80 } }, // no fuel reading
+    ];
+    expect(typicalMileage(rows)).toEqual({ kmpl: 2.8, sample: 8, measured: 5 });
+  });
+
+  it('refuses a loaded mileage from too few fuel readings', () => {
+    expect(typicalMileage([{ km: { laden: 100 }, fuelLadenL: 40 }]).kmpl).toBeNull();
   });
 
   it('writes a share, never 0% for a non-zero part', () => {

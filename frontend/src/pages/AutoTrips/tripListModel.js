@@ -162,6 +162,37 @@ export function typicalRun(items) {
   };
 }
 
+/**
+ * Litres the truck burned on the laden leg, the Oil & Average report's rule: the
+ * older rows' fuelLadenL, else the laden role's fuel when every segment was measured.
+ * A PARTIAL sum misses litres and would overstate the km/L.
+ */
+export function ladenFuelL(trip) {
+  if (trip?.fuelLadenL > 0) return trip.fuelLadenL;
+  const laden = trip?.roleEconomics?.laden;
+  return laden?.fuelBasis === 'AVAILABLE' && laden.fuelL > 0 ? laden.fuelL : null;
+}
+
+/** Shorter loaded runs burn so little that the gauge's noise is most of the reading. */
+export const MIN_MILEAGE_KM = 10;
+
+/** The loaded mileage of the latest delivered trips: median km/L, and how many it is the median of. */
+export function typicalMileage(items) {
+  const rows = Array.isArray(items) ? items : [];
+  const kmpl = rows
+    .map((trip) => {
+      const km = loadedKm(trip);
+      const litres = ladenFuelL(trip);
+      return km != null && km >= MIN_MILEAGE_KM && litres ? km / litres : null;
+    })
+    .filter((v) => v != null);
+  return {
+    kmpl: kmpl.length >= MIN_SAMPLE ? median(kmpl) : null,
+    sample: rows.length,
+    measured: kmpl.length,
+  };
+}
+
 /** "20%" of a whole; null when the whole is zero. */
 export function shareText(part, whole) {
   if (!whole) return null;
