@@ -31,7 +31,7 @@ const newestFirst = (rows) =>
     return String(b?.createdAt || '').localeCompare(String(a?.createdAt || ''));
   });
 
-/** Yesterday in IST — the day the BD team closes the books on. */
+/** Save the downloaded blob under the name the server asked for. */
 const saveFile = (blob, fileName) => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');

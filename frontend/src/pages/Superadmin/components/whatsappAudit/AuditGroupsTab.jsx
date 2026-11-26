@@ -89,33 +89,33 @@ const AuditGroupsTab = () => {
 
   const onOrgChange = useCallback(
     async (group, nextOrgId) => {
-    // One PATCH per group at a time.
-    if (saving[group._id]) return;
-    const previousOrgId = group.orgId || null;
-    const previousOrgName = group.orgName || null;
-    if ((nextOrgId || null) === previousOrgId) return;
+      // One PATCH per group at a time.
+      if (saving[group._id]) return;
+      const previousOrgId = group.orgId || null;
+      const previousOrgName = group.orgName || null;
+      if ((nextOrgId || null) === previousOrgId) return;
 
-    const question = previousOrgId ? REMAP_CONFIRM : FIRST_MAP_CONFIRM;
-    if (!window.confirm(question)) return;
+      const question = previousOrgId ? REMAP_CONFIRM : FIRST_MAP_CONFIRM;
+      if (!window.confirm(question)) return;
 
-    const org = organizations.find((o) => o._id === nextOrgId);
-    const orgName = org?.companyName || null;
-    pendingRef.current[group._id] = { orgId: nextOrgId || null, orgName };
-    setSaving((prev) => ({ ...prev, [group._id]: true }));
-    setGroupOrg(group._id, nextOrgId, orgName);
+      const org = organizations.find((o) => o._id === nextOrgId);
+      const orgName = org?.companyName || null;
+      pendingRef.current[group._id] = { orgId: nextOrgId || null, orgName };
+      setSaving((prev) => ({ ...prev, [group._id]: true }));
+      setGroupOrg(group._id, nextOrgId, orgName);
 
-    try {
-      await WhatsAppAuditService.updateGroupOrg(group._id, nextOrgId || null);
-      setToastMessage({
-        type: 'success',
-        text: `${group.name || 'Group'} now feeds ${orgName || 'no organisation'}.`,
-      });
-    } catch (err) {
-      setGroupOrg(group._id, previousOrgId, previousOrgName);
-      setToastMessage({
-        type: 'error',
-        text: err.message || 'Could not map the group.',
-      });
+      try {
+        await WhatsAppAuditService.updateGroupOrg(group._id, nextOrgId || null);
+        setToastMessage({
+          type: 'success',
+          text: `${group.name || 'Group'} now feeds ${orgName || 'no organisation'}.`,
+        });
+      } catch (err) {
+        setGroupOrg(group._id, previousOrgId, previousOrgName);
+        setToastMessage({
+          type: 'error',
+          text: err.message || 'Could not map the group.',
+        });
       } finally {
         delete pendingRef.current[group._id];
         setSaving((prev) => {
