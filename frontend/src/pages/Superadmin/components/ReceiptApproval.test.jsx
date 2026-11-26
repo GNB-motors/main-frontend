@@ -70,6 +70,7 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
         plateText: 'WB25R9540',
         vehicleReg: 'WB25R9540',
         odometerReading: 145000,
+        photos: [{ url: 'https://example.com/pump.jpg' }],
       };
       const res = evaluateOcrQuality(draft);
       expect(res.level).toBe('high');

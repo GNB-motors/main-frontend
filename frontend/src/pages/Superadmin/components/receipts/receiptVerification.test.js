@@ -4,6 +4,7 @@ import {
   evaluateOcrQuality,
   getOdometerMeta,
   crossVerifyStation,
+  checkFacts,
 } from './receiptVerification';
 
 describe('verifyFuelMath', () => {
@@ -49,9 +50,50 @@ describe('evaluateOcrQuality', () => {
       rate: 90,
       amount: 9000,
       odometerReading: 42000,
+      photos: [{ url: 'https://example.com/pump.jpg' }],
     });
     expect(result.level).toBe('high');
     expect(result.tags.map((t) => t.label)).toContain('Math Verified ✓');
+  });
+
+  it('spec 8: gives the photo base only when the row really has a photo', () => {
+    const withoutPhoto = evaluateOcrQuality({ litres: 100, rate: 90, amount: 9000 });
+    const withPhoto = evaluateOcrQuality({
+      litres: 100,
+      rate: 90,
+      amount: 9000,
+      photos: [{ url: 'https://example.com/pump.jpg' }],
+    });
+
+    expect(withPhoto.score - withoutPhoto.score).toBe(20);
+  });
+
+  it('spec 8: counts a fuel image or an odometer image as a photo', () => {
+    const base = { litres: 100, rate: 90, amount: 9000 };
+    const withFuel = evaluateOcrQuality({ ...base, fuelImageUrl: 'https://example.com/f.jpg' });
+    const withOdo = evaluateOcrQuality({ ...base, odometerImageUrl: 'https://example.com/o.jpg' });
+
+    expect(withFuel.score - evaluateOcrQuality(base).score).toBe(20);
+    expect(withOdo.score - evaluateOcrQuality(base).score).toBe(20);
+  });
+
+  it('spec 8: an empty photo url is not a photo', () => {
+    const result = evaluateOcrQuality({
+      litres: 100,
+      rate: 90,
+      amount: 9000,
+      photos: [{ url: '  ' }],
+      fuelImageUrl: '',
+    });
+
+    expect(result.score).toBe(65);
+  });
+
+  it('spec 8: keeps the ten point floor for a row without a photo', () => {
+    const result = evaluateOcrQuality({});
+
+    expect(result.score).toBe(10);
+    expect(result.label).toBe('Needs Review');
   });
 });
 
@@ -102,5 +144,32 @@ describe('crossVerifyStation', () => {
     const result = crossVerifyStation({});
     expect(result.stationName).toBeNull();
     expect(result.billRate).toBeNull();
+  });
+});
+
+describe('checkFacts', () => {
+  it('an explicit unknown wins over ok: true or a pass status', () => {
+    const arr = checkFacts({ checks: [{ name: 'TRUCK', result: 'unknown', ok: true }] });
+    const keyed = checkFacts({ checks: { TRUCK: { status: 'pass', result: 'unknown' } } });
+
+    for (const facts of [arr, keyed]) {
+      expect(facts.unknown).toBe(1);
+      expect(facts.needs).toBe(0);
+      expect(facts.rows[0].status).toBe('UNKNOWN');
+    }
+  });
+
+  it('a boolean-only check gets a normalised result', () => {
+    const facts = checkFacts({ checks: { MATH: { ok: false }, ODO: { valid: true } } });
+
+    expect(facts.rows.map((r) => r.status)).toEqual(['FAIL', 'PASS']);
+    expect(facts.needs).toBe(1);
+    expect(facts.unknown).toBe(0);
+  });
+
+  it('a bad result is still flagged when another field says pass', () => {
+    const facts = checkFacts({ checks: { LITRES: { status: 'pass', result: 'mismatch' } } });
+
+    expect(facts.rows[0]).toMatchObject({ bad: true, status: 'MISMATCH' });
   });
 });
