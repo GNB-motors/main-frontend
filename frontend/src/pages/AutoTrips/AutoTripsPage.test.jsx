@@ -653,6 +653,9 @@ it('spec 1: the sort cycles down, up and back to the newest first', async () => 
       expect.anything(),
     ),
   );
+  // Each click is judged on its own: the calls of the earlier clicks are
+  // cleared, so the third one cannot be a leftover unsorted read.
+  AutoTripService.list.mockClear();
   fireEvent.click(screen.getByRole('button', { name: 'Truck' }));
   await waitFor(() =>
     expect(AutoTripService.list).toHaveBeenCalledWith(
@@ -660,6 +663,7 @@ it('spec 1: the sort cycles down, up and back to the newest first', async () => 
       expect.anything(),
     ),
   );
+  AutoTripService.list.mockClear();
   fireEvent.click(screen.getByRole('button', { name: 'Truck' }));
   await waitFor(() =>
     expect(AutoTripService.list).toHaveBeenCalledWith(
@@ -667,6 +671,7 @@ it('spec 1: the sort cycles down, up and back to the newest first', async () => 
       expect.anything(),
     ),
   );
+  expect(AutoTripService.list).toHaveBeenCalled();
   const url = screen.getByLabelText('Current location');
   expect(url).not.toHaveTextContent('sortBy=');
   expect(url).not.toHaveTextContent('order=');
@@ -680,8 +685,12 @@ it('spec 1: the sort in the URL is the sort the list asks for, and an unknown on
     expect.anything(),
   );
   cleanup();
+  // The reads of the first page are cleared: the unknown sort must be shown
+  // by the reads of this page alone.
+  AutoTripService.list.mockClear();
   open('/auto-trips?range=7d&sortBy=nonsense&order=asc');
   await screen.findByText('WB-ACTUAL');
+  expect(AutoTripService.list).toHaveBeenCalled();
   expect(AutoTripService.list).toHaveBeenCalledWith(
     expect.not.objectContaining({ sortBy: expect.anything() }),
     expect.anything(),
