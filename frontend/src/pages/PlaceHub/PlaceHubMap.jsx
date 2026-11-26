@@ -1,7 +1,9 @@
 import PlaceClusterer from './map/PlaceClusterer.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
-import { GoogleMap } from '@react-google-maps/api';
+import VectorGoogleMap from '../LiveTracking/VectorGoogleMap.jsx';
+import { OSM_MAP_TYPE_ID } from '../LiveTracking/osmGoogleMapType.js';
+import OsmAttribution from '../../components/map/OsmAttribution.jsx';
 import { planFit } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import { IDLE_COLOR, idleTone, DRAIN_COLOR, STOP_COLOR } from './placeHubStyle.js';
@@ -115,6 +117,8 @@ export default function PlaceHubMap({
   const options = useMemo(
     () => ({
       backgroundColor: isDark ? '#252a31' : '#f0eee8',
+      mapTypeId: satellite ? 'hybrid' : OSM_MAP_TYPE_ID,
+      isFractionalZoomEnabled: false,
       streetViewControl: false,
       mapTypeControl: false,
       fullscreenControl: false,
@@ -138,10 +142,6 @@ export default function PlaceHubMap({
     });
     return () => listener.remove();
   }, [map]);
-
-  useEffect(() => {
-    if (map) map.setMapTypeId(satellite ? 'hybrid' : 'roadmap');
-  }, [map, satellite]);
 
   useEffect(() => {
     if (!map || lastFitKey.current === fitKey) return;
@@ -215,8 +215,9 @@ export default function PlaceHubMap({
 
   return (
     <>
-      <GoogleMap
+      <VectorGoogleMap
         key={mapRevision}
+        osmBasemap
         mapContainerStyle={MAP_STYLE}
         center={INDIA}
         zoom={5}
@@ -389,7 +390,8 @@ export default function PlaceHubMap({
         ))}
 
         {draft && <DraftLayer draft={draft} onDraftChange={onDraftChange} />}
-      </GoogleMap>
+      </VectorGoogleMap>
+      {!satellite && <OsmAttribution />}
       {tilesStatus === 'delayed' && (
         <div className="ph-map-tile-status" role="status">
           Road tiles are taking longer to load.

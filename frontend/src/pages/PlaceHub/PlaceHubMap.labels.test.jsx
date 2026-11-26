@@ -1,6 +1,7 @@
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GoogleMap, PolygonF } from '@react-google-maps/api';
+import { PolygonF } from '@react-google-maps/api';
+import VectorGoogleMap from '../LiveTracking/VectorGoogleMap.jsx';
 import PlaceHubMap from './PlaceHubMap.jsx';
 
 const { map } = vi.hoisted(() => ({
@@ -10,15 +11,19 @@ const { map } = vi.hoisted(() => ({
     addListener: vi.fn(() => ({ remove: vi.fn() })),
   },
 }));
-vi.mock('@react-google-maps/api', async () => {
+vi.mock('../LiveTracking/VectorGoogleMap.jsx', async () => {
   const { useEffect } = await import('react');
   return {
-    GoogleMap: vi.fn(function TestMap({ children, onLoad }) {
+    default: vi.fn(function TestMap({ children, onLoad }) {
       useEffect(() => {
         onLoad(map);
       }, [onLoad]);
       return <div>{children}</div>;
     }),
+  };
+});
+vi.mock('@react-google-maps/api', () => {
+  return {
     MarkerClustererF: ({ children }) => children({}),
     PolygonF: vi.fn(({ onClick }) => <button onClick={onClick}>Area</button>),
     CircleF: () => null,
@@ -70,12 +75,28 @@ const base = {
 const zoomTo = (zoom) =>
   act(() => {
     map.getZoom.mockReturnValue(zoom);
-    GoogleMap.mock.calls.at(-1)[0].onZoomChanged();
+    VectorGoogleMap.mock.calls.at(-1)[0].onZoomChanged();
   });
 
 beforeEach(() => vi.clearAllMocks());
 
 describe('Place Hub area labels', () => {
+  it.each(['places', 'routes', 'idling', 'stops', 'fuel'])(
+    'uses Live Tracking road tiles and preserves satellite switching on %s',
+    (tab) => {
+      const view = render(<PlaceHubMap {...base} tab={tab} />);
+      expect(VectorGoogleMap.mock.lastCall[0]).toMatchObject({
+        osmBasemap: true,
+        options: { mapTypeId: 'osm' },
+      });
+      expect(screen.getByRole('link', { name: 'OpenStreetMap' })).toBeInTheDocument();
+      view.rerender(<PlaceHubMap {...base} tab={tab} satellite />);
+      expect(VectorGoogleMap.mock.lastCall[0].options.mapTypeId).toBe('hybrid');
+      expect(screen.queryByRole('link', { name: 'OpenStreetMap' })).not.toBeInTheDocument();
+      view.rerender(<PlaceHubMap {...base} tab={tab} />);
+      expect(VectorGoogleMap.mock.lastCall[0].options.mapTypeId).toBe('osm');
+    },
+  );
   it('hides tolls by default and shows them only when a toll toggle is enabled', () => {
     const view = render(<PlaceHubMap {...base} />);
     expect(screen.queryByTestId('tolls')).not.toBeInTheDocument();
@@ -119,7 +140,7 @@ it('offers a retry when overlays are ready but the basemap is delayed', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Road tiles are taking longer');
     fireEvent.click(screen.getByRole('button', { name: 'Retry map' }));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    act(() => GoogleMap.mock.calls.at(-1)[0].onTilesLoaded());
+    act(() => VectorGoogleMap.mock.calls.at(-1)[0].onTilesLoaded());
     act(() => vi.advanceTimersByTime(12000));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   } finally {

@@ -2470,22 +2470,6 @@ html.dark,
   width: 100%;
   height: 100%;
 }
-.gnb-lt-page .lt-osm-attribution {
-  position: absolute;
-  right: 8px;
-  bottom: 26px;
-  z-index: 2;
-  padding: 2px 5px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.94);
-  color: #334155;
-  font-size: 11px;
-  line-height: 16px;
-}
-.gnb-lt-page .lt-osm-attribution a {
-  color: #075985;
-  text-decoration: underline;
-}
 .gmap-loading,
 .gmap-error {
   position: absolute;

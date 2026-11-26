@@ -15,6 +15,7 @@ export default function VectorGoogleMap({
   onUnmount,
   onIdle,
   onZoomChanged,
+  onTilesLoaded,
   onClick,
 }) {
   const container = useRef(null);
@@ -45,6 +46,7 @@ export default function VectorGoogleMap({
     onUnmount,
     onIdle,
     onZoomChanged,
+    onTilesLoaded,
     onClick,
   };
   const applied = useRef(null);
@@ -71,6 +73,7 @@ export default function VectorGoogleMap({
     const listeners = [
       instance.addListener('idle', () => current.current.onIdle?.()),
       instance.addListener('zoom_changed', () => current.current.onZoomChanged?.()),
+      instance.addListener('tilesloaded', () => current.current.onTilesLoaded?.()),
       instance.addListener('click', (event) => current.current.onClick?.(event)),
     ];
     setLoaded({ instance, renderingType: initial.renderingType });

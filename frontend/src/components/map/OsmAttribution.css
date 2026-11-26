@@ -1,0 +1,15 @@
+.osm-map-attribution {
+  position: absolute;
+  right: 8px;
+  bottom: 26px;
+  z-index: 2;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--ui-card, #fff);
+  color: var(--ui-ink-3, #5d5d5e);
+  font: 400 11px/16px var(--ui-font, sans-serif);
+}
+.osm-map-attribution a {
+  color: var(--ui-link, #2a4fd6);
+  text-decoration: underline;
+}

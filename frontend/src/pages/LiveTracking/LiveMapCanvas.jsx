@@ -32,6 +32,7 @@ import { isNearEdge, trackFitPadding } from './trackMapCamera';
 import useFollowCamera from './useFollowCamera.js';
 import { bearingDegrees } from './geoMath.js';
 import { OSM_MAP_TYPE_ID } from './osmGoogleMapType.js';
+import OsmAttribution from '../../components/map/OsmAttribution.jsx';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -570,17 +571,7 @@ export default function LiveMapCanvas({
       !loadError &&
       !followCameraEnabled &&
       mapOptions?.mapTypeId === OSM_MAP_TYPE_ID ? (
-        <div className="lt-osm-attribution">
-          ©{' '}
-          <a
-            href="https://www.openstreetmap.org/copyright"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            OpenStreetMap
-          </a>{' '}
-          contributors
-        </div>
+        <OsmAttribution />
       ) : null}
     </div>
   );

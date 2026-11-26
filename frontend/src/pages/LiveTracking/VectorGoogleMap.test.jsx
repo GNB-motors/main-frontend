@@ -225,12 +225,14 @@ describe('vector map lifecycle', () => {
     const next = vi.fn();
     const onIdle = vi.fn();
     const onZoomChanged = vi.fn();
+    const onTilesLoaded = vi.fn();
     const onUnmount = vi.fn();
     const { rerender, unmount } = render(
       <VectorGoogleMap
         onClick={first}
         onIdle={onIdle}
         onZoomChanged={onZoomChanged}
+        onTilesLoaded={onTilesLoaded}
         onUnmount={onUnmount}
       />,
     );
@@ -242,6 +244,7 @@ describe('vector map lifecycle', () => {
         onClick={next}
         onIdle={onIdle}
         onZoomChanged={onZoomChanged}
+        onTilesLoaded={onTilesLoaded}
         onUnmount={onUnmount}
       />,
     );
@@ -249,11 +252,13 @@ describe('vector map lifecycle', () => {
       handlers.click(event);
       handlers.idle();
       handlers.zoom_changed();
+      handlers.tilesloaded();
     });
     expect(first).toHaveBeenCalledOnce();
     expect(next).toHaveBeenCalledWith(event);
     expect(onIdle).toHaveBeenCalledOnce();
     expect(onZoomChanged).toHaveBeenCalledOnce();
+    expect(onTilesLoaded).toHaveBeenCalledOnce();
     unmount();
     expect(removers.every((remove) => remove.mock.calls.length === 1)).toBe(true);
     expect(onUnmount).toHaveBeenCalledWith(instance);

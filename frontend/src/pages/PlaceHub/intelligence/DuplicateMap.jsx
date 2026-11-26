@@ -1,9 +1,7 @@
-import { ROAD_TILE_URL, ROAD_TILE_OPTIONS } from '../../../components/map/leafletRoadTiles.js';
-import { useEffect, useMemo, useRef } from 'react';
-import L from 'leaflet';
+import { useMemo } from 'react';
+import PlacePreviewMap from '../map/PlacePreviewMap.jsx';
 import useApi from '../../../hooks/useApi';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
-import 'leaflet/dist/leaflet.css';
 const hasCoords = (site) =>
   [site?.lat, site?.lng].every((n) => typeof n === 'number' && Number.isFinite(n));
 export default function DuplicateMap({ a: first, b: second }) {
@@ -29,32 +27,16 @@ export default function DuplicateMap({ a: first, b: second }) {
       ? { ...site, lat: site.lat ?? site.centroidLat, lng: site.lng ?? site.centroidLng }
       : null;
   }, [second, secondQ.data]);
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!hasCoords(a) || !hasCoords(b)) return;
-    const map = L.map(ref.current, { scrollWheelZoom: false });
-    L.tileLayer(ROAD_TILE_URL, ROAD_TILE_OPTIONS).addTo(map);
-    [a, b].forEach((s, i) => {
-      const label = document.createElement('span');
-      label.textContent = `${i === 0 ? 'A' : 'B'}: ${s.name || 'Unnamed place'}`;
-      L.circleMarker([s.lat, s.lng], { radius: 8, color: i ? '#db2777' : '#2563eb' })
-        .addTo(map)
-        .bindTooltip(label, { permanent: true, direction: i ? 'bottom' : 'top' });
-    });
-    map.fitBounds(
-      [
-        [a.lat, a.lng],
-        [b.lat, b.lng],
-      ],
-      { padding: [35, 35], maxZoom: 17 },
-    );
-    const resize = new ResizeObserver(() => map.invalidateSize());
-    resize.observe(ref.current);
-    return () => {
-      resize.disconnect();
-      map.remove();
-    };
-  }, [a, b]);
+  const points = useMemo(
+    () =>
+      [a, b].map((site, index) => ({
+        id: site?._id,
+        lat: site?.lat,
+        lng: site?.lng,
+        label: `${index === 0 ? 'A' : 'B'}: ${site?.name || 'Unnamed place'}`,
+      })),
+    [a, b],
+  );
   if (!hasCoords(a) || !hasCoords(b))
     return (
       <p className="sap-muted">
@@ -64,11 +46,10 @@ export default function DuplicateMap({ a: first, b: second }) {
       </p>
     );
   return (
-    <div
-      ref={ref}
+    <PlacePreviewMap
+      points={points}
       className="sap-mini-map"
-      role="img"
-      aria-label={`Map of ${a.name || 'place A'} and ${b.name || 'place B'}`}
+      label={`Map of ${a.name || 'place A'} and ${b.name || 'place B'}`}
     />
   );
 }
