@@ -26,6 +26,12 @@
   color: #92400e;
 }
 
+.wa-groups__error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
 .wa-groups-row--unmapped {
   background: #fffbeb;
 }

@@ -39,38 +39,58 @@ const AuditGroupsTab = () => {
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [orgError, setOrgError] = useState(null);
   const [saving, setSaving] = useState({});
   const [toastMessage, setToastMessage] = useState(null);
 
   // The pending mapping of every group whose PATCH is in flight: a reload
   // must not put the old organization back under the user's cursor.
   const pendingRef = useRef({});
+  // The mapping of every group the server has already accepted. A GET that
+  // started before the PATCH was saved still carries the old organization.
+  const confirmedRef = useRef({});
   const requestRef = useRef(0);
 
   const load = useCallback(async () => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
+    const startedAt = Date.now();
     setLoading(true);
     try {
-      const [rows, orgs] = await Promise.all([
+      // The groups and the organizations are read apart: a broken organization
+      // list must not hide the groups, and the other way round.
+      const [groupsResult, orgsResult] = await Promise.allSettled([
         WhatsAppAuditService.getGroups(),
-        WhatsAppAuditService.getOrganizations(),
+        WhatsAppAuditService.getOrganizationsStrict(),
       ]);
       if (requestRef.current !== requestId) return;
-      const pending = pendingRef.current;
-      setGroups(
-        unmappedFirst(
-          rows.map((row) => {
-            const keep = pending[row._id];
-            return keep ? { ...row, orgId: keep.orgId, orgName: keep.orgName } : row;
-          }),
-        ),
-      );
-      setOrganizations(Array.isArray(orgs) ? orgs : []);
-      setError(null);
-    } catch (err) {
-      if (requestRef.current !== requestId) return;
-      setError(err.message || 'Could not load the WhatsApp groups.');
+      if (groupsResult.status === 'fulfilled') {
+        const pending = pendingRef.current;
+        const confirmed = confirmedRef.current;
+        setGroups(
+          unmappedFirst(
+            groupsResult.value.map((row) => {
+              const keep = pending[row._id];
+              if (keep) return { ...row, orgId: keep.orgId, orgName: keep.orgName };
+              const saved = confirmed[row._id];
+              // The answer is older than the mapping: the saved one wins.
+              if (saved && saved.at >= startedAt) {
+                return { ...row, orgId: saved.orgId, orgName: saved.orgName };
+              }
+              return row;
+            }),
+          ),
+        );
+        setError(null);
+      } else {
+        setError(groupsResult.reason?.message || 'Could not load the WhatsApp groups.');
+      }
+      if (orgsResult.status === 'fulfilled') {
+        setOrganizations(Array.isArray(orgsResult.value) ? orgsResult.value : []);
+        setOrgError(null);
+      } else {
+        setOrgError(orgsResult.reason?.message || 'Could not load the organizations.');
+      }
     } finally {
       if (requestRef.current === requestId) setLoading(false);
     }
@@ -80,10 +100,14 @@ const AuditGroupsTab = () => {
     load();
   }, [load]);
 
+  // A mapping change puts the group back in its place: the groups without an
+  // organization are the ones that need a decision.
   const setGroupOrg = (groupId, orgId, orgName) =>
     setGroups((prev) =>
-      prev.map((group) =>
-        group._id === groupId ? { ...group, orgId: orgId || null, orgName: orgName || null } : group,
+      unmappedFirst(
+        prev.map((group) =>
+          group._id === groupId ? { ...group, orgId: orgId || null, orgName: orgName || null } : group,
+        ),
       ),
     );
 
@@ -106,11 +130,19 @@ const AuditGroupsTab = () => {
 
       try {
         await WhatsAppAuditService.updateGroupOrg(group._id, nextOrgId || null);
+        // The server has it now: a GET that is still on its way must not put
+        // the old organization back.
+        confirmedRef.current[group._id] = {
+          orgId: nextOrgId || null,
+          orgName,
+          at: Date.now(),
+        };
         setToastMessage({
           type: 'success',
           text: `${group.name || 'Group'} now feeds ${orgName || 'no organisation'}.`,
         });
       } catch (err) {
+        delete confirmedRef.current[group._id];
         setGroupOrg(group._id, previousOrgId, previousOrgName);
         setToastMessage({
           type: 'error',
@@ -158,7 +190,7 @@ const AuditGroupsTab = () => {
               aria-label={`Organisation for ${row.name || row.jid || 'group'}`}
               className="wa-audit-select"
               value={row.orgId || ''}
-              disabled={Boolean(saving[row._id])}
+              disabled={Boolean(saving[row._id]) || Boolean(orgError)}
               onChange={(e) => onOrgChange(row, e.target.value)}
             >
               <option value="">Not mapped</option>
@@ -217,7 +249,7 @@ const AuditGroupsTab = () => {
         render: (row) => count(row.counts?.unknownTruck),
       },
     ],
-    [organizations, saving, onOrgChange],
+    [organizations, saving, orgError, onOrgChange],
   );
 
   return (
@@ -232,6 +264,20 @@ const AuditGroupsTab = () => {
           Reload
         </button>
       </header>
+
+      {orgError ? (
+        <p className="wa-groups__error" role="alert">
+          Could not load the organizations: {orgError}{' '}
+          <button
+            type="button"
+            className="wa-audit-btn"
+            onClick={load}
+            disabled={loading}
+          >
+            Reload organizations
+          </button>
+        </p>
+      ) : null}
 
       <DataTable
         columns={columns}

@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testing-library/react';
 import AuditGroupsTab, { FIRST_MAP_CONFIRM, REMAP_CONFIRM } from './AuditGroupsTab';
 
 const { WhatsAppAuditService } = vi.hoisted(() => ({
   WhatsAppAuditService: {
     getGroups: vi.fn(),
     getOrganizations: vi.fn(),
+    getOrganizationsStrict: vi.fn(),
     updateGroupOrg: vi.fn(),
   },
 }));
@@ -51,6 +52,7 @@ describe('WhatsApp groups tab (spec 1)', () => {
     confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     WhatsAppAuditService.getGroups.mockResolvedValue([mappedGroup, unmappedGroup]);
     WhatsAppAuditService.getOrganizations.mockResolvedValue(organizations);
+    WhatsAppAuditService.getOrganizationsStrict.mockResolvedValue(organizations);
     WhatsAppAuditService.updateGroupOrg.mockResolvedValue({ _id: 'g-unmapped' });
   });
 
@@ -154,5 +156,94 @@ describe('WhatsApp groups tab (spec 1)', () => {
 
     release({ _id: 'g-unmapped' });
     await waitFor(() => expect(select).not.toBeDisabled());
+  });
+
+  it('keeps a saved mapping when a reload started before the PATCH was saved', async () => {
+    render(<AuditGroupsTab />);
+    await screen.findByLabelText('Organisation for Fleet Ops');
+
+    // A reload that is still on its way when the mapping is saved.
+    let resolveReload;
+    WhatsAppAuditService.getGroups.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReload = resolve;
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    await waitFor(() => expect(WhatsAppAuditService.getGroups).toHaveBeenCalledTimes(2));
+
+    const select = screen.getByLabelText('Organisation for Fleet Ops');
+    fireEvent.change(select, { target: { value: 'org-2' } });
+    await waitFor(() =>
+      expect(WhatsAppAuditService.updateGroupOrg).toHaveBeenCalledWith('g-unmapped', 'org-2'),
+    );
+    await waitFor(() => expect(select.value).toBe('org-2'));
+
+    // The old answer arrives with the old (empty) mapping.
+    await act(async () => {
+      resolveReload([{ ...unmappedGroup, orgId: null, orgName: null }, mappedGroup]);
+    });
+
+    expect(screen.getByLabelText('Organisation for Fleet Ops').value).toBe('org-2');
+  });
+
+  it('says that the organization list failed and offers a retry', async () => {
+    WhatsAppAuditService.getOrganizationsStrict.mockRejectedValue(
+      new Error('organization list failed'),
+    );
+    render(<AuditGroupsTab />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('organization list failed');
+    // The groups themselves are still listed.
+    expect(await screen.findByLabelText('Organisation for Fleet Ops')).toBeInTheDocument();
+
+    WhatsAppAuditService.getOrganizationsStrict.mockResolvedValue(organizations);
+    fireEvent.click(screen.getByRole('button', { name: 'Reload organizations' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
+  it('sorts the groups again after a mapping changed', async () => {
+    WhatsAppAuditService.getGroups.mockResolvedValue([
+      unmappedGroup,
+      mappedGroup,
+      { ...unmappedGroup, _id: 'g-other', jid: '789@g.us', name: 'Beta Night' },
+    ]);
+    render(<AuditGroupsTab />);
+    await screen.findByLabelText('Organisation for Fleet Ops');
+
+    const select = screen.getByLabelText('Organisation for Fleet Ops');
+    fireEvent.change(select, { target: { value: 'org-2' } });
+
+    await waitFor(() =>
+      expect(WhatsAppAuditService.updateGroupOrg).toHaveBeenCalledWith('g-unmapped', 'org-2'),
+    );
+    // Fleet Ops is mapped now, so the groups without an organization come first.
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row');
+      expect(rows[1]).toHaveTextContent('Beta Night');
+      expect(rows[2]).toHaveTextContent('Fleet Ops');
+    });
+  });
+
+  it('sorts the groups again when a mapping is rolled back', async () => {
+    WhatsAppAuditService.getGroups.mockResolvedValue([
+      unmappedGroup,
+      mappedGroup,
+      { ...unmappedGroup, _id: 'g-other', jid: '789@g.us', name: 'Beta Night' },
+    ]);
+    WhatsAppAuditService.updateGroupOrg.mockRejectedValue(new Error('mapping refused'));
+    render(<AuditGroupsTab />);
+    await screen.findByLabelText('Organisation for Fleet Ops');
+
+    const select = screen.getByLabelText('Organisation for Fleet Ops');
+    fireEvent.change(select, { target: { value: 'org-2' } });
+
+    expect(await screen.findByText('mapping refused')).toBeInTheDocument();
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row');
+      expect(rows[1]).toHaveTextContent('Beta Night');
+      expect(rows[2]).toHaveTextContent('Fleet Ops');
+    });
   });
 });

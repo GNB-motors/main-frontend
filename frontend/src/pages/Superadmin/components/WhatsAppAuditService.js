@@ -104,4 +104,17 @@ export const WhatsAppAuditService = {
       return [];
     }
   },
+
+  /**
+   * The same list, but a failure is reported instead of being hidden behind an
+   * empty list: a screen that offers no organization has to say why.
+   */
+  getOrganizationsStrict: async () => {
+    try {
+      const response = await apiClient.get('/api/admin/organizations');
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
 };
