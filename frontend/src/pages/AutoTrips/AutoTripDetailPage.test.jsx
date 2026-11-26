@@ -456,3 +456,40 @@ it('spec 4: a toll total of zero stays zero', async () => {
   expect(within(card).getByText('₹0')).toBeInTheDocument();
   expect(within(card).getByText('₹3,837 + ₹0 = ₹3,837')).toBeInTheDocument();
 });
+
+const partlyCostedTrip = {
+  ...trip,
+  totalCostInr: null,
+  fuelPartial: true,
+  roleEconomics: {
+    approach: { fuelInr: null, wearInr: null },
+    laden: { fuelInr: 1000, wearInr: 0, fuelBasis: 'PARTIAL' },
+    return: { fuelInr: null, wearInr: null },
+  },
+};
+
+it('spec 4: a running cost that is only partly known does not become a complete total', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.get.mockResolvedValue(partlyCostedTrip);
+  AutoTripService.tolls.mockResolvedValue({
+    tripId: 'trip-1',
+    status: 'OK',
+    passes: [],
+    total: { inr: 200, priced: 1, unknown: 0, complete: true },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  // The known subtotal is on the line, but the total is not a complete one.
+  expect(within(card).getByText('₹1,000')).toBeInTheDocument();
+  expect(within(card).queryByText('₹1,000 + ₹200 = ₹1,200')).not.toBeInTheDocument();
+  expect(within(card).getByText('Partial: ₹1,200 known')).toBeInTheDocument();
+});
+
+it('spec 4: a partly known running cost is still partly known without tolls', async () => {
+  getUserRole.mockReturnValue('DRIVER');
+  AutoTripService.get.mockResolvedValue(partlyCostedTrip);
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(within(card).getByText('Total (without tolls)')).toBeInTheDocument();
+  expect(within(card).getByText('Partial: ₹1,000 known')).toBeInTheDocument();
+});
