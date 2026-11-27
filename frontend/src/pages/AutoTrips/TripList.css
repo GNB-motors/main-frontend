@@ -7,7 +7,7 @@
 /* ─── KPI strip ───────────────────────────────────────────────────────── */
 .atx-kpis {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 16px;
 }
 .atx-kpi-tabs {
@@ -710,8 +710,8 @@
   .atx-list .atx-search-input {
     width: 150px;
   }
-}
-@media (max-width: 1180px) {
+  /* Six tiles in a row are too narrow for "2.64 km/L": the status tiles get a row,
+     the run and the mileage go under them. */
   .atx-kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -719,6 +719,8 @@
     grid-column: 1 / -1;
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+@media (max-width: 1180px) {
   .atx-needs {
     grid-template-columns: minmax(0, 1fr);
   }

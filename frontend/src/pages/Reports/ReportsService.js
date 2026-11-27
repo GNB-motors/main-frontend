@@ -41,14 +41,15 @@ export const ReportsService = {
    * API's max page size until `meta.totalPages` is reached.
    * @param {(params: object) => Promise<{ data: Array, meta: Object }>} fetchPage
    * @param {object} params - active filters
+   * @param {{ limit?: number }} [options] - the API's max page size, when it is not 1000
    * @returns {Promise<Array>}
    */
-  fetchAllReportRows: async (fetchPage, params = {}) => {
+  fetchAllReportRows: async (fetchPage, params = {}, { limit = 1000 } = {}) => {
     const rows = [];
     let page = 1;
     let totalPages = 1;
     do {
-      const { data, meta } = await fetchPage({ ...params, page, limit: 1000 });
+      const { data, meta } = await fetchPage({ ...params, page, limit });
       rows.push(...data);
       totalPages = meta?.totalPages || 1;
       page += 1;

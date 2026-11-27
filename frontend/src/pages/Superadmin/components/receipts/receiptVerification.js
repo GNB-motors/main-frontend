@@ -22,6 +22,21 @@ export const verifyFuelMath = (litres, rate, amount) => {
 };
 
 /**
+ * Does the row really carry a photo we can look at?
+ *
+ * A chat import can arrive without any image at all: the drawer then says
+ * "Photo not available", and the score must not claim a receipt image.
+ */
+export const hasUsablePhotoUrl = (draft) => {
+  if (!draft) return false;
+  const usable = (value) => typeof value === 'string' && value.trim() !== '';
+  if (usable(draft.fuelImageUrl)) return true;
+  if (usable(draft.odometerImageUrl)) return true;
+  const photos = Array.isArray(draft.photos) ? draft.photos : [];
+  return photos.some((photo) => usable(photo?.url));
+};
+
+/**
  * Calculate an intelligent, explainable OCR extraction score (0 - 100)
  * rather than relying on a hardcoded 98%.
  */
@@ -29,7 +44,8 @@ export const evaluateOcrQuality = (draft) => {
   if (!draft) return { score: 0, level: 'low', label: 'No Data', tags: [] };
 
   const tags = [];
-  let score = 20; // Base receipt image captured
+  // The base is only given when the row really has a photo to read.
+  let score = hasUsablePhotoUrl(draft) ? 20 : 0;
 
   // Volume
   const hasLitres = draft.litres != null && Number(draft.litres) > 0;
@@ -102,6 +118,68 @@ export const evaluateOcrQuality = (draft) => {
     tags,
     math,
   };
+};
+
+/**
+ * The checks the server ran on this row, and the ones that need a look.
+ *
+ * A check the server never ran is not a check that passed: it stays unknown.
+ * Both shapes are read: the keyed object the server sends today and the
+ * array of { name, result, detail } a chat import can carry.
+ */
+export const checkFacts = (draft) => {
+  const raw = draft?.checks;
+  if (!raw || typeof raw !== 'object') return { ran: false, needs: 0, unknown: 0, rows: [] };
+
+  const PASS = ['PASS', 'PASSED', 'OK'];
+
+  const BAD = [
+    'FAIL',
+    'FAILED',
+    'WARN',
+    'WARNING',
+    'NEEDS_REVIEW',
+    'NEEDS_LOOK',
+    'INVALID',
+    'MISMATCH',
+  ];
+
+  const entries = Array.isArray(raw)
+    ? raw.map((entry) => [
+        typeof entry?.name === 'string' ? entry.name : '',
+        entry && typeof entry === 'object' ? entry : {},
+      ])
+    : Object.entries(raw);
+
+  const rows = [];
+  let needs = 0;
+  let unknown = 0;
+  const UNKNOWN = ['UNKNOWN', 'NOT_RUN', 'SKIPPED', 'NA', 'N/A', 'PENDING'];
+
+  entries.forEach(([name, value]) => {
+    // Every text field is read, so a row that says pass in one field and
+    // unknown in another is not reported as a pass.
+    const said = [value?.status, value?.result, value?.state]
+      .filter((v) => v != null && v !== '')
+      .map((v) => String(v).toUpperCase());
+    const badSaid = said.find((s) => BAD.includes(s));
+    const bad = value?.ok === false || value?.valid === false || badSaid != null;
+    // A check passes only when it says so and nothing else on it says
+    // unknown. A missing, empty or unrecognised result is a check that could
+    // not run, never a check that passed.
+    const explicitUnknown = said.some((s) => UNKNOWN.includes(s));
+    const explicitPass =
+      said.some((s) => PASS.includes(s)) || value?.ok === true || value?.valid === true;
+    const isUnknown = !bad && (explicitUnknown || !explicitPass);
+    let status = 'PASS';
+    if (bad) status = badSaid || 'FAIL';
+    else if (isUnknown) status = 'UNKNOWN';
+    const detail = value?.detail || value?.message || value?.reason || '';
+    if (bad) needs += 1;
+    if (isUnknown) unknown += 1;
+    rows.push({ name, bad, unknown: isUnknown, detail, status });
+  });
+  return { ran: rows.length > 0, needs, unknown, rows };
 };
 
 /**

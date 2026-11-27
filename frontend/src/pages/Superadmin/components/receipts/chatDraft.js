@@ -216,6 +216,24 @@ export const mileageLine = (row) => {
   };
 };
 
+/**
+ * Why the truck is unsure, in the server's words. The server sends the checks
+ * as a list of { name, result, detail }; an older row may carry them keyed by
+ * name, so both are read.
+ */
+export const truckReasonOf = (row) => {
+  const checks = row?.checks;
+  const truckCheck = Array.isArray(checks)
+    ? checks.find((c) => c && c.name === 'TRUCK_ONE')
+    : checks && typeof checks === 'object'
+      ? checks.TRUCK_ONE
+      : null;
+  const detail = typeof truckCheck?.detail === 'string' ? truckCheck.detail.trim() : '';
+  if (detail) return detail;
+  const source = String(row?.truck?.source || '').trim();
+  return source && source !== 'CHAT' ? source : '';
+};
+
 /** The id of the vehicle of a row, whichever way the row carries it. */
 export const vehicleIdOf = (row) => {
   const raw = row?.vehicleId;

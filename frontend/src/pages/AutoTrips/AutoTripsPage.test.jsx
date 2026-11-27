@@ -12,11 +12,13 @@ vi.mock('../../services/AutoTripService', () => ({
 vi.mock('../../services/TripPlanService', () => ({
   default: { list: vi.fn(), cancel: vi.fn(), unlink: vi.fn(), resumeAutoMatch: vi.fn() },
 }));
-const { getPlaceQuestions, answerPlaceQuestion, getUserRole } = vi.hoisted(() => ({
+const { getPlaceQuestions, answerPlaceQuestion, getUserRole, getVehicleList } = vi.hoisted(() => ({
   getPlaceQuestions: vi.fn(),
   answerPlaceQuestion: vi.fn(),
   getUserRole: vi.fn(),
+  getVehicleList: vi.fn(),
 }));
+vi.mock('../../services/vehicleListService', () => ({ getVehicleList }));
 vi.mock('../../utils/session', async (importOriginal) => ({
   ...(await importOriginal()),
   getUserRole,
@@ -71,6 +73,7 @@ beforeEach(() => {
   });
   TripPlanService.list.mockResolvedValue({ items: [], total: 0, tabCounts: { PLANNED: 0 } });
   getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
+  getVehicleList.mockResolvedValue([]);
 });
 it('sends the typed search to the server and starts again from page 1', async () => {
   open('/auto-trips?page=3');
@@ -87,6 +90,26 @@ it('sends the typed search to the server and starts again from page 1', async ()
   expect(screen.getByLabelText('Current location')).toHaveTextContent(
     '/auto-trips?search=wb11f4362',
   );
+});
+
+it('shows the loaded mileage of the latest delivered trips', async () => {
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (params.status === 'DELIVERED' && params.limit === 100) {
+      return {
+        items: [2.5, 3, 2, 3, 2.8].map((kmpl, i) => ({
+          _id: `d${i}`,
+          status: 'COMPLETE',
+          km: { laden: 100 * kmpl },
+          roleEconomics: { laden: { fuelL: 100, fuelBasis: 'AVAILABLE' } },
+        })),
+        total: 5,
+      };
+    }
+    return { items: [], total: 0, tabCounts: { COMPLETE: 5 } };
+  });
+  open();
+  expect(await screen.findByText('2.80 km/L')).toBeInTheDocument();
+  expect(screen.getByText('median of 5 trips')).toBeInTheDocument();
 });
 
 it('asks the backend for the counts with the list and reads the tab counts from there', async () => {
@@ -621,4 +644,124 @@ it('does not reuse the counts of the previous filter when the list answers witho
   fireEvent.click(screen.getByRole('tab', { name: /More/ }));
   const reposition = await screen.findByRole('menuitem', { name: /Plant to plant/ });
   expect(reposition.textContent).toContain('—');
+});
+
+it('spec 1: a header click sorts the whole list and keeps the choice in the URL', async () => {
+  open('/auto-trips?range=7d&page=3');
+  await screen.findByText('WB-ACTUAL');
+  fireEvent.click(screen.getByRole('button', { name: 'Truck' }));
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'vehicle', order: 'desc', page: 1 }),
+      expect.anything(),
+    ),
+  );
+  const url = screen.getByLabelText('Current location');
+  expect(url).toHaveTextContent('sortBy=vehicle');
+  expect(url).toHaveTextContent('order=desc');
+  // A new sort starts the list again at the first page.
+  expect(url).not.toHaveTextContent('page=3');
+});
+
+it('spec 1: the sort cycles down, up and back to the newest first', async () => {
+  open('/auto-trips?range=7d');
+  await screen.findByText('WB-ACTUAL');
+  fireEvent.click(screen.getByRole('button', { name: 'Truck' }));
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'vehicle', order: 'desc' }),
+      expect.anything(),
+    ),
+  );
+  // Each click is judged on its own: the calls of the earlier clicks are
+  // cleared, so the third one cannot be a leftover unsorted read.
+  AutoTripService.list.mockClear();
+  fireEvent.click(screen.getByRole('button', { name: 'Truck' }));
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'vehicle', order: 'asc' }),
+      expect.anything(),
+    ),
+  );
+  AutoTripService.list.mockClear();
+  fireEvent.click(screen.getByRole('button', { name: 'Truck' }));
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.not.objectContaining({ sortBy: expect.anything() }),
+      expect.anything(),
+    ),
+  );
+  expect(AutoTripService.list).toHaveBeenCalled();
+  const url = screen.getByLabelText('Current location');
+  expect(url).not.toHaveTextContent('sortBy=');
+  expect(url).not.toHaveTextContent('order=');
+});
+
+it('spec 1: the sort in the URL is the sort the list asks for, and an unknown one is ignored', async () => {
+  open('/auto-trips?range=7d&sortBy=distance&order=asc');
+  await screen.findByText('WB-ACTUAL');
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.objectContaining({ sortBy: 'distance', order: 'asc' }),
+    expect.anything(),
+  );
+  cleanup();
+  // The reads of the first page are cleared: the unknown sort must be shown
+  // by the reads of this page alone.
+  AutoTripService.list.mockClear();
+  open('/auto-trips?range=7d&sortBy=nonsense&order=asc');
+  await screen.findByText('WB-ACTUAL');
+  expect(AutoTripService.list).toHaveBeenCalled();
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.not.objectContaining({ sortBy: expect.anything() }),
+    expect.anything(),
+  );
+});
+
+it('spec 1: an order nobody knows is ignored, and the header shows no arrow', async () => {
+  open('/auto-trips?range=7d&sortBy=vehicle&order=invalid');
+  await screen.findByText('WB-ACTUAL');
+  // The unknown order is not sent, and the sort it belonged to goes with it:
+  // the list opens the way it opens without a sort.
+  expect(AutoTripService.list).not.toHaveBeenCalledWith(
+    expect.objectContaining({ sortBy: expect.anything() }),
+    expect.anything(),
+  );
+  expect(AutoTripService.list).not.toHaveBeenCalledWith(
+    expect.objectContaining({ order: expect.anything() }),
+    expect.anything(),
+  );
+  // And no arrow claims a direction the URL never said.
+  expect(screen.getByRole('columnheader', { name: /Truck/ })).not.toHaveAttribute('aria-sort');
+});
+
+it('spec 2: a ?vehicle= link filters the list by that truck', async () => {
+  getVehicleList.mockResolvedValue([{ _id: 'v1', registrationNumber: 'WB11F4262' }]);
+  open('/auto-trips?range=7d&vehicle=WB11F4262');
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ vehicleId: 'v1' }),
+      expect.anything(),
+    ),
+  );
+  await waitFor(() =>
+    expect(screen.getByLabelText('Current location')).toHaveTextContent('vehicleId=v1'),
+  );
+});
+
+it('spec 2: a registration nobody knows goes to the search box', async () => {
+  getVehicleList.mockResolvedValue([]);
+  open('/auto-trips?range=7d&vehicle=WB99ZZ99');
+  await waitFor(() =>
+    expect(screen.getByLabelText('Search trips by truck, driver or place')).toHaveValue('WB99ZZ99'),
+  );
+  // The search goes to the server like any other search, once the typing settles.
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'WB99ZZ99' }),
+      expect.anything(),
+    ),
+  );
+  await waitFor(() =>
+    expect(screen.getByLabelText('Current location')).toHaveTextContent('search=WB99ZZ99'),
+  );
 });

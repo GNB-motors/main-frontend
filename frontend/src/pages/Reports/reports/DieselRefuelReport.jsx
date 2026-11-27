@@ -1,4 +1,5 @@
 import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
+import ExportButton from '../../../components/ui/ExportButton';
 import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Fuel, IndianRupee, ReceiptText } from 'lucide-react';
@@ -8,8 +9,13 @@ import { getUserRole } from '../../../utils/session.js';
 import { formatINR, formatNum } from '../../../utils/formatters';
 import LiveRefuelTab from '../../Mileage/components/LiveRefuelTab';
 import RefuelDetailDrawer from '../../Mileage/components/RefuelDetailDrawer';
+import { MileageApi } from '../../Mileage/mileageApi';
+import { mapUnifiedRow } from '../../Mileage/refuelRows';
+import { ReportsService } from '../ReportsService.js';
 import ReportFrame, { ReportClear, ReportDateRange, ReportSearch } from './ReportFrame';
 import { VehiclePicker } from './ReportEntityPicker';
+import { DIESEL_EXPORT_COLUMNS, DIESEL_EXPORT_PAGE_SIZE, dieselExportRow } from './dieselExport';
+import { exportFilterMeta } from './fleetReportUtils';
 import { istDaysAgo, istToday } from './reportFilters';
 import '../../Mileage/MileagePage.css';
 
@@ -61,6 +67,8 @@ export default function DieselRefuelReport() {
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
   const [vehicleId, setVehicleId] = useState('all');
   const [feedMeta, setFeedMeta] = useState(null);
+  // The list's own filters (status chip, order) as well as these: the export is what is on screen.
+  const [feedQuery, setFeedQuery] = useState(null);
   const [drawerDetail, setDrawerDetail] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
@@ -102,6 +110,30 @@ export default function DieselRefuelReport() {
           />
         </>
       }
+      actions={
+        <ExportButton
+          columns={DIESEL_EXPORT_COLUMNS}
+          filename="diesel-report"
+          buttonClass="rpt-btn"
+          email={{ label: 'Diesel report' }}
+          fetchAll={async () => {
+            const rows = await ReportsService.fetchAllReportRows(
+              (params) => MileageApi.unifiedFeed({ ...range, manufacturer }, params),
+              feedQuery || { fuelType: 'DIESEL' },
+              { limit: DIESEL_EXPORT_PAGE_SIZE },
+            );
+            return rows.map((row) => dieselExportRow(mapUnifiedRow(row)));
+          }}
+          meta={{
+            filters: exportFilterMeta({
+              ...range,
+              manufacturer,
+              entityLabel: search.trim() ? `“${search.trim()}”` : null,
+            }),
+          }}
+          disabled={!feedMeta?.total}
+        />
+      }
       kpis={feedKpis(feedMeta)}
     >
       <LiveRefuelTab
@@ -111,6 +143,7 @@ export default function DieselRefuelReport() {
         fuelType="DIESEL"
         vehicleId={vehicleId === 'all' ? null : vehicleId}
         onMeta={setFeedMeta}
+        onQuery={setFeedQuery}
         onOpenDrawer={setDrawerDetail}
         refreshKey={refreshKey}
       />

@@ -55,6 +55,13 @@ export const AutoTripService = {
   tolls: async (id, { signal } = {}) =>
     parsed('autoTripTollsSchema', await apiClient.get(`${BASE}/${id}/tolls`, { signal })),
 
+  /**
+   * The litres this trip burnt, and the fuel that left the tank without the
+   * engine burning it (the drain alerts inside the trip's window).
+   */
+  fuelSummary: async (id, { signal } = {}) =>
+    parsed('autoTripFuelSummarySchema', await apiClient.get(`${BASE}/${id}/fuel-summary`, { signal })),
+
   /** Add a trip the detector missed; the server builds it from the truck's GPS in the window. */
   addManual: async (body, { signal } = {}) =>
     parsed('autoTripSchema', await apiClient.post(`${BASE}/manual`, body, { signal })),

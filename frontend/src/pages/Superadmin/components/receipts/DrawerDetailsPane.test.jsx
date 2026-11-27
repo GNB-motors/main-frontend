@@ -350,3 +350,184 @@ describe('DrawerDetailsPane — the facts a draft carries', () => {
     expect(screen.getByText('Message from the sender')).toBeTruthy();
   });
 });
+
+describe('DrawerDetailsPane — the checks that could not run', () => {
+  it('spec 5: does not say "no issues found" while a check is unknown', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: { MATH: { status: 'unknown' } } }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 check could not run' })).toBeTruthy();
+    expect(screen.queryByText('No issues found')).toBeNull();
+  });
+
+  it('spec 5: counts an unknown check in the array shape too', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          checks: [
+            { name: 'MATH', result: 'unknown', detail: 'The photo was not readable.' },
+            { name: 'LITRES', result: 'pass' },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 check could not run' })).toBeTruthy();
+    expect(screen.queryByText('No issues found')).toBeNull();
+  });
+
+  it('spec 5: counts every check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          checks: [
+            { name: 'MATH', result: 'unknown' },
+            { name: 'LITRES', result: 'not_run' },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 2 checks could not run' })).toBeTruthy();
+  });
+
+  it('spec 5: counts a check with no result as a check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: [{ name: 'TRUCK', result: null }] }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 check could not run' })).toBeTruthy();
+    expect(screen.queryByText('No issues found')).toBeNull();
+  });
+
+  it('spec 5: counts a keyed check with no result as a check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: { TRUCK: { detail: 'No truck in the message.' } } }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 check could not run' })).toBeTruthy();
+    expect(screen.queryByText('No issues found')).toBeNull();
+  });
+
+  it('spec 5: a check that passed is not a check that could not run', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), checks: [{ name: 'TRUCK', result: 'pass' }] }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · No issues found' })).toBeTruthy();
+  });
+});
+
+describe('DrawerDetailsPane — the proof from the chat', () => {
+  const chatProof = {
+    sender: '+91 98765 43210',
+    sentAt: '2026-11-09T04:43:00.000Z',
+    text: 'S5962 / Uria 18 liter',
+    textRead: { truck: 'WB11S5962', defLitres: 18, notRead: [] },
+    photoRead: { kind: 'UNKNOWN', stamp: '2026-11-09T04:43:00.000Z' },
+  };
+
+  it('spec 1: shows the proof card only for a row that carries chat proof', () => {
+    const { rerender } = render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+    expect(screen.queryByText('Proof from the chat')).toBeNull();
+
+    rerender(<DrawerDetailsPane {...props} draft={{ ...draftWith({}), chatProof }} />);
+    expect(screen.getByText('Proof from the chat')).toBeTruthy();
+  });
+
+  it('spec 6: calls DEF "DEF / urea" and shows a DEF claim on a diesel row', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          fuelType: 'ADBLUE',
+          defClaim: { litres: 18 },
+        }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.getByText('DEF / urea')).toBeTruthy();
+    expect(screen.getByText('Also claims DEF 18 L')).toBeTruthy();
+  });
+
+  /** The DEF claim line of a row whose claim is not a number. */
+  const defClaimLine = (litres) => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), fuelType: 'ADBLUE', defClaim: { litres } }}
+      />,
+    );
+    openSection('Audit');
+    return screen.queryByText(/Also claims DEF/);
+  };
+
+  it('spec 6: leaves out a DEF claim that is only a space', () => {
+    expect(defClaimLine(' ')).toBeNull();
+  });
+
+  it('spec 6: leaves out a DEF claim that is a boolean', () => {
+    expect(defClaimLine(true)).toBeNull();
+  });
+
+  it('spec 6: leaves out a DEF claim that is a list', () => {
+    expect(defClaimLine([])).toBeNull();
+  });
+
+  it('spec 7: does not repeat the message the proof card already shows', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), caption: 'S5962 / Uria 18 liter', chatProof }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.queryByText('Message from the sender')).toBeNull();
+  });
+
+  it('spec 7: keeps a caption that the proof card does not show', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), caption: 'Filled the tank at Jhargram pump', chatProof }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.getByText('Message from the sender')).toBeTruthy();
+    expect(screen.getByText('Filled the tank at Jhargram pump')).toBeTruthy();
+  });
+
+  it('spec 7: does not break when the caption is not a message', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), caption: { text: 'S5962 / Uria 18 liter' }, chatProof }}
+      />,
+    );
+    openSection('Audit');
+
+    expect(screen.queryByText('Message from the sender')).toBeNull();
+    expect(screen.getByText('Proof from the chat')).toBeTruthy();
+  });
+});

@@ -1,14 +1,16 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { render, screen, cleanup, within, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import AutoTripDetailPage from './AutoTripDetailPage';
 import AutoTripService from '../../services/AutoTripService';
+import { FUEL_LOSS_TIP } from './tripFuel';
 
 vi.mock('../../services/AutoTripService', () => ({
   default: {
     get: vi.fn(),
     track: vi.fn(),
     tolls: vi.fn(),
+    fuelSummary: vi.fn(),
     confirm: vi.fn(),
     drop: vi.fn(),
     dismiss: vi.fn(),
@@ -23,7 +25,8 @@ vi.mock('../../services/RouteHubService', () => ({
 vi.mock('../../services/fleetViewService.js', () => ({
   getWhereNext: vi.fn().mockResolvedValue(null),
 }));
-vi.mock('../../utils/session.js', () => ({ getUserRole: () => 'VIEWER' }));
+const { getUserRole } = vi.hoisted(() => ({ getUserRole: vi.fn() }));
+vi.mock('../../utils/session.js', () => ({ getUserRole }));
 // The map and the contract card have their own tests; here they are stand-ins.
 vi.mock('./AutoTripReplay', () => ({ default: () => <div>Replay map</div> }));
 vi.mock('../Sap/RouteSapCard', () => ({ default: () => null }));
@@ -70,12 +73,35 @@ function open() {
   );
 }
 
+/** The page stays mounted while the trip under it changes. */
+function GoToOtherTrip() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate('/auto-trips/trip-2')}>
+      other trip
+    </button>
+  );
+}
+
+function openWithSwitch() {
+  render(
+    <MemoryRouter initialEntries={['/auto-trips/trip-1']}>
+      <Routes>
+        <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
+      </Routes>
+      <GoToOtherTrip />
+    </MemoryRouter>,
+  );
+}
+
 beforeEach(() => {
   cleanup();
   vi.clearAllMocks();
+  getUserRole.mockReturnValue('VIEWER');
   AutoTripService.get.mockResolvedValue(trip);
   AutoTripService.track.mockResolvedValue({ points: [] });
   AutoTripService.tolls.mockResolvedValue(null);
+  AutoTripService.fuelSummary.mockResolvedValue(null);
 });
 
 it('heads the trip with the truck, one status chip and the route in title case', async () => {
@@ -239,9 +265,11 @@ it.each(['COMPLETE', 'CONFIRMED'])(
       roleEconomics: null,
     });
     open();
+    // The reason is said by the facts strip and by the cost card; the page
+    // says it either way.
     expect(
-      await screen.findByText('Cost calculation unavailable for this completed trip.'),
-    ).toBeInTheDocument();
+      (await screen.findAllByText('Cost calculation unavailable for this completed trip.')).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText('priced once the trip ends')).not.toBeInTheDocument();
   },
 );
@@ -257,7 +285,9 @@ it('uses the backend cost-availability reason and reserves pending copy for a ru
     },
   });
   open();
-  expect(await screen.findByText(/more than one matching trip record/)).toBeInTheDocument();
+  expect((await screen.findAllByText(/more than one matching trip record/)).length).toBeGreaterThan(
+    0,
+  );
   cleanup();
   AutoTripService.get.mockResolvedValue({
     ...trip,
@@ -268,16 +298,16 @@ it('uses the backend cost-availability reason and reserves pending copy for a ru
   });
   open();
   expect(
-    await screen.findByText('Cost calculation pending while the trip is running.'),
-  ).toBeInTheDocument();
+    (await screen.findAllByText('Cost calculation pending while the trip is running.')).length,
+  ).toBeGreaterThan(0);
 });
 
 it('shows an available total without claiming it is waiting for pricing when its breakdown is absent', async () => {
   AutoTripService.get.mockResolvedValue({ ...trip, roleEconomics: { laden: null, return: null } });
   open();
   expect(
-    await screen.findByText('Estimated running cost; breakdown unavailable.'),
-  ).toBeInTheDocument();
+    (await screen.findAllByText('Estimated running cost; breakdown unavailable.')).length,
+  ).toBeGreaterThan(0);
 });
 
 it('keeps the delivery timeline at the last drop and explicitly includes return stops on request', async () => {
@@ -313,4 +343,233 @@ it('keeps the delivery timeline at the last drop and explicitly includes return 
   );
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Loaded trip' })));
   expect(screen.queryByText('Return fuel stop')).not.toBeInTheDocument();
+});
+
+it('spec 3: the fuel card says what was burnt, and never a litre that was not measured', async () => {
+  AutoTripService.fuelSummary.mockResolvedValue({
+    tripId: 'trip-1',
+    window: { from: '2026-11-02T23:39:07Z', to: '2026-11-03T02:40:01Z' },
+    burntL: 73.4,
+    burntByLeg: { approach: 12.4, laden: 61, return: null },
+    partial: true,
+    loss: { totalL: null, events: [], source: 'FLEETEDGE_DRAIN' },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Fuel' })).closest('.atx-card');
+  expect(within(card).getByText('73.4 L')).toBeInTheDocument();
+  expect(within(card).getByText('Approach 12.4 L · Loaded 61.0 L')).toBeInTheDocument();
+  expect(within(card).getByText('partial')).toBeInTheDocument();
+  // The loss was not measured: a dash, never zero litres.
+  expect(within(card).getByText('Unexplained fuel loss')).toBeInTheDocument();
+  expect(within(card).getByText('—')).toBeInTheDocument();
+});
+
+it('spec 3: the fuel card lists the drain alerts with the time each one was seen', async () => {
+  AutoTripService.fuelSummary.mockResolvedValue({
+    tripId: 'trip-1',
+    burntL: 73.4,
+    burntByLeg: { approach: 12.4, laden: 61, return: null },
+    partial: true,
+    loss: {
+      totalL: 18.5,
+      coverage: 'DRAIN_ALERTS_ONLY',
+      source: 'FLEETEDGE_DRAIN',
+      events: [{ at: '2026-11-03T08:35:00Z', litres: 18.5, tank: 'main' }],
+    },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Fuel' })).closest('.atx-card');
+  expect(within(card).getByText('18.5 L in 1 event')).toBeInTheDocument();
+  expect(within(card).getByText(/3 Nov, 14:05/)).toBeInTheDocument();
+});
+
+it('spec 3: a trip with no drain alert says exactly that', async () => {
+  AutoTripService.fuelSummary.mockResolvedValue({
+    tripId: 'trip-1',
+    burntL: 73.4,
+    burntByLeg: { approach: 12.4, laden: 61, return: null },
+    partial: false,
+    loss: { totalL: 0, coverage: 'DRAIN_ALERTS_ONLY', events: [] },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Fuel' })).closest('.atx-card');
+  expect(within(card).getByText('No drain alert in this trip')).toBeInTheDocument();
+});
+
+it('spec 3: a fuel summary that fails says so and shows no litres', async () => {
+  AutoTripService.fuelSummary.mockRejectedValue(new Error('no fuel today'));
+  open();
+  expect(await screen.findByText('Could not load fuel for this trip')).toBeInTheDocument();
+});
+
+it('spec 3: the fuel card never names a crime', async () => {
+  AutoTripService.fuelSummary.mockResolvedValue({
+    tripId: 'trip-1',
+    burntL: 73.4,
+    burntByLeg: { approach: 12.4, laden: 61, return: null },
+    partial: true,
+    loss: {
+      totalL: 18.5,
+      coverage: 'DRAIN_ALERTS_ONLY',
+      source: 'FLEETEDGE_DRAIN',
+      events: [{ at: '2026-11-03T08:35:00Z', litres: 18.5, tank: 'main' }],
+    },
+  });
+  open();
+  await screen.findByRole('heading', { name: 'Fuel' });
+  expect(document.body.textContent.toLowerCase()).not.toMatch(/theft|stolen|steal|siphon|thief/);
+  expect(FUEL_LOSS_TIP.toLowerCase()).not.toMatch(/theft|stolen|steal|siphon|thief/);
+});
+
+it('spec 4: the trip cost card adds the tolls to the running cost', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.tolls.mockResolvedValue({
+    tripId: 'trip-1',
+    status: 'OK',
+    passes: [{ at: '2026-11-03T01:00:00Z', lat: 22.8, lng: 88.3, name: 'Dankuni' }],
+    total: { inr: 1850, priced: 1, unknown: 0, complete: true },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(within(card).getByText('Running cost (fuel + wear)')).toBeInTheDocument();
+  expect(within(card).getByText('₹3,837')).toBeInTheDocument();
+  expect(within(card).getByText('Tolls (crossings on this trip)')).toBeInTheDocument();
+  expect(within(card).getByText('₹1,850')).toBeInTheDocument();
+  expect(within(card).getByText('₹3,837 + ₹1,850 = ₹5,687')).toBeInTheDocument();
+});
+
+it('spec 4: the trip cost card keeps an unknown part unknown', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.get.mockResolvedValue({ ...trip, totalCostInr: null, roleEconomics: null });
+  AutoTripService.tolls.mockResolvedValue({
+    tripId: 'trip-1',
+    status: 'OK',
+    passes: [{ at: '2026-11-03T01:00:00Z', lat: 22.8, lng: 88.3, name: 'Dankuni' }],
+    total: { inr: 1850, priced: 1, unknown: 0, complete: true },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(within(card).getAllByText('—').length).toBeGreaterThan(0);
+  expect(within(card).getByText('Partial: ₹1,850 known')).toBeInTheDocument();
+});
+
+it('spec 4: a role that may not see fares gets the running cost without tolls', async () => {
+  getUserRole.mockReturnValue('DRIVER');
+  AutoTripService.tolls.mockResolvedValue({
+    tripId: 'trip-1',
+    status: 'OK',
+    passes: [{ at: '2026-11-03T01:00:00Z', lat: 22.8, lng: 88.3, name: 'Dankuni' }],
+    total: null,
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(within(card).queryByText('Tolls (crossings on this trip)')).not.toBeInTheDocument();
+  expect(within(card).getByText('Total (without tolls)')).toBeInTheDocument();
+  expect(within(card).getAllByText('₹3,837').length).toBe(2);
+});
+
+it('spec 4: a toll total of zero stays zero', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.tolls.mockResolvedValue({
+    tripId: 'trip-1',
+    status: 'OK',
+    passes: [],
+    total: { inr: 0, priced: 0, unknown: 0, complete: true },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(within(card).getByText('₹0')).toBeInTheDocument();
+  expect(within(card).getByText('₹3,837 + ₹0 = ₹3,837')).toBeInTheDocument();
+});
+
+const partlyCostedTrip = {
+  ...trip,
+  totalCostInr: null,
+  fuelPartial: true,
+  roleEconomics: {
+    approach: { fuelInr: null, wearInr: null },
+    laden: { fuelInr: 1000, wearInr: 0, fuelBasis: 'PARTIAL' },
+    return: { fuelInr: null, wearInr: null },
+  },
+};
+
+it('spec 4: a running cost that is only partly known does not become a complete total', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.get.mockResolvedValue(partlyCostedTrip);
+  AutoTripService.tolls.mockResolvedValue({
+    tripId: 'trip-1',
+    status: 'OK',
+    passes: [],
+    total: { inr: 200, priced: 1, unknown: 0, complete: true },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  // The known subtotal is on the line, but the total is not a complete one.
+  expect(within(card).getByText('₹1,000')).toBeInTheDocument();
+  expect(within(card).queryByText('₹1,000 + ₹200 = ₹1,200')).not.toBeInTheDocument();
+  expect(within(card).getByText('Partial: ₹1,200 known')).toBeInTheDocument();
+});
+
+it('spec 4: a partly known running cost is still partly known without tolls', async () => {
+  getUserRole.mockReturnValue('DRIVER');
+  AutoTripService.get.mockResolvedValue(partlyCostedTrip);
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(within(card).getByText('Total (without tolls)')).toBeInTheDocument();
+  expect(within(card).getByText('Partial: ₹1,000 known')).toBeInTheDocument();
+});
+
+it('spec 4: the cost card says why there is no running cost', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    totalCostInr: null,
+    roleEconomics: null,
+    economicsAvailability: {
+      status: 'UNAVAILABLE',
+      reason: 'Cost calculation unavailable: more than one matching trip record was found.',
+    },
+  });
+  open();
+  const card = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  expect(
+    within(card).getByText(
+      'Cost calculation unavailable: more than one matching trip record was found.',
+    ),
+  ).toBeInTheDocument();
+});
+
+it('spec 4: the cost card never adds another trip’s tolls to this trip', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  AutoTripService.get.mockImplementation(async (id) =>
+    id === 'trip-2' ? { ...trip, _id: 'trip-2', totalCostInr: 1000 } : trip,
+  );
+  AutoTripService.tolls.mockImplementation(async (id) => {
+    if (id === 'trip-2') {
+      // The new trip's tolls take their time; the old trip's must not stand
+      // in for them.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return {
+      tripId: id,
+      status: 'OK',
+      passes: [],
+      total: { inr: id === 'trip-1' ? 500 : 200, priced: 1, unknown: 0, complete: true },
+    };
+  });
+  openWithSwitch();
+  const first = (await screen.findByRole('heading', { name: 'Trip cost' })).closest('.atx-card');
+  await waitFor(() =>
+    expect(within(first).getByText('₹3,837 + ₹500 = ₹4,337')).toBeInTheDocument(),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'other trip' }));
+  // The new trip's card never shows the old trip's tolls.
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Trip cost' })).toBeInTheDocument());
+  const second = screen.getByRole('heading', { name: 'Trip cost' }).closest('.atx-card');
+  expect(within(second).queryByText('₹500')).not.toBeInTheDocument();
+  expect(within(second).getByText('₹1,000')).toBeInTheDocument();
+  // Once the new trip's own tolls arrive, they are the ones on the card.
+  await waitFor(
+    () => expect(within(second).getByText('₹1,000 + ₹200 = ₹1,200')).toBeInTheDocument(),
+    { timeout: 3000 },
+  );
 });

@@ -49,10 +49,10 @@ const orgVehicles = [
   { _id: 'v2', registrationNumber: 'WB02CD3456', model: 'Ashok Leyland' },
 ];
 
-const serveGet = () =>
+const serveGet = (draft = chatDraft) =>
   apiClient.get.mockImplementation((url) => {
     if (url === '/api/whatsapp/admin/drafts/c1') {
-      return Promise.resolve({ data: { data: chatDraft } });
+      return Promise.resolve({ data: { data: draft } });
     }
     if (url === '/api/vehicles/options') {
       return Promise.resolve({ data: { data: orgVehicles } });
@@ -100,6 +100,30 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
       'src',
       'https://example.com/pump.jpg',
     );
+  });
+
+  it('shows the proof from the chat, and does not repeat the message', async () => {
+    serveGet({
+      ...chatDraft,
+      caption: 'S5962 / Uria 18 liter',
+      chatProof: {
+        sender: '+91 98765 43210',
+        sentAt: '2026-11-09T04:43:00.000Z',
+        text: 'S5962 / Uria 18 liter',
+        textRead: { truck: 'WB11S5962', defLitres: 18 },
+        photoRead: { kind: 'UNKNOWN', stamp: '2026-11-09T04:43:00.000Z' },
+      },
+    });
+    renderDrawer();
+
+    expect(await screen.findByText('Proof from the chat')).toBeInTheDocument();
+    expect(screen.getByText('DEF / urea 18 L')).toBeInTheDocument();
+    expect(
+      screen.getByText('Photo type unknown: not a pump screen or bill we could read'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Audit/ }));
+    expect(screen.queryByText('Message from the sender')).toBeNull();
   });
 
   it('approves with the values the person changed', async () => {
