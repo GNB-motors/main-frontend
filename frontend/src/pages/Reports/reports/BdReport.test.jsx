@@ -164,6 +164,7 @@ describe('BD oil & DEF report (spec 2)', () => {
     // The organization changes while the request is in flight.
     getOrgId.mockReturnValue('org-2');
     await act(async () => {
+      window.dispatchEvent(new Event('storage'));
       resolveList([oilRow]);
     });
 
@@ -184,11 +185,70 @@ describe('BD oil & DEF report (spec 2)', () => {
 
     getOrgId.mockReturnValue('org-2');
     BdReportService.list.mockResolvedValue([]);
-    // Any re-render notices the new organization.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Download' })[0]);
+    // Another tab signs in to a different organization: only the storage
+    // event tells this tab, no unrelated re-render is needed.
+    await act(async () => {
+      window.dispatchEvent(new Event('storage'));
+    });
 
     await waitFor(() => expect(BdReportService.list).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByText('No report built yet.')).toBeInTheDocument());
+  });
+
+  it('drops the previous kind rows at once, even when the new kind fails', async () => {
+    render(<BdReport />);
+    await waitFor(() => expect(screen.getByText('bd-oil-2026-03-01.xlsx')).toBeInTheDocument());
+
+    BdReportService.list.mockRejectedValue(new Error('def list failed'));
+    fireEvent.click(screen.getByRole('button', { name: 'DEF' }));
+
+    expect(screen.queryByText('bd-oil-2026-03-01.xlsx')).toBeNull();
+    await waitFor(() => expect(BdReportService.list).toHaveBeenCalledWith('DEF'));
+    expect(screen.queryByText('bd-oil-2026-03-01.xlsx')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
+  });
+
+  it('ignores a build failure that arrives after the kind changed', async () => {
+    let rejectBuild;
+    BdReportService.build.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectBuild = reject;
+      }),
+    );
+    render(<BdReport />);
+    await screen.findByLabelText('Day (IST)');
+    fireEvent.click(screen.getByRole('button', { name: 'Build now' }));
+    await waitFor(() => expect(BdReportService.build).toHaveBeenCalled());
+
+    BdReportService.list.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole('button', { name: 'DEF' }));
+    await waitFor(() => expect(BdReportService.list).toHaveBeenCalledWith('DEF'));
+
+    await act(async () => {
+      rejectBuild(new Error('oil build failed'));
+    });
+    expect(screen.queryByText('oil build failed')).toBeNull();
+  });
+
+  it('ignores a build failure that arrives after the organization changed', async () => {
+    let rejectBuild;
+    BdReportService.build.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectBuild = reject;
+      }),
+    );
+    render(<BdReport />);
+    await screen.findByLabelText('Day (IST)');
+    fireEvent.click(screen.getByRole('button', { name: 'Build now' }));
+    await waitFor(() => expect(BdReportService.build).toHaveBeenCalled());
+
+    getOrgId.mockReturnValue('org-2');
+    BdReportService.list.mockResolvedValue([]);
+    await act(async () => {
+      window.dispatchEvent(new Event('storage'));
+      rejectBuild(new Error('org-1 build failed'));
+    });
+    expect(screen.queryByText('org-1 build failed')).toBeNull();
   });
 
   it('downloads a report file', async () => {

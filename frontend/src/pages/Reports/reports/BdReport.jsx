@@ -59,9 +59,20 @@ const BdReport = () => {
   // The kind on screen, readable without waiting for a re-render: a build that
   // finishes later must know whether its kind is still the one being shown.
   const kindRef = useRef(kind);
-  // The organization the rows on screen belong to.
-  const orgId = getOrgId();
+  // The organization the rows on screen belong to. Another tab that signs in
+  // to a different organization changes the stored one: the storage event
+  // tells this tab, and the state change re-renders the report.
+  const [orgId, setOrgIdState] = useState(() => getOrgId());
   const orgRef = useRef(null);
+  useEffect(() => {
+    const sync = () => setOrgIdState(getOrgId());
+    window.addEventListener('storage', sync);
+    window.addEventListener('focus', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('focus', sync);
+    };
+  }, []);
 
   const canBuild = useMemo(() => BD_REPORT_MANAGER_ROLES.includes(getUserRole()), []);
 
@@ -87,6 +98,13 @@ const BdReport = () => {
   }, []);
 
   useEffect(() => {
+    // The rows of the previous kind go at once: they must not stay
+    // downloadable under the new kind while it loads or if it fails.
+    if (kindRef.current !== kind) {
+      setReports([]);
+      setError(null);
+      setBuildError(null);
+    }
     kindRef.current = kind;
     load(kind);
   }, [kind, load]);
@@ -101,6 +119,9 @@ const BdReport = () => {
     if (orgRef.current === orgId) return;
     orgRef.current = orgId;
     setReports([]);
+    setError(null);
+    setBuildError(null);
+    setNotice(null);
     load(kindRef.current);
   }, [orgId, load]);
 
@@ -117,6 +138,10 @@ const BdReport = () => {
       if (getOrgId() !== orgAtBuild) return;
       await load(kindRef.current);
     } catch (err) {
+      // A failure of a build whose kind or organization is no longer on
+      // screen is not this view's error.
+      if (kindRef.current !== buildKind) return;
+      if (getOrgId() !== orgAtBuild) return;
       setBuildError(err.message || 'Could not build the report.');
     } finally {
       setBuilding(false);
