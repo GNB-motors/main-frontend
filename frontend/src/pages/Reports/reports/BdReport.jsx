@@ -148,11 +148,20 @@ const BdReport = () => {
     }
   };
 
+  // Download is always today's truth: whoever may build gets the day rebuilt
+  // from the current fills first, so fixes made since the stored copy show up.
+  // A failed rebuild never falls back to the old file, which would look fresh.
+  // The stored copy (and its history) stays the record of what was sent.
   const onDownload = async (row) => {
     setDownloadingId(row._id);
     setNotice(null);
     try {
-      const { blob, fileName } = await BdReportService.download(row._id, {
+      let fileId = row._id;
+      if (canBuild) {
+        const built = await BdReportService.build({ day: row.day, kind: row.kind });
+        fileId = built.id || built._id || row._id;
+      }
+      const { blob, fileName } = await BdReportService.download(fileId, {
         fallbackName: row.fileName,
       });
       saveFile(blob, fileName || `${row.kind}-${row.day}.xlsx`);
@@ -205,7 +214,7 @@ const BdReport = () => {
           onClick={() => onDownload(row)}
           disabled={downloadingId === row._id}
         >
-          {downloadingId === row._id ? 'Downloading…' : 'Download'}
+          {downloadingId === row._id ? (canBuild ? 'Building…' : 'Downloading…') : 'Download'}
         </button>
       ),
     },
