@@ -17,6 +17,7 @@ import TripPlanDialog from './TripPlanDialog';
 import TripRangePicker from './TripRangePicker';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useKnownEtas } from '../../hooks/useKnownEtas';
+import { getVehicleList } from '../../services/vehicleListService';
 import { tripDetailHref } from './tripWorkspace';
 import tripColumns, { hiddenColumnsNote } from './tripColumns';
 import TripHistoryTab from './TripHistoryTab';
@@ -69,6 +70,8 @@ const VIEWS = [
 const PAGE_SIZE = 50;
 /** How many of the latest trips the KPI strip and the banner measure. */
 const SAMPLE_SIZE = 100;
+/** The sorts the server knows. A sort key the server does not know is ignored. */
+const SORT_KEYS = ['vehicle', 'date', 'distance', 'duration'];
 
 export default function AutoTripsPage() {
   const navigate = useNavigate();
@@ -135,7 +138,78 @@ export default function AutoTripsPage() {
     setSearchParams(next, { replace: true });
   }, [debouncedSearch, searchParams, setSearchParams]);
 
-  const vehicleId = searchParams.get('vehicleId');
+  // ── Sorting: the server sorts the whole list, and the URL keeps the choice. ──
+  const urlSortBy = searchParams.get('sortBy');
+  const urlOrder = searchParams.get('order');
+  // A sort is a key and a direction. The server knows only some keys and only
+  // two directions, so a URL that says anything else is ignored: the list opens
+  // the way it opens without a sort, and no header claims a direction.
+  const sortBy = SORT_KEYS.includes(urlSortBy) ? urlSortBy : null;
+  const sortOrder = urlOrder === 'asc' || urlOrder === 'desc' ? urlOrder : null;
+  const sorting = Boolean(sortBy && sortOrder);
+  // The cycle: down, up, and back to the newest first. A new sort starts the
+  // list again at the first page.
+  const onSort = (key) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('page');
+    if (sorting && sortBy === key) {
+      if (sortOrder === 'desc') {
+        next.set('sortBy', key);
+        next.set('order', 'asc');
+      } else {
+        next.delete('sortBy');
+        next.delete('order');
+      }
+    } else {
+      next.set('sortBy', key);
+      next.set('order', 'desc');
+    }
+    setSearchParams(next);
+  };
+
+  // ── ?vehicle=<reg>: the link a truck's history sends. It resolves to that
+  // truck's id and filters the list by it. A registration nobody knows goes to
+  // the search box, which finds plates.
+  const vehicleIdParam = searchParams.get('vehicleId');
+  const vehicleReg = searchParams.get('vehicle');
+  const wantVehicle = !viewTab && !planned && !vehicleIdParam && Boolean(vehicleReg);
+  const { data: vehicleRows, loading: vehiclesLoading } = useApi(
+    (signal) => getVehicleList({ signal }),
+    [vehicleReg],
+    { enabled: wantVehicle, scopeKey: `vehicles:${vehicleReg || ''}` },
+  );
+  const resolvedVehicleId = useMemo(() => {
+    if (vehicleIdParam) return vehicleIdParam;
+    const reg = String(vehicleReg || '').trim().toUpperCase();
+    if (!reg || !vehicleRows) return null;
+    const row = vehicleRows.find(
+      (r) => String(r?.registrationNumber || '').trim().toUpperCase() === reg,
+    );
+    return row?._id || null;
+  }, [vehicleIdParam, vehicleRows, vehicleReg]);
+
+  useEffect(() => {
+    if (!wantVehicle || vehiclesLoading) return;
+    if (resolvedVehicleId) {
+      // The truck is known: the exact vehicle filter takes over from the link.
+      const next = new URLSearchParams(searchParams);
+      next.set('vehicleId', resolvedVehicleId);
+      next.delete('vehicle');
+      next.delete('page');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    // Nobody knows that registration: the search box finds plates. The link
+    // gives way to the search, which the server answers with the plates it
+    // does know.
+    setSearchInput(vehicleReg);
+    const next = new URLSearchParams(searchParams);
+    next.delete('vehicle');
+    next.delete('page');
+    setSearchParams(next, { replace: true });
+  }, [wantVehicle, vehiclesLoading, resolvedVehicleId, vehicleReg, searchParams, setSearchParams]);
+
+  const vehicleId = vehicleIdParam || resolvedVehicleId;
   const periodParams = {
     ...(vehicleId ? { vehicleId } : {}),
     ...rangeToParams({ range: rangeKind, from: rangeFrom, to: rangeTo }),
@@ -150,6 +224,7 @@ export default function AutoTripsPage() {
     ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
     ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
     ...(urlSearch ? { search: urlSearch } : {}),
+    ...(sorting ? { sortBy, order: sortOrder } : {}),
     ...periodParams,
   };
 
@@ -592,6 +667,9 @@ export default function AutoTripsPage() {
             total={total}
             pagination={pagination}
             toolbarExtra={tools}
+            sortBy={sorting ? sortBy : null}
+            sortOrder={sorting ? sortOrder : null}
+            onSort={onSort}
             onRowClick={(r) => navigate(tripDetailHref(r._id, searchParams))}
             emptyTitle={
               urlSearch

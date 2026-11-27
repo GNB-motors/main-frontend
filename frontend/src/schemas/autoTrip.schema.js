@@ -244,3 +244,38 @@ export const autoTripTollsSchema = z
       .nullish(),
   })
   .passthrough();
+
+/**
+ * GET /auto-trips/:id/fuel-summary — the litres the trip burnt and the fuel
+ * that left the tank without being burnt. `burntL` is null when no leg was
+ * measured; `loss` is null when the trip has no window to look at.
+ */
+export const autoTripFuelSummarySchema = z
+  .object({
+    tripId: str,
+    window: z.object({ from: str, to: str }).passthrough().nullish(),
+    burntL: num,
+    burntByLeg: z.object({ approach: num, laden: num, return: num }).passthrough().nullish(),
+    partial: z.boolean().nullish(),
+    loss: z
+      .object({
+        totalL: num,
+        coverage: str, // DRAIN_ALERTS_ONLY — the alerts cannot prove there was no loss
+        partial: z.boolean().nullish(),
+        source: str, // FLEETEDGE_DRAIN
+        events: z
+          .array(
+            z
+              .object({
+                at: str,
+                litres: num,
+                tank: str,
+              })
+              .passthrough(),
+          )
+          .nullish(),
+      })
+      .passthrough()
+      .nullish(),
+  })
+  .passthrough();
