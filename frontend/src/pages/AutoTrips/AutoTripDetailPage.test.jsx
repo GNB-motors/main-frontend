@@ -314,3 +314,20 @@ it('keeps the delivery timeline at the last drop and explicitly includes return 
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Loaded trip' })));
   expect(screen.queryByText('Return fuel stop')).not.toBeInTheDocument();
 });
+
+it('spec 2: a pickup the backend cannot name shows its label, not "not recorded"', async () => {
+  const LABEL = 'Unmarked, near Bhadutala (1.0 km), Medinipur, Paschim Medinipur, West Bengal';
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    pickup: {
+      label: LABEL,
+      arrivedAt: '2026-11-02T19:38:00Z',
+      departedAt: '2026-11-02T23:39:07Z',
+      dwellMin: 241,
+    },
+  });
+  open();
+  const pickup = await screen.findByTitle(LABEL);
+  expect(pickup).toHaveTextContent(LABEL);
+  expect(screen.queryByText('Pickup not recorded')).not.toBeInTheDocument();
+});

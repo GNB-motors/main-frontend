@@ -411,7 +411,7 @@ export default function AutoTripReplay({
                 position={pts.pickup}
                 icon={icons.start}
                 label={placeLabel(trip?.pickup?.name, COLOR.start)}
-                title={trip?.pickup?.name || 'Plant'}
+                title={trip?.pickup?.name || trip?.pickup?.label || 'Plant'}
                 zIndex={12}
               />
             ) : null}

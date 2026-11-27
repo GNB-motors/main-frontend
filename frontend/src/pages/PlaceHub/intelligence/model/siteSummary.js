@@ -93,6 +93,12 @@ export function nearestKnownPlace(place, places) {
 export function placeTitle(site, nearest = null) {
   if (site?.name) return site.name;
   const { type } = effectiveType(site);
+  // The backend sends a label for a place it cannot name; a real name always wins.
+  const label = site?.locality?.label;
+  if (label) {
+    if (type === 'UNKNOWN') return label;
+    return `${typeLabel(type)}, ${label.replace(/^Unmarked,\s*/, '')}`;
+  }
   const locality = site?.address?.locality;
   const what = type === 'UNKNOWN' ? 'Unnamed stop' : typeLabel(type);
   if (locality) return `${what}, ${locality}`;
@@ -109,6 +115,7 @@ export function coordsLabel(lat, lng) {
 export function placeSubtitle(site) {
   return (
     site?.address?.formatted ||
+    site?.locality?.label ||
     site?.address?.locality ||
     coordsLabel(site?.centroidLat, site?.centroidLng)
   );

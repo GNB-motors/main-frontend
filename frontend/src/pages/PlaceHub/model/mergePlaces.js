@@ -143,7 +143,8 @@ export function mergePlaces({ warehouses = [], zones = [], sites = [] } = {}) {
   // how far it sits from the nearest place the fleet can name.
   const named = places.filter((p) => p.raw?.name);
   for (const p of places) {
-    if (p.source !== 'site' || p.raw?.name || p.raw?.address?.locality) continue;
+    if (p.source !== 'site' || p.raw?.name || p.raw?.address?.locality || p.raw?.locality?.label)
+      continue;
     if (p.type !== 'YARD') continue;
     const nearest = nearestKnownPlace(p, named);
     if (nearest) p.name = placeTitle(p.raw, nearest);

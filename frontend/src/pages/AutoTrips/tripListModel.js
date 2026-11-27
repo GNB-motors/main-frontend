@@ -77,7 +77,8 @@ export function destinationOf(trip) {
   ) {
     return { text: 'drop not found', title: null, state: 'missing' };
   }
-  const name = drop.name || (drop.areaName ? `${drop.areaName} area` : null);
+  // The backend sends a label for a place it cannot name; a real name always wins.
+  const name = drop.name || drop.label || (drop.areaName ? `${drop.areaName} area` : null);
   if (
     (!extraDrops.length && flags.includes('DROP_INFERRED')) ||
     drop.source === 'INFERRED_TURNAROUND'
