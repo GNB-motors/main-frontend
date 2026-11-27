@@ -1,0 +1,37 @@
+/* WhatsApp groups tab (GF, spec 1) — the group-to-organisation table. */
+
+.wa-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wa-groups__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wa-groups__head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.wa-groups-unmapped {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.wa-groups__error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+.wa-groups-row--unmapped {
+  background: #fffbeb;
+}

@@ -137,6 +137,20 @@ describe('activeReportId', () => {
   });
 });
 
+describe('BD oil & DEF report (GF, D1)', () => {
+  it('sits in the Reports catalog after the first six entries', () => {
+    const visible = ids(visibleReportGroups(flags(ALL_FLAGS)));
+    expect(visible).toContain('bdReport');
+    expect(visible.indexOf('bdReport')).toBe(6);
+  });
+
+  it('renders inside the Reports hub and needs no feature flag', () => {
+    expect(reportDestination('bdReport')).toBeNull();
+    expect(isInlineReport('bdReport')).toBe(true);
+    expect(resolveReport('bdReport', flags([]))).toBe('bdReport');
+  });
+});
+
 describe('resolveReport', () => {
   it('keeps a requested report the org can open', () => {
     expect(resolveReport('vehicle', flags([]))).toBe('vehicle');

@@ -22,6 +22,7 @@ import RunningCostReport from './reports/RunningCostReport.jsx';
 import OilAverageReport from './reports/OilAverageReport.jsx';
 import RegisterMatchReport from './reports/RegisterMatchReport.jsx';
 import LaneKmReport from './reports/LaneKmReport.jsx';
+import BdReport from './reports/BdReport.jsx';
 import CustomReportsPage from './reports/custom/CustomReportsPage.jsx';
 
 const REPORT_COMPONENTS = {
@@ -38,6 +39,7 @@ const REPORT_COMPONENTS = {
   runningCost: () => <RunningCostReport />,
   registerMatch: () => <RegisterMatchReport />,
   laneKm: () => <LaneKmReport />,
+  bdReport: () => <BdReport />,
   customReports: () => <CustomReportsPage />,
 };
 

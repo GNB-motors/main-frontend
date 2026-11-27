@@ -61,6 +61,39 @@ export const WhatsAppAuditService = {
   },
 
   /**
+   * Every WhatsApp group the listener phone is in, with the organization it
+   * feeds, its last message and its counters (super-admin).
+   * @returns {Promise<Array>}
+   */
+  getGroups: async () => {
+    try {
+      const response = await apiClient.get('/api/whatsapp/admin/groups');
+      const body = response.data?.data ?? response.data;
+      return Array.isArray(body) ? body : [];
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
+  /**
+   * Map a group to an organization. `null` unmaps it.
+   * Only new messages follow the new organization.
+   * @param {string} id Group id
+   * @param {string|null} orgId Organization id
+   */
+  updateGroupOrg: async (id, orgId) => {
+    try {
+      const response = await apiClient.patch(
+        `/api/whatsapp/admin/groups/${encodeURIComponent(id)}`,
+        { orgId: orgId || null },
+      );
+      return response.data?.data ?? response.data ?? {};
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
+  /**
    * Fetch list of organizations for filter dropdown.
    */
   getOrganizations: async () => {
@@ -69,6 +102,19 @@ export const WhatsAppAuditService = {
       return response.data?.data || response.data || [];
     } catch {
       return [];
+    }
+  },
+
+  /**
+   * The same list, but a failure is reported instead of being hidden behind an
+   * empty list: a screen that offers no organization has to say why.
+   */
+  getOrganizationsStrict: async () => {
+    try {
+      const response = await apiClient.get('/api/admin/organizations');
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw ApiError.from(error);
     }
   },
 };
