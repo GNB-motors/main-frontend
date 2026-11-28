@@ -210,8 +210,10 @@ export function fuelTileValues(readings) {
  */
 export function defTileValues(readings) {
   const pct = readings?.def?.pct ?? null;
-  const litres = readings?.def?.litres ?? null;
   const tankL = readings?.def?.tankL ?? null;
+  // Protect the tile while an older API may still return a vendor sentinel tank.
+  const invalidTank = tankL != null && (!Number.isFinite(tankL) || tankL <= 0 || tankL > 200);
+  const litres = invalidTank ? null : (readings?.def?.litres ?? null);
   const tankSource = readings?.def?.tankSource ?? null;
 
   if (pct?.value == null) {

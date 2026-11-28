@@ -68,9 +68,7 @@ export const VehicleTripSchema = z
     pickup: PlaceSchema.extend({ departedAt: z.string().nullable() }).passthrough(),
     drop: PlaceSchema.extend({ arrivedAt: z.string().nullable() }).passthrough().nullable(),
     material: z.string().nullable(),
-    materialSource: z
-      .enum(['PLANT_TYPE', 'EWAY_BILL', 'WEIGH_SLIP', 'ERP', 'REGISTER'])
-      .nullable(),
+    materialSource: z.enum(['PLANT_TYPE', 'EWAY_BILL', 'WEIGH_SLIP', 'ERP', 'REGISTER']).nullable(),
     tonnage: z.number().nullable(),
     tonnageSource: z.enum(['WEIGH_SLIP', 'EWAY_BILL', 'ERP']).nullable(),
     kmSoFar: z.number().nullable(),
@@ -154,7 +152,7 @@ export const WhereNextRouteSchema = z
     polyline: z.array(z.tuple([z.number(), z.number()])),
     km: z.number(),
     viaNames: z.array(z.string()).default([]),
-    usedTimes: z.number(),
+    usedTimes: z.number().nullable(),
   })
   .passthrough();
 
