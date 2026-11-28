@@ -31,7 +31,7 @@ const releaseVehicle = {
   lng: 88.3,
 };
 
-function renderPanel(vehicle = releaseVehicle) {
+function renderPanel(vehicle = releaseVehicle, extra = {}) {
   return render(
     <MemoryRouter>
       <VehicleDetailPanel
@@ -42,6 +42,7 @@ function renderPanel(vehicle = releaseVehicle) {
         shareCreating={false}
         handleShareVehicle={() => {}}
         selectedDriver={null}
+        {...extra}
       />
     </MemoryRouter>,
   );
@@ -53,6 +54,23 @@ describe('VehicleDetailPanel', () => {
     // There is no `/now` endpoint to wait for any more: the panel reads the
     // live position row.
     getWhereNext.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+  });
+
+  it('shows the reason before the readings rather than hiding it behind an alert code', () => {
+    renderPanel(releaseVehicle, {
+      vehicleAlerts: [
+        {
+          id: 'a1',
+          type: 'FLEETEDGE_ALERT_FUEL_DRAIN',
+          message: 'Fuel fell by 35 L while parked.',
+          at: '2026-11-28T04:00:00Z',
+        },
+      ],
+    });
+    const reason = screen.getByText('Fuel fell by 35 L while parked.');
+    const fuel = screen.getByText('Fuel');
+    expect(reason.compareDocumentPosition(fuel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText('FLEETEDGE_ALERT_FUEL_DRAIN')).not.toBeInTheDocument();
   });
 
   it('shows the truck and what it is doing now', () => {

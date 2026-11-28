@@ -10,6 +10,8 @@ import { plateKey } from './trackIdlingModel.js';
 import { modelLabel } from './vehiclePanelModel.js';
 import { formatFuelValue, fuelUnitTitle } from '../../utils/liveView.js';
 import { sortFleet } from './fleetSortModel.js';
+import { alertsForVehicle } from './trackAlertsModel';
+import { trackAlertView } from './trackAlertPresentation';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -25,6 +27,7 @@ export default function FleetListView({
   error = null,
   onRetry = null,
   alertCounts = new Map(),
+  alerts = [],
   filter = 'all',
 }) {
   // A failed load is not an empty fleet. Say so instead of showing "0 vehicles".
@@ -81,33 +84,38 @@ export default function FleetListView({
           sortFleet(filteredVehicles, { filter, alertCounts }).map((v) => {
             const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
             const isSel = v.id === selectedId;
+            const vehicleAlerts = alertsForVehicle(alerts, v.plate);
 
             return (
-              <div
+              <article
                 key={v.id}
                 className={`vcard ${isSel ? 'is-sel' : ''}`}
-                role="button"
-                tabIndex={0}
                 style={{ '--c': s.c }}
-                onClick={() => setSelectedId(v.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedId(v.id);
-                  }
-                }}
               >
+                <button
+                  type="button"
+                  className="vc-select"
+                  aria-label={`View ${v.plate} details`}
+                  onClick={() => setSelectedId(v.id)}
+                />
                 <div className="vc-top">
                   <div className="vc-id">
                     <div className="vc-plate">
                       {v.plate}
-                      <AlertBadge count={alertCounts.get(plateKey(v.plate)) || 0} />
+                      <AlertBadge
+                        count={alertCounts.get(plateKey(v.plate)) || 0}
+                        alerts={vehicleAlerts}
+                        registrationNumber={v.plate}
+                      />
                     </div>
                     <div className="vc-vin">
                       {v.manufacturer || 'Manufacturer unknown'}
                       {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
                     </div>
                     <div className="vc-vin">VIN: {v.vin || '—'}</div>
+                    {vehicleAlerts.length ? (
+                      <p className="vc-alert-reason">{trackAlertView(vehicleAlerts[0]).title}</p>
+                    ) : null}
                   </div>
                   <span className="vc-state">
                     <i />
@@ -156,7 +164,7 @@ export default function FleetListView({
                         : '—'}
                   </span>
                 </div>
-              </div>
+              </article>
             );
           })
         )}

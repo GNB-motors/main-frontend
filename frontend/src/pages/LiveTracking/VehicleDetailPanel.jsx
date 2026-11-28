@@ -19,8 +19,8 @@ import TrackIdlingChip from './TrackIdlingChip.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
 import KnownDestinationSection from './KnownDestinationSection.jsx';
 import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
-import { Link } from 'react-router-dom';
-import { fallbackNow, truckInboxLink } from './vehiclePanelModel';
+import { fallbackNow } from './vehiclePanelModel';
+import VehicleAlertSummary from './VehicleAlertSummary';
 
 /**
  * VehicleDetailPanel — what the owner needs to know about one truck.
@@ -117,6 +117,8 @@ export default function VehicleDetailPanel({
 
             <VehiclePanelHeader now={now} account={now?.account ?? null} />
 
+            <VehicleAlertSummary alerts={vehicleAlerts} registrationNumber={reg} />
+
             {idlingMinutes ? (
               <div className="mb-2">
                 <TrackIdlingChip minutes={idlingMinutes} />
@@ -138,33 +140,6 @@ export default function VehicleDetailPanel({
             <InsightChipsSection chips={now?.chips ?? []} registrationNumber={reg} />
 
             <VehicleIssuesSection issues={now?.issues ?? []} registrationNumber={reg} />
-
-            {vehicleAlerts.length ? (
-              <section className="flex flex-col gap-1.5">
-                <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">
-                  Alerts · {vehicleAlerts.length}
-                </h3>
-                {vehicleAlerts.slice(0, 5).map((alert) => (
-                  <div
-                    key={alert.id || alert._id}
-                    className="rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-2.5"
-                  >
-                    <span className="block text-[12px] font-semibold text-[var(--rd-ink)]">
-                      {alert.severity ? String(alert.severity).toUpperCase() : 'Alert'}
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-[var(--rd-ink-2)]">
-                      {alert.type || alert.message || alert.title || 'Alert'}
-                    </span>
-                  </div>
-                ))}
-                <Link
-                  to={truckInboxLink(vehicleAlerts[0]?.vehicleNumber || reg)}
-                  className="text-[12px] font-medium text-[var(--rd-brand-2)] no-underline hover:underline"
-                >
-                  Open this truck's alerts →
-                </Link>
-              </section>
-            ) : null}
 
             <VehicleDriverSection driver={now?.driver ?? null} />
 

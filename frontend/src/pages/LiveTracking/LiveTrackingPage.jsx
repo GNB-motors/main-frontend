@@ -448,7 +448,7 @@ const LiveTrackingPage = () => {
   // Destinations we actually know, with the arrival band (refreshed every 5 min).
   const knownEtas = useKnownEtas();
   const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
-  const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
+  const alertCounts = alertCountsByVehicle(alerts);
   const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView && !isVehiclePlaces });
   const routes = useTrackRoutes({
     enabled: isPlacesView && !isVehiclePlaces && placesTab === 'routes',
@@ -1665,6 +1665,7 @@ const LiveTrackingPage = () => {
                         onRetry={handleRefresh}
                         idlingByPlate={idlingByPlate}
                         alertCounts={alertCounts}
+                        alerts={alerts}
                         filter={filter}
                         knownEtas={knownEtas}
                       />
