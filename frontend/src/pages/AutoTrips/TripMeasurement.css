@@ -1,0 +1,45 @@
+.atx-measurement {
+  padding: 14px 16px;
+}
+.atx-measurement-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 12px 0;
+}
+.atx-measurement-grid > div {
+  min-width: 0;
+}
+.atx-measurement-grid dt,
+.atx-measurement-grid small,
+.atx-measurement-note,
+.atx-measurement-unavailable {
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.atx-measurement-grid dd {
+  margin: 4px 0;
+  color: var(--rd-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.atx-measurement-grid small {
+  display: block;
+}
+.atx-measurement-note,
+.atx-measurement-unavailable {
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .atx-measurement-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .atx-measurement-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

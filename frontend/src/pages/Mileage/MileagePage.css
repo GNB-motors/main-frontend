@@ -14,9 +14,15 @@
 }
 
 /* ── Top Header Actions: Search & Add Bill ─────────────────── */
+.mileage-hub-page > .pshell-head > .pshell-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+}
 .mhub-top-actions {
   display: flex;
+  width: 100%;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -110,6 +116,9 @@
 }
 
 @media (max-width: 700px) {
+  .mileage-hub-page > .pshell-head > .pshell-actions {
+    width: 100%;
+  }
   .mhub-top-actions {
     flex-wrap: wrap;
   }
@@ -134,6 +143,9 @@
   .mhub-secondary-actions,
   .mhub-secondary-actions .mhub-add-btn {
     width: 100%;
+  }
+  .mhub-search {
+    flex: 0 0 auto;
   }
 
   .mhub-secondary-actions {
@@ -174,6 +186,52 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+/* Keep both filters on one surface; status messages sit below the select. */
+.mileage-hub-page .mhub-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  align-items: start;
+  gap: 12px 20px;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+.mhub-filters .mhub-datebar {
+  position: static;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mhub-filters .manufacturer-filter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.mhub-filters .manufacturer-filter small {
+  grid-column: 2;
+  margin: 0;
+  line-height: 1.5;
+}
+.mhub-filters .manufacturer-filter .manufacturer-filter-trigger {
+  min-height: 40px;
+}
+@media (max-width: 1050px) {
+  .mileage-hub-page .mhub-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mhub-filters .manufacturer-filter {
+    width: min(100%, 310px);
+  }
 }
 
 .mhub-datebar-label {

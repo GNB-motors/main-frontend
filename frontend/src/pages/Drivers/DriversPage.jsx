@@ -5,10 +5,7 @@ import { DriverService } from './DriverService.js';
 import { getVehicleList } from '../../services/vehicleListService';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { getToken, getProfileField, getUserRole, getUserId } from '../../utils/session.js';
-import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
-import ResetPasswordDialog from '../../components/auth/ResetPasswordDialog.jsx';
-import { canResetRow } from './canResetPassword.js';
+import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
@@ -182,10 +179,6 @@ const DriversPage = () => {
     handleUpdateDriver,
     handleDeleteDriver,
     activateEmployee,
-    resettingDriver,
-    setResettingDriver,
-    handleOpenResetPassword,
-    submitResetPassword,
   } = useDriverActions({
     navigate,
     businessRefId,
@@ -197,20 +190,11 @@ const DriversPage = () => {
     setActionError,
   });
 
-  // Who may reset a password here. The backend still decides — this only hides
-  // buttons that would be refused (D3/D4/D5: fail closed, MANAGER needs the
-  // Employees permission, never on the viewer's own row).
-  const { permissions } = useFeatureFlags();
-  const viewerRole = getUserRole();
-  const canReset = (driver) => canResetRow(viewerRole, driver, permissions, getUserId());
-
   const columns = useDriverColumns({
     onEdit: handleOpenEditModal,
     onDelete: handleOpenDeleteModal,
     onActivateHere: handleActivateHere,
     onDeactivate: handleOpenDeactivate,
-    onResetPassword: handleOpenResetPassword,
-    canReset,
     getInitials,
     formatRole,
     isSubmitting: isSubmitting || isActionSubmitting,
@@ -395,21 +379,6 @@ const DriversPage = () => {
         onConfirm={activateEmployee}
         driver={movingDriver}
         isLoading={isActionSubmitting}
-      />
-      <ResetPasswordDialog
-        open={!!resettingDriver}
-        onClose={() => setResettingDriver(null)}
-        user={
-          resettingDriver
-            ? {
-                id: resettingDriver.id,
-                name: resettingDriver.name,
-                roleLabel: formatRole(resettingDriver.role, resettingDriver.is_superadmin),
-                email: resettingDriver.email || null,
-              }
-            : null
-        }
-        onSubmit={submitResetPassword}
       />
       {showAssignmentPanel && (
         <BulkAssignVehiclesPanel

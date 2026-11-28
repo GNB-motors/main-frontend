@@ -23,6 +23,21 @@ export function defFreshness(vehicle) {
   };
 }
 
+// A logged claim and no flags alone do not establish a measured assessment.
+export function isDefVerified(vehicle) {
+  const from = new Date(vehicle.coverageFrom || '').getTime();
+  const to = new Date(vehicle.coverageTo || '').getTime();
+  return (
+    vehicle.claimsTracked === true &&
+    vehicle.status === 'COMPLIANT' &&
+    vehicle.flagCount === 0 &&
+    defFreshness(vehicle).status === 'RECENT' &&
+    Number.isFinite(from) &&
+    Number.isFinite(to) &&
+    to > from
+  );
+}
+
 export const signedLitres = (v) =>
   v == null ? '—' : `${v > 0 ? '+' : ''}${formatNum(v, { decimals: 1 })} L`;
 

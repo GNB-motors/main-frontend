@@ -16,7 +16,8 @@ export const PUMP_MIN_FILLS = 3;
 /** Short-delivery % (billed − reached tank, over billed) and fill count → verdict. */
 export function pumpHonestyStatus(shortfallPct, fills) {
   if (!(fills >= PUMP_MIN_FILLS)) return 'INSUFFICIENT_DATA';
-  const pct = num(shortfallPct) ?? 0;
+  const pct = shortfallPct === '' ? null : num(shortfallPct);
+  if (pct == null || !Number.isFinite(pct)) return 'INSUFFICIENT_DATA';
   if (pct <= 1) return 'HONEST';
   if (pct <= 3) return 'RELIABLE';
   if (pct <= 6) return 'SUSPICIOUS';

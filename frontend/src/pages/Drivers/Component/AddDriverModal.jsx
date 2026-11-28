@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import NewButton from '@/components/ui/NewButton';
+import PasswordField from '../../../components/auth/PasswordField';
 
 // --- Add Driver Modal Component ---
 export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
@@ -148,13 +149,12 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
               />
             </div>
             <div className="drivers-form-group">
-              <label htmlFor="driverPassword">Password</label>
-              <input
+              <PasswordField
+                label="Password"
                 aria-label="Password"
                 id="driverPassword"
-                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 placeholder="Temporary password"
                 disabled={isSubmitting}
               />

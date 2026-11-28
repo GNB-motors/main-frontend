@@ -3,6 +3,7 @@ import React, { useState, useEffect, useId, forwardRef } from 'react';
 import UserIcon from '../assets/UserIcon.jsx';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import AssignedVehicleField from './AssignedVehicleField.jsx';
+import EmployeePasswordField from './EmployeePasswordField';
 import './BasicInformationForm.css';
 
 const BasicInformationForm = forwardRef(
@@ -181,19 +182,11 @@ const BasicInformationForm = forwardRef(
                 directly below the row above. */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label" htmlFor={`${fieldId}-password`}>
-                    Password {!isEdit && '*'}
-                  </label>
-                  <input
-                    id={`${fieldId}-password`}
-                    aria-label="Password"
-                    type="password"
-                    className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
+                  <EmployeePasswordField
+                    isEdit={isEdit}
+                    employee={initialData}
                     value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required={!isEdit}
-                    disabled={isEdit}
-                    placeholder={isEdit ? 'Cannot be edited' : 'Enter password'}
+                    onChange={(value) => handleInputChange('password', value)}
                   />
                 </div>
 

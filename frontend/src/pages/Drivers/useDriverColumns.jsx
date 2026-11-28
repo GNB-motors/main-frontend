@@ -2,7 +2,7 @@
 // DataTable column definitions for the Drivers/Employees page.
 // Follows the unified PageShell + DataTable design used across other sections.
 import React from 'react';
-import { Eye, KeyRound, Pencil, Trash2, ToggleRight } from 'lucide-react';
+import { Eye, Pencil, Trash2, ToggleRight } from 'lucide-react';
 
 /**
  * DriverInlineActions
@@ -10,15 +10,7 @@ import { Eye, KeyRound, Pencil, Trash2, ToggleRight } from 'lucide-react';
  *   👁  View profile/edit  |  ✏️  Edit  |  🗑  Delete
  * For deactivated employees, the edit/delete pair is replaced with "Mark as active".
  */
-function DriverInlineActions({
-  driver,
-  isSubmitting,
-  onEdit,
-  onDelete,
-  onActivateHere,
-  onResetPassword,
-  canReset = false,
-}) {
+function DriverInlineActions({ driver, isSubmitting, onEdit, onDelete, onActivateHere }) {
   const isDeactivatedHere = driver?.branchStatus === 'DEACTIVATED';
 
   const handleView = (e) => {
@@ -39,11 +31,6 @@ function DriverInlineActions({
   const handleActivate = (e) => {
     e.stopPropagation();
     onActivateHere(driver);
-  };
-
-  const handleReset = (e) => {
-    e.stopPropagation();
-    onResetPassword(driver);
   };
 
   return (
@@ -81,19 +68,6 @@ function DriverInlineActions({
           <Pencil size={16} />
         </button>
       )}
-      {/* The reset key is not an edit: a deactivated employee needs it too. */}
-      {canReset ? (
-        <button
-          className="vehicle-inline-btn vehicle-inline-btn--key"
-          onClick={handleReset}
-          disabled={isSubmitting}
-          title="Reset password"
-          aria-label="Reset password"
-          type="button"
-        >
-          <KeyRound size={16} />
-        </button>
-      ) : null}
       {isDeactivatedHere ? null : (
         <button
           className="vehicle-inline-btn vehicle-inline-btn--delete"
@@ -114,8 +88,6 @@ export function useDriverColumns({
   onDelete,
   onActivateHere,
   onDeactivate,
-  onResetPassword,
-  canReset = () => false,
   getInitials,
   formatRole,
   isSubmitting = false,
@@ -307,8 +279,6 @@ export function useDriverColumns({
           onDelete={onDelete}
           onActivateHere={onActivateHere}
           onDeactivate={onDeactivate}
-          onResetPassword={onResetPassword}
-          canReset={canReset(driver)}
         />
       ),
     },

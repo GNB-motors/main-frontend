@@ -27,6 +27,7 @@ import { legBarSegments, unattributedKm } from './tripLegModel.js';
 import { partialFlags, runKmOf, runningCostAmount } from './tripMeasureModel';
 import TripCostNote from './TripCostNote';
 import TripCostCard from './TripCostCard';
+import TripMeasurement from './TripMeasurement';
 import TripFuelCard from './TripFuelCard';
 import TripStatusNotes, { TripFlagChips } from './TripStatusNotes';
 import { PARTIAL_LABEL } from '../../utils/measured';
@@ -353,6 +354,7 @@ export default function AutoTripDetailPage() {
         </div>
 
         <TripStatusNotes trip={trip} />
+        <TripMeasurement measurement={trip.measurement} />
 
         <dl className="atx-facts" aria-label="Trip at a glance">
           <div className="atx-fact">
@@ -394,7 +396,11 @@ export default function AutoTripDetailPage() {
                 ? 'needs a known drop'
                 : trip.km?.ladenOdo != null
                   ? 'from the odometer'
-                  : 'from the GPS path'}
+                  : trip.km?.ladenSource === 'road'
+                    ? 'from road-matched distance'
+                    : trip.km?.ladenSource === 'path'
+                      ? 'from the GPS path'
+                      : 'distance source not recorded'}
             </small>
           </div>
           <div className="atx-fact">
@@ -443,13 +449,13 @@ export default function AutoTripDetailPage() {
                   label="How running cost is estimated"
                 />
               </span>
-              {runningCost.partial || partial.fuel ? (
-                <span className="atx-chip atx-chip--watch atx-cost-badge">{PARTIAL_LABEL}</span>
-              ) : null}
             </dt>
             <dd className={runningCost.inr != null ? '' : 'is-quiet'}>
               {runningCost.inr != null ? formatINR(runningCost.inr) : '—'}
             </dd>
+            {runningCost.partial || partial.fuel ? (
+              <span className="atx-chip atx-chip--watch atx-cost-badge">{PARTIAL_LABEL}</span>
+            ) : null}
             <TripCostNote trip={trip} />
           </div>
         </dl>
@@ -617,7 +623,12 @@ export default function AutoTripDetailPage() {
             ) : null}
           </div>
           <div className="atx-detail-side">
-            <TripFuelCard summary={fuelSummary} loading={fuelLoading} error={fuelError} />
+            <TripFuelCard
+              summary={fuelSummary}
+              measurement={trip.measurement}
+              loading={fuelLoading}
+              error={fuelError}
+            />
             <TripCostCard trip={trip} tolls={tolls} role={getUserRole()} />
             <RouteSapCard key={id} trip={trip} />
             {canEdit ? (

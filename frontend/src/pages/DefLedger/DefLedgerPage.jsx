@@ -19,6 +19,7 @@ import {
   FRESHNESS_LABEL,
   freshnessBucket,
   coverageRange,
+  isDefVerified,
 } from './defLedgerFormat';
 import DataFreshness from './DataFreshness';
 import LedgerRowSkeleton from './LedgerRowSkeleton';
@@ -403,7 +404,7 @@ export default function DefLedgerPage() {
           </span>
           <span>
             <BadgeCheck className="inline w-3 h-3 text-emerald-600" /> <strong>Verified</strong> =
-            bill logged and nothing off
+            current assessed telemetry, logged claims and no flags
           </span>
         </div>
 
@@ -459,7 +460,7 @@ export default function DefLedgerPage() {
                         {v.claimsTracked ? (
                           <div className="flex flex-col items-end gap-1">
                             <span>{formatLitres(v.claimedAdblueL)}</span>
-                            {v.flagCount === 0 && (
+                            {isDefVerified(v) && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-sans font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                                 <BadgeCheck className="w-3 h-3" /> Verified
                               </span>

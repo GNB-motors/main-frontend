@@ -1,88 +1,99 @@
 .sap-route-card {
-  padding: 20px;
-  background: #fff;
+  padding: 16px;
+  background: var(--rd-card, #fff);
 }
 .sap-route-empty {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 26px 16px;
-  text-align: center;
-  background: #fff;
+  gap: 4px 12px;
+  padding: 14px 0;
+  text-align: left;
 }
 .sap-route-empty-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  grid-row: 1 / 3;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--ds-line);
-  border-radius: 50%;
+  border-radius: 8px;
   color: var(--ds-ink3);
-  margin-bottom: 2px;
+}
+.sap-route-empty-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .sap-route-empty > h3 {
+  grid-column: 2;
   font-size: 14px;
   font-weight: 600;
 }
 .sap-route-empty > p {
-  max-width: 42ch;
+  grid-column: 2;
+  max-width: 56ch;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.5;
   color: var(--ds-ink2);
 }
 .sap-route-empty > button {
-  margin-top: 4px;
+  grid-column: 3;
+  grid-row: 1 / 3;
 }
 .sap-route-help {
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-line);
+}
+.sap-route-help > summary {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  background: #fff;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--ds-ink2);
+  font-size: 12px;
+  font-weight: 500;
 }
-.sap-route-help-icon {
-  display: grid;
-  place-items: center;
+.sap-route-help > summary::-webkit-details-marker {
+  display: none;
+}
+.sap-route-help > summary svg {
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
-  border: 1px solid var(--ds-line);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--rd-brand, #2563eb);
+}
+.sap-route-help-chevron {
+  margin-left: auto;
+}
+.sap-route-help[open] .sap-route-help-chevron {
+  transform: rotate(180deg);
 }
 .sap-route-help > div {
-  min-width: 0;
-}
-.sap-route-help > div h3 {
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  max-width: 72ch;
+  padding-top: 6px;
 }
 .sap-route-help > div p {
   margin-top: 6px;
   color: var(--ds-ink2);
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 .sap-route-help-example {
   display: block;
-  margin-top: 12px;
+  margin-top: 8px;
   color: var(--ds-ink);
   font-size: 12px;
   font-weight: 500;
   line-height: 1.6;
 }
-@media (max-width: 640px) {
-  .sap-route-help {
-    align-items: flex-start;
-    padding: 16px;
-    gap: 12px;
+@media (max-width: 1440px) {
+  .sap-route-empty {
+    grid-template-columns: 36px minmax(0, 1fr);
   }
-  .sap-route-help-icon {
-    width: 40px;
-    height: 40px;
+  .sap-route-empty > button {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+    margin-top: 6px;
   }
 }
 .sap-route-header {

@@ -77,6 +77,17 @@ export default function TripPlansTable({ data, loading, error, refetch, paginati
         ),
     },
     {
+      key: 'variance',
+      label: 'Start variance',
+      render: (p) => {
+        const planned = new Date(p.plannedStartAt || '').getTime();
+        const actual = new Date(p.actual?.startedAt || '').getTime();
+        if (!Number.isFinite(planned) || !Number.isFinite(actual)) return '—';
+        const min = Math.round((actual - planned) / 60000);
+        return min === 0 ? 'On time' : `${Math.abs(min)} min ${min > 0 ? 'late' : 'early'}`;
+      },
+    },
+    {
       key: 'status',
       width: '240px',
       label: 'Status',

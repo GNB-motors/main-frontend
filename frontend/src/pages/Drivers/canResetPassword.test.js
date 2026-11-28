@@ -24,7 +24,9 @@ describe('canResetRow', () => {
   });
 
   it('spec 4: a manager may reset driver rows only', () => {
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(true);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(
+      true,
+    );
     expect(canResetRow('MANAGER', { id: 'u1', role: 'MANAGER' }, { drivers: true }, 'me')).toBe(
       false,
     );
@@ -34,7 +36,9 @@ describe('canResetRow', () => {
   it('spec 4/D4: a manager without the drivers permission gets no button', () => {
     expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, {}, 'me')).toBe(false);
     expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, undefined, 'me')).toBe(false);
-    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: false }, 'me')).toBe(false);
+    expect(canResetRow('MANAGER', { id: 'u1', role: 'DRIVER' }, { drivers: false }, 'me')).toBe(
+      false,
+    );
   });
 
   it('spec 4/D3: a row without a role gets no button', () => {
@@ -79,21 +83,20 @@ describe('canResetRow', () => {
   });
 
   it('spec 4: any other viewer gets no button at all', () => {
-    expect(canResetRow('DRIVER', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(false);
+    expect(canResetRow('DRIVER', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(
+      false,
+    );
     expect(canResetRow('KAM', { id: 'u1', role: 'DRIVER' }, { drivers: true }, 'me')).toBe(false);
     expect(canResetRow(undefined, { id: 'u1', role: 'DRIVER' }, {}, 'me')).toBe(false);
   });
 });
 
-// The key button itself: it must be there for an eligible row — also when the
-// employee is deactivated (a password still has to be reset then).
-function ActionsCell({ driver, viewerRole = 'OWNER' }) {
+// Reset is managed inside Employee Details, so the list only offers navigation and employee actions.
+function ActionsCell({ driver }) {
   const columns = useDriverColumns({
     onEdit: () => {},
     onDelete: () => {},
     onActivateHere: () => {},
-    onResetPassword: () => {},
-    canReset: (row) => canResetRow(viewerRole, row, { drivers: true }, 'me'),
     getInitials: () => 'A',
     formatRole: (role) => role,
   });
@@ -101,21 +104,23 @@ function ActionsCell({ driver, viewerRole = 'OWNER' }) {
   return actions.render(driver);
 }
 
-describe('the reset key on the Employees page', () => {
-  it('review 4: an eligible row gets the key', () => {
+describe('Employee list actions', () => {
+  it('keeps reset inside details for an eligible employee', () => {
     render(React.createElement(ActionsCell, { driver: { id: 'u9', role: 'DRIVER' } }));
 
-    expect(screen.getByTitle('Reset password')).toBeInTheDocument();
+    expect(screen.queryByTitle('Reset password')).not.toBeInTheDocument();
+    expect(screen.getByTitle('View details')).toBeInTheDocument();
   });
 
-  it('review 4: a deactivated employee keeps the key', () => {
+  it('keeps View details available for a deactivated employee', () => {
     render(
       React.createElement(ActionsCell, {
         driver: { id: 'u9', role: 'DRIVER', branchStatus: 'DEACTIVATED' },
       }),
     );
 
-    expect(screen.getByTitle('Reset password')).toBeInTheDocument();
+    expect(screen.queryByTitle('Reset password')).not.toBeInTheDocument();
+    expect(screen.getByTitle('View details')).toBeInTheDocument();
     expect(screen.getByTitle('Mark as active')).toBeInTheDocument();
   });
 

@@ -1066,6 +1066,9 @@
 .drivers-modal-form select:hover {
   border-color: var(--color-primary-300);
 }
+.drivers-modal-form .pwf-input {
+  padding-right: 44px;
+}
 
 .drivers-modal-form input:disabled,
 .drivers-modal-form select:disabled {
@@ -1340,17 +1343,6 @@
 .vehicle-inline-btn--activate:hover {
   background: #dcedc8;
   border-color: #2e7d32;
-}
-
-/* Reset password — violet */
-.vehicle-inline-btn--key {
-  color: #6b3fa0;
-  border-color: #e3d7f4;
-  background: #f8f4fd;
-}
-.vehicle-inline-btn--key:hover {
-  background: #efe6f9;
-  border-color: #6b3fa0;
 }
 
 /* Keep employee search left and table actions at the opposite edge. */

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { approvalWindow, approvalValidity, approvalPlace } from './movementApprovalDisplay';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import '../AutoTrips/TripsWorkspace.css';
 import DataTable from '../../components/ui/DataTable';
@@ -13,33 +15,8 @@ import ApprovalCreateDialog from '../AutoTrips/ApprovalCreateDialog';
 import { AutoTripsService } from '../AutoTrips/AutoTripsService';
 
 const PAGE_SIZE = 50;
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function fmtDate(v) {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime())
-    ? '—'
-    : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-}
-
-function whenLabel(a) {
-  if (a.window?.from) return `${fmtDate(a.window.from)} → ${fmtDate(a.window.to)}`;
-  if (a.recurrence?.weekdays?.length) {
-    const days = a.recurrence.weekdays.map((d) => WEEKDAYS[d] || d).join(' ');
-    const h = `${a.recurrence.fromHour}:00–${a.recurrence.toHour}:00`;
-    return `${days} · ${h}`;
-  }
-  return '—';
-}
-
-function placeLabel(a) {
-  const ps = a.placeSpec || {};
-  if (ps.kind === 'TYPE') return `Type: ${ps.type || '—'}`;
-  if (ps.kind === 'SITE' || ps.kind === 'REGION')
-    return `${ps.kind.toLowerCase()} ${String(ps.id || '').slice(-6)}`;
-  return ps.kind || '—';
-}
+const fmtDate = (v) =>
+  v ? new Date(v).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—';
 
 export default function TripApprovals() {
   const [status, setStatus] = useState('');
@@ -126,14 +103,44 @@ export default function TripApprovals() {
     () => [
       { key: 'createdAt', label: 'Created', render: (r) => fmtDate(r.createdAt) },
       { key: 'subject', label: 'Vehicle / driver', render: (r) => subjectLabel(r) },
-      { key: 'place', label: 'Place', render: (r) => placeLabel(r) },
-      { key: 'when', label: 'When', render: (r) => whenLabel(r) },
-      { key: 'kind', label: 'Kind', render: (r) => r.kind || '—' },
+      { key: 'place', label: 'Place', render: (r) => approvalPlace(r) },
+      { key: 'when', label: 'When', render: (r) => approvalWindow(r) },
+      {
+        key: 'purpose',
+        label: 'Purpose / allowance',
+        render: (r) => (
+          <div>
+            <div>{r.purpose || r.note || 'Purpose not recorded'}</div>
+            <small>
+              {r.caps?.maxExtraKm != null
+                ? `Up to ${r.caps.maxExtraKm} extra km`
+                : 'No extra-km cap'}{' '}
+              ·{' '}
+              {r.caps?.maxDwellMin != null
+                ? `Up to ${r.caps.maxDwellMin} min dwell`
+                : 'No dwell cap'}
+            </small>
+          </div>
+        ),
+      },
+      { key: 'approver', label: 'Approved by', render: (r) => r.approvedByName || 'Not recorded' },
+      {
+        key: 'kind',
+        label: 'Kind',
+        render: (r) =>
+          r.excursionId ? (
+            <Link to={`/auto-trips/excursions/${r.excursionId}`}>{r.kind} · Open excursion</Link>
+          ) : (
+            r.kind || '—'
+          ),
+      },
       {
         key: 'status',
         label: 'Status',
         render: (r) => (
-          <Badge variant={r.status === 'ACTIVE' ? 'default' : 'outline'}>{r.status}</Badge>
+          <Badge variant={approvalValidity(r) === 'ACTIVE' ? 'default' : 'outline'}>
+            {approvalValidity(r).replaceAll('_', ' ')}
+          </Badge>
         ),
       },
       {

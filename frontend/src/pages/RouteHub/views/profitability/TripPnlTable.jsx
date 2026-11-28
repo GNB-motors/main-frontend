@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom';
 import Ico from '../../routeHubIcons.jsx';
 import { TableEmpty, TableSkeleton } from '../../routeHubShared.jsx';
 import { inr, fmtDT } from '../../routeHubFormat';
@@ -20,6 +21,7 @@ const STATUS_LABEL = {
  */
 export default function TripPnlTable({ trips, first, error, className = '' }) {
   const rows = trips || [];
+  const location = useLocation();
   return (
     <div className={`card ${className}`.trim()}>
       <div className="card-head">
@@ -45,7 +47,13 @@ export default function TripPnlTable({ trips, first, error, className = '' }) {
             <tbody>
               {rows.map((t) => (
                 <tr key={t.id}>
-                  <td className="strong">{t.registrationNumber || '—'}</td>
+                  <td className="strong">
+                    <Link
+                      to={`/auto-trips/${t.id}?returnTo=${encodeURIComponent(location.pathname + location.search)}`}
+                    >
+                      {t.registrationNumber || 'Open trip'}
+                    </Link>
+                  </td>
                   <td>
                     {t.origin || '—'} <span style={{ color: 'var(--fg-tertiary)' }}>→</span>{' '}
                     {t.destination || '—'}

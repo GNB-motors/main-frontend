@@ -91,3 +91,36 @@ it('shows the original vehicle details alongside speed', async () => {
   expect(screen.getByText('Tata')).toBeInTheDocument();
   expect(screen.getByText('VIN: TEST-VIN')).toBeInTheDocument();
 });
+
+it('puts trucks with red alert badges first in All without an extra sort control', () => {
+  const vehicles = [
+    { id: 'moving', plate: 'MOVE1', status: 'moving', ago: 1 },
+    { id: 'offline', plate: 'DARK1', status: 'offline', ago: 600 },
+  ];
+  const { container } = renderRail({
+    vehicles,
+    filteredVehicles: vehicles,
+    alertCounts: new Map([['DARK1', 1]]),
+  });
+  expect(
+    [...container.querySelectorAll('.vc-plate')].map((el) => el.firstChild.textContent),
+  ).toEqual(['DARK1', 'MOVE1']);
+  expect(screen.getByLabelText('1 unacknowledged alert')).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Sort trucks' })).not.toBeInTheDocument();
+});
+
+it('keeps the usual status order when viewing a filtered fleet', () => {
+  const vehicles = [
+    { id: 'fresh', plate: 'FRESH1', status: 'moving', ago: 1 },
+    { id: 'older', plate: 'OLDER1', status: 'moving', ago: 5 },
+  ];
+  const { container } = renderRail({
+    vehicles,
+    filteredVehicles: vehicles,
+    filter: 'moving',
+    alertCounts: new Map([['OLDER1', 1]]),
+  });
+  expect(
+    [...container.querySelectorAll('.vc-plate')].map((el) => el.firstChild.textContent),
+  ).toEqual(['FRESH1', 'OLDER1']);
+});

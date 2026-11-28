@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/react';
+import { render as rtlRender } from '@testing-library/react';
 import React from 'react';
 import TripPnlTable from './TripPnlTable';
+import { MemoryRouter } from 'react-router-dom';
+const render = (ui) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 const PRICED = {
   id: 'priced',

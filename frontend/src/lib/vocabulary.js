@@ -88,6 +88,7 @@ export const LABELS = {
     UNRELIABLE: 'Often short',
     CHRONIC_SHORTAGE: 'Always short',
     INSUFFICIENT_DATA: 'Too few fills',
+    INSUFFICIENT_MEASUREMENT: 'Insufficient measurement',
   },
   mileageBand: {
     MILEAGE_GOOD: 'Good',

@@ -1,12 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import InfoTip from '../../components/redesign/InfoTip';
-import {
-  FUEL_LOSS_TIP,
-  fmtIstMinute,
-  fmtLitres,
-  fuelBurntView,
-  fuelLossView,
-} from './tripFuel';
+import { FUEL_LOSS_TIP, fmtIstMinute, fmtLitres, fuelBurntView, fuelLossView } from './tripFuel';
 
 /**
  * The fuel this trip burnt, and the fuel that left the tank without the engine
@@ -15,7 +9,12 @@ import {
  * A litre the server did not measure stays unknown — a dash, never a zero — and
  * the wording never names a crime: it says what a person should check.
  */
-export default function TripFuelCard({ summary = null, loading = false, error = null }) {
+export default function TripFuelCard({
+  summary = null,
+  measurement = null,
+  loading = false,
+  error = null,
+}) {
   if (loading && !summary) {
     return (
       <div className="atx-card atx-dev-card">
@@ -25,7 +24,14 @@ export default function TripFuelCard({ summary = null, loading = false, error = 
     );
   }
 
-  const burnt = fuelBurntView(summary);
+  const legacyBurnt = fuelBurntView(summary);
+  const burnt = measurement
+    ? {
+        burnt: measurement.burnedL,
+        partial: measurement.fuelPartial,
+        legs: legacyBurnt.legs.filter((leg) => leg.label !== 'Approach'),
+      }
+    : legacyBurnt;
   const loss = fuelLossView(summary?.loss);
 
   return (
@@ -39,9 +45,7 @@ export default function TripFuelCard({ summary = null, loading = false, error = 
             <span className="atx-field-label">Fuel burnt</span>
             <span className="atx-field-value">
               {fmtLitres(burnt.burnt)}
-              {burnt.partial ? (
-                <span className="atx-chip atx-chip--watch">partial</span>
-              ) : null}
+              {burnt.partial ? <span className="atx-chip atx-chip--watch">partial</span> : null}
             </span>
             {burnt.legs.length ? (
               <small className="atx-cost-note">

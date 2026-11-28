@@ -12,7 +12,7 @@ import {
   isSuspiciousUnload,
 } from './tripSuspicion';
 import { tripDetailHref } from './tripWorkspace';
-import { allUnknown, loadedKm, loadedMin, minutesOnRoad } from './tripListModel';
+import { allUnknown, loadedMin, minutesOnRoad } from './tripListModel';
 import { DriverCell, RouteCell, TimeCell } from './TripCells';
 
 const timeValue = (now) => (trip) => loadedMin(trip) ?? minutesOnRoad(trip, now);
@@ -33,7 +33,6 @@ export default function tripColumns({
   if (allUnknown(rows, (r) => r.driver?.name || r.driver?.mobileNumber || null))
     hidden.push('driver');
   if (allUnknown(rows, timeValue(now))) hidden.push('time');
-  if (allUnknown(rows, loadedKm)) hidden.push('km');
 
   const columns = [
     {
@@ -84,26 +83,53 @@ export default function tripColumns({
     {
       key: 'km',
       width: '112px',
-      label: 'Loaded km',
+      label: 'Total km',
       align: 'right',
       sortable: true,
-      sortKey: 'distance',
+      sortKey: 'totalDistance',
       render: (r) => {
-        const km = loadedKm(r);
-        const badge = r.kmPartial ? (
-          <span className="atx-chip atx-chip--watch">{PARTIAL_LABEL}</span>
-        ) : null;
-        if (km == null) return <span className="atx-cell-quiet">—{badge}</span>;
+        const m = r.measurement;
         return (
-          <span
-            className="atx-num"
-            title={r.km?.ladenOdo != null ? 'From the odometer' : 'From the GPS path'}
-          >
-            {fmtKm(km)}
-            {badge}
+          <span className="atx-num" title={m?.note || 'Trip measurement unavailable'}>
+            {fmtKm(m?.totalKm)}
+            {m?.soFar ? ' so far' : ''}
+            {m?.partial ? <span className="atx-chip atx-chip--watch">{PARTIAL_LABEL}</span> : null}
+            <small className="block atx-cell-quiet">
+              Loaded {fmtKm(m?.loadedKm)} · Empty {fmtKm(m?.emptyKm)}
+            </small>
           </span>
         );
       },
+    },
+    {
+      key: 'burnedL',
+      label: 'Diesel burned',
+      align: 'right',
+      render: (r) => (
+        <span className="atx-num">
+          {r.measurement?.burnedL == null ? '—' : `${r.measurement.burnedL} L`}
+          {r.measurement?.fuelPartial ? (
+            <small className="block atx-cell-quiet">Partial coverage</small>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: 'kmPerL',
+      label: 'km/L',
+      align: 'right',
+      render: (r) => (
+        <span className="atx-num">
+          {r.measurement?.kmPerL ?? '—'}
+          <small className="block atx-cell-quiet">
+            {r.measurement?.efficiencyBasis === 'LOADED_LEG'
+              ? 'Loaded leg'
+              : r.measurement?.efficiencyBasis === 'TRIP'
+                ? 'Whole trip'
+                : 'Awaiting measurement'}
+          </small>
+        </span>
+      ),
     },
     {
       key: 'sap',

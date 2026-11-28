@@ -38,7 +38,7 @@ export default function EventInvestigationDrawer({
 }) {
   if (!event) return null;
 
-  const price = context.fuelPriceInrPerL ?? 95;
+  const price = context.fuelPriceInrPerL ?? null;
   const status = STATUS_TONE[event.confirmationStatus] || STATUS_TONE.ESTIMATED;
   const statusColor =
     status.tone === 'ok'
@@ -48,7 +48,7 @@ export default function EventInvestigationDrawer({
         : 'var(--inert)';
 
   const litres = event.litres;
-  const inr = litres != null ? litres * price : null;
+  const inr = litres != null && price > 0 ? litres * price : null;
   const prev = context.previousFill;
   const avg = context.averageFill;
   const variance = litres != null && avg != null ? litres - avg : null;
@@ -182,8 +182,10 @@ export default function EventInvestigationDrawer({
 
         <p className="text-dim flex items-start gap-1.5 text-[11px] leading-relaxed">
           <Fuel size={12} className="mt-0.5 shrink-0" />
-          All ₹ figures are estimates at ₹{price}/L. Flags mean “please review”, not a confirmed
-          loss.
+          {price > 0
+            ? `₹ figures are estimates at ₹${price}/L.`
+            : '₹ estimate unavailable: no diesel price is recorded.'}{' '}
+          Flags mean “please review”, not a confirmed loss.
         </p>
       </div>
     </SlideOver>

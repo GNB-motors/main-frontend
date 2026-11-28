@@ -1665,6 +1665,7 @@ const LiveTrackingPage = () => {
                         onRetry={handleRefresh}
                         idlingByPlate={idlingByPlate}
                         alertCounts={alertCounts}
+                        filter={filter}
                         knownEtas={knownEtas}
                       />
 

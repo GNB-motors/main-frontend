@@ -20,7 +20,7 @@ import DestinationIntentSection from './DestinationIntentSection.jsx';
 import KnownDestinationSection from './KnownDestinationSection.jsx';
 import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
 import { Link } from 'react-router-dom';
-import { fallbackNow } from './vehiclePanelModel';
+import { fallbackNow, truckInboxLink } from './vehiclePanelModel';
 
 /**
  * VehicleDetailPanel — what the owner needs to know about one truck.
@@ -66,7 +66,13 @@ export default function VehicleDetailPanel({
       FleetDataService.getVehicleHealth(reg, { days: 1, limit: 1 }, controller.signal),
       vin ? FleetDataService.getLatestVehicleStatus(vin, controller.signal) : Promise.resolve([]),
     ]).then(([health, status]) => {
-      if (!controller.signal.aborted) setOdometerSources({ reg, vin, health: health.status === 'fulfilled' ? health.value?.latest : null, status: status.status === 'fulfilled' ? status.value?.[0] : null });
+      if (!controller.signal.aborted)
+        setOdometerSources({
+          reg,
+          vin,
+          health: health.status === 'fulfilled' ? health.value?.latest : null,
+          status: status.status === 'fulfilled' ? status.value?.[0] : null,
+        });
     });
     return () => controller.abort();
   }, [reg, vin]);
@@ -77,9 +83,14 @@ export default function VehicleDetailPanel({
   // The live stream already carries the position row, so the panel reads it
   // straight from there — no second endpoint to keep alive.
   const now = fallbackNow(selectedVehicle, selectedDriver);
-  const sources = odometerSources?.reg === reg && odometerSources?.vin === vin ? odometerSources : null;
+  const sources =
+    odometerSources?.reg === reg && odometerSources?.vin === vin ? odometerSources : null;
   const odometer = newestOdometer(selectedVehicle ?? {}, sources?.health, sources?.status);
-  if (now && odometer) now.readings.odometerKm = { ...odometer, freshness: odometer.freshness ?? (odometer.isStale ? 'stale' : 'recent') };
+  if (now && odometer)
+    now.readings.odometerKm = {
+      ...odometer,
+      freshness: odometer.freshness ?? (odometer.isStale ? 'stale' : 'recent'),
+    };
 
   return (
     <div
@@ -147,10 +158,10 @@ export default function VehicleDetailPanel({
                   </div>
                 ))}
                 <Link
-                  to="/alert-inbox"
+                  to={truckInboxLink(vehicleAlerts[0]?.vehicleNumber || reg)}
                   className="text-[12px] font-medium text-[var(--rd-brand-2)] no-underline hover:underline"
                 >
-                  Open the alert inbox →
+                  Open this truck's alerts →
                 </Link>
               </section>
             ) : null}

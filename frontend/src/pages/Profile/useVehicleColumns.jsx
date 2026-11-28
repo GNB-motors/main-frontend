@@ -310,7 +310,11 @@ export function useVehicleColumns({
       render: (vehicle) => {
         const missing = vehicle.missingDocTypes || [];
         if (missing.length === 0) {
-          return <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>complete</span>;
+          return (
+            <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>
+              Files present · check validity
+            </span>
+          );
         }
         return (
           <span
@@ -338,8 +342,10 @@ export function useVehicleColumns({
             </span>
           );
         }
-        const isGood = val >= 4.0;
-        const isFair = val >= 3.5 && val < 4.0;
+        const expected = Number(vehicle.mileageExpected);
+        const comparable = Number.isFinite(expected) && expected > 0;
+        const isGood = comparable && val >= expected;
+        const isFair = comparable && val >= expected * 0.9 && val < expected;
         return (
           <Link
             to={`/mileage?tab=performance&search=${encodeURIComponent(vehicle.registration_no || '')}`}
@@ -354,12 +360,29 @@ export function useVehicleColumns({
                 fontWeight: 600,
                 fontSize: 12,
                 cursor: 'pointer',
-                background: isGood ? '#ecfdf5' : isFair ? '#fefce8' : '#fef2f2',
-                color: isGood ? '#047857' : isFair ? '#a16207' : '#b91c1c',
-                border: `1px solid ${isGood ? '#a7f3d0' : isFair ? '#fef08a' : '#fecaca'}`,
+                background: !comparable
+                  ? 'var(--bg-secondary)'
+                  : isGood
+                    ? '#ecfdf5'
+                    : isFair
+                      ? '#fefce8'
+                      : '#fef2f2',
+                color: !comparable
+                  ? 'var(--fg-secondary)'
+                  : isGood
+                    ? '#047857'
+                    : isFair
+                      ? '#a16207'
+                      : '#b91c1c',
+                border: `1px solid ${!comparable ? 'var(--border)' : isGood ? '#a7f3d0' : isFair ? '#fef08a' : '#fecaca'}`,
               }}
             >
               {val.toFixed(2)} km/L
+              <small className="block">
+                {comparable ? `Expected ${expected.toFixed(2)}` : 'No comparable baseline'}
+                {vehicle.mileageCycles != null ? ` · ${vehicle.mileageCycles} cycles` : ''}
+                {vehicle.mileageDutyGroup != null ? ` · ${vehicle.mileageDutyGroup}` : ''}
+              </small>
             </span>
           </Link>
         );
