@@ -128,6 +128,7 @@ describe('WhereNextSection', () => {
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     await waitFor(() => expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument());
     expect(screen.getAllByText(/ETA \d/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/→ DANKUNI SIDING/).textContent.match(/ETA/g)).toHaveLength(1);
     expect(screen.queryByText(/ETA passed/)).not.toBeInTheDocument();
   });
 

@@ -201,6 +201,16 @@ describe('fuelTileValues', () => {
 });
 
 describe('defTileValues', () => {
+  it.each([55555, 555.55, 0, -1, 201])(
+    'does not show litres calculated using invalid capacity %s',
+    (tankL) => {
+      const values = defTileValues({
+        def: { pct: { value: 79 }, litres: { value: 43888.5 }, tankL, tankSource: 'VENDOR' },
+      });
+      expect(values.main).toEqual({ kind: 'pct', value: 79 });
+      expect(values.secondary).toBeNull();
+    },
+  );
   it('shows the percentage and the litres', () => {
     const values = defTileValues({
       def: { pct: { value: 60.8 }, litres: { value: 14.6 }, tankL: 24, tankSource: 'VENDOR' },
@@ -237,6 +247,12 @@ describe('trafficWord', () => {
 });
 
 it('prefers the structured readings carried by the live row', () => {
-  const readings = { def: { pct: { value: 55 } }, fuel: { litres: { value: 120 } }, odometerKm: { value: 999 } };
-  expect(fallbackNow({ plate: 'WB1', readings, defLevel: null, odo: null }).readings).toMatchObject(readings);
+  const readings = {
+    def: { pct: { value: 55 } },
+    fuel: { litres: { value: 120 } },
+    odometerKm: { value: 999 },
+  };
+  expect(fallbackNow({ plate: 'WB1', readings, defLevel: null, odo: null }).readings).toMatchObject(
+    readings,
+  );
 });

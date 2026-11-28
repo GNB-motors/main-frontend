@@ -61,7 +61,7 @@ export default function WhereNextSection({
   const headerTitle = held
     ? 'Where next · not sure yet'
     : top
-      ? `${destinationHeading(top)}${etaHasPassed(top.eta) ? ` · ${ETA_PASSED_TEXT}` : top.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? ` · ETA ${formatIst(top.eta.at)}` : ''}`
+      ? `${destinationHeading(top)}${etaHasPassed(top.eta) ? ` · ${ETA_PASSED_TEXT}` : ''}`
       : 'Where next';
 
   return (
