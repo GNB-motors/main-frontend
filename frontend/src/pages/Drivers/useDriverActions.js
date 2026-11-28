@@ -32,8 +32,6 @@ export function useDriverActions({
   const [movingDriver, setMovingDriver] = useState(null);
   const [isActionSubmitting, setIsActionSubmitting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for add/edit/delete actions
-  // Employee whose password is about to be reset.
-  const [resettingDriver, setResettingDriver] = useState(null);
 
   const handleOpenEditModal = (driver) => {
     // Navigate to the Add Driver page but pass the driver to edit via location state
@@ -44,17 +42,6 @@ export function useDriverActions({
   const handleOpenDeleteModal = (driver) => {
     setDeletingDriver(driver);
     setIsDeleteModalOpen(true);
-  };
-
-  // Open the "reset password" dialog for one employee.
-  const handleOpenResetPassword = (driver) => {
-    setResettingDriver(driver);
-  };
-
-  // The dialog sends the body; the API call lives in the service.
-  const submitResetPassword = async (body) => {
-    if (!resettingDriver) throw new Error('No employee selected.');
-    return DriverService.resetPassword(resettingDriver.id, body);
   };
 
   // Activate a deactivated employee in the current location. If they are still
@@ -186,8 +173,6 @@ export function useDriverActions({
     movingDriver,
     isActionSubmitting,
     isSubmitting,
-    resettingDriver,
-    setResettingDriver,
     setIsEditModalOpen,
     setEditingDriver,
     setIsDeleteModalOpen,
@@ -196,8 +181,6 @@ export function useDriverActions({
     setMovingDriver,
     handleOpenEditModal,
     handleOpenDeleteModal,
-    handleOpenResetPassword,
-    submitResetPassword,
     handleActivateHere,
     handleOpenDeactivate,
     handleConfirmDeactivate,

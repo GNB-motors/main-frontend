@@ -71,7 +71,7 @@ const PAGE_SIZE = 50;
 /** How many of the latest trips the KPI strip and the banner measure. */
 const SAMPLE_SIZE = 100;
 /** The sorts the server knows. A sort key the server does not know is ignored. */
-const SORT_KEYS = ['vehicle', 'date', 'distance', 'duration'];
+const SORT_KEYS = ['vehicle', 'date', 'distance', 'totalDistance', 'duration'];
 
 export default function AutoTripsPage() {
   const navigate = useNavigate();
@@ -180,10 +180,15 @@ export default function AutoTripsPage() {
   );
   const resolvedVehicleId = useMemo(() => {
     if (vehicleIdParam) return vehicleIdParam;
-    const reg = String(vehicleReg || '').trim().toUpperCase();
+    const reg = String(vehicleReg || '')
+      .trim()
+      .toUpperCase();
     if (!reg || !vehicleRows) return null;
     const row = vehicleRows.find(
-      (r) => String(r?.registrationNumber || '').trim().toUpperCase() === reg,
+      (r) =>
+        String(r?.registrationNumber || '')
+          .trim()
+          .toUpperCase() === reg,
     );
     return row?._id || null;
   }, [vehicleIdParam, vehicleRows, vehicleReg]);

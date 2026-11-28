@@ -5,14 +5,14 @@ import { formatLitres, formatPct } from '../../utils/formatters';
 import { formatDateTimeIST, formatDateIST } from '../../utils/dateUtils';
 import StatusBadge from './StatusBadge';
 import { STATUS_NOTE, SENSOR_FAULT_LABEL } from './defLedgerStatus';
-import { humanizeFlagType, signedLitres } from './defLedgerFormat';
+import { humanizeFlagType, signedLitres, isDefVerified } from './defLedgerFormat';
 import DataFreshness from './DataFreshness';
 
 function DefDetailDrawer({ vehicle, onClose }) {
   const navigate = useNavigate();
   if (!vehicle) return null;
   const claimsTracked = vehicle.claimsTracked === true;
-  const verified = claimsTracked && (vehicle.flagCount ?? 0) === 0;
+  const verified = isDefVerified(vehicle);
   const flags = vehicle.flags || [];
   const fills = vehicle.fills || [];
   const band = vehicle.defBand || {};
@@ -132,7 +132,10 @@ function DefDetailDrawer({ vehicle, onClose }) {
         <div>
           <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2.5">
             {vehicle.alertsSuppressed ? 'Held-back findings' : 'Review flags'} (
-            {vehicle.flagCount ?? flags.length})
+            {vehicle.flagCount > flags.length
+              ? `${flags.length} of ${vehicle.flagCount}`
+              : flags.length}
+            )
           </h4>
           {vehicle.alertsSuppressed && (
             <p className="text-[11px] text-slate-500 dark:text-slate-400 -mt-1.5 mb-2.5">
@@ -188,7 +191,11 @@ function DefDetailDrawer({ vehicle, onClose }) {
 
         <div>
           <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2.5">
-            Fills seen by the DEF sensor ({vehicle.sensorFillCount ?? fills.length})
+            Fills seen by the DEF sensor (
+            {vehicle.sensorFillCount > fills.length
+              ? `${fills.length} of ${vehicle.sensorFillCount}`
+              : fills.length}
+            )
           </h4>
           {fills.length === 0 ? (
             <div className="py-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">

@@ -19,8 +19,8 @@ import TrackIdlingChip from './TrackIdlingChip.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
 import KnownDestinationSection from './KnownDestinationSection.jsx';
 import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
-import { Link } from 'react-router-dom';
 import { fallbackNow } from './vehiclePanelModel';
+import VehicleAlertSummary from './VehicleAlertSummary';
 
 /**
  * VehicleDetailPanel — what the owner needs to know about one truck.
@@ -66,7 +66,13 @@ export default function VehicleDetailPanel({
       FleetDataService.getVehicleHealth(reg, { days: 1, limit: 1 }, controller.signal),
       vin ? FleetDataService.getLatestVehicleStatus(vin, controller.signal) : Promise.resolve([]),
     ]).then(([health, status]) => {
-      if (!controller.signal.aborted) setOdometerSources({ reg, vin, health: health.status === 'fulfilled' ? health.value?.latest : null, status: status.status === 'fulfilled' ? status.value?.[0] : null });
+      if (!controller.signal.aborted)
+        setOdometerSources({
+          reg,
+          vin,
+          health: health.status === 'fulfilled' ? health.value?.latest : null,
+          status: status.status === 'fulfilled' ? status.value?.[0] : null,
+        });
     });
     return () => controller.abort();
   }, [reg, vin]);
@@ -77,9 +83,14 @@ export default function VehicleDetailPanel({
   // The live stream already carries the position row, so the panel reads it
   // straight from there — no second endpoint to keep alive.
   const now = fallbackNow(selectedVehicle, selectedDriver);
-  const sources = odometerSources?.reg === reg && odometerSources?.vin === vin ? odometerSources : null;
+  const sources =
+    odometerSources?.reg === reg && odometerSources?.vin === vin ? odometerSources : null;
   const odometer = newestOdometer(selectedVehicle ?? {}, sources?.health, sources?.status);
-  if (now && odometer) now.readings.odometerKm = { ...odometer, freshness: odometer.freshness ?? (odometer.isStale ? 'stale' : 'recent') };
+  if (now && odometer)
+    now.readings.odometerKm = {
+      ...odometer,
+      freshness: odometer.freshness ?? (odometer.isStale ? 'stale' : 'recent'),
+    };
 
   return (
     <div
@@ -106,6 +117,8 @@ export default function VehicleDetailPanel({
 
             <VehiclePanelHeader now={now} account={now?.account ?? null} />
 
+            <VehicleAlertSummary alerts={vehicleAlerts} registrationNumber={reg} />
+
             {idlingMinutes ? (
               <div className="mb-2">
                 <TrackIdlingChip minutes={idlingMinutes} />
@@ -127,33 +140,6 @@ export default function VehicleDetailPanel({
             <InsightChipsSection chips={now?.chips ?? []} registrationNumber={reg} />
 
             <VehicleIssuesSection issues={now?.issues ?? []} registrationNumber={reg} />
-
-            {vehicleAlerts.length ? (
-              <section className="flex flex-col gap-1.5">
-                <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">
-                  Alerts · {vehicleAlerts.length}
-                </h3>
-                {vehicleAlerts.slice(0, 5).map((alert) => (
-                  <div
-                    key={alert.id || alert._id}
-                    className="rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-2.5"
-                  >
-                    <span className="block text-[12px] font-semibold text-[var(--rd-ink)]">
-                      {alert.severity ? String(alert.severity).toUpperCase() : 'Alert'}
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-[var(--rd-ink-2)]">
-                      {alert.type || alert.message || alert.title || 'Alert'}
-                    </span>
-                  </div>
-                ))}
-                <Link
-                  to="/alert-inbox"
-                  className="text-[12px] font-medium text-[var(--rd-brand-2)] no-underline hover:underline"
-                >
-                  Open the alert inbox →
-                </Link>
-              </section>
-            ) : null}
 
             <VehicleDriverSection driver={now?.driver ?? null} />
 

@@ -4,7 +4,9 @@ import IntelligenceDataState from './IntelligenceDataState';
 import useUrlFilter from '@/hooks/useUrlFilter';
 import './intelFuelReference.css';
 import '../Vehicle360/panels/overview/referenceOverview.css';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useApi } from '../../hooks/useApi';
+import DrainCellEvents from './DrainCellEvents';
 import { useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { listHotspots, getDrainMap } from '../../services/HotspotService.js';
@@ -14,8 +16,6 @@ import HotspotIncidents from './HotspotIncidents';
 import RiskMapCanvas from './RiskMapCanvas';
 import '../PlaceHub/PlaceHub.css';
 import './IntelligencePage.css';
-
-const isCanceled = (error) => error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED';
 
 export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
   const [searchParams] = useSearchParams();
@@ -28,63 +28,24 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
     initialHotspot ? `hotspot:${initialHotspot}` : null,
   );
 
-  const [hotspots, setHotspots] = useState([]);
-  const [drainMap, setDrainMap] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
   const [source, setSource] = useUrlFilter('fuelSource', 'all', ['all', 'network', 'own']);
-
-  const controllerRef = useRef(null);
-
-  const loadData = useCallback(async () => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    const signal = controller.signal;
-
-    setLoading(true);
-    setErrors({});
-
-    try {
-      const [hotspotRes, drainRes] = await Promise.all([
-        listHotspots({ signal }).catch((err) => {
-          if (isCanceled(err)) throw err;
-          setErrors((e) => ({ ...e, 'fuel hotspots': 'Could not load fuel hotspots' }));
-          return [];
-        }),
-        getDrainMap({ from, to, signal }).catch((err) => {
-          if (isCanceled(err)) throw err;
-          setErrors((e) => ({ ...e, 'drain map': 'Could not load drain map' }));
-          return null;
-        }),
-      ]);
-
-      if (signal.aborted) return;
-      setHotspots((hotspotRes || []).map(fromHotspot));
-      setDrainMap(drainRes);
-      setLoading(false);
-    } catch (err) {
-      if (!isCanceled(err)) {
-        setLoading(false);
-      }
-    }
-  }, [from, to]);
-
-  useEffect(() => {
-    loadData();
-    return () => {
-      controllerRef.current?.abort();
-    };
-  }, [loadData]);
-
-  const drainCells = useMemo(() => drainCellsOf(drainMap), [drainMap]);
-
-  // Vehicle filter support
-  const filteredCells = useMemo(() => {
-    if (!vehicle) return drainCells;
-    const v = vehicle.trim().toLowerCase();
-    return drainCells.filter((c) => c.vehicles?.some((veh) => veh.toLowerCase().includes(v)));
-  }, [drainCells, vehicle]);
+  const hotspotRead = useApi((signal) => listHotspots({ signal }), []);
+  const mapScope = JSON.stringify([from, to, vehicle, driver]);
+  const mapRead = useApi(
+    (signal) => getDrainMap({ from, to, vehicle, driver, signal }),
+    [mapScope],
+    { scopeKey: mapScope },
+  );
+  const hotspots = (hotspotRead.data || []).map(fromHotspot);
+  const drainMap = mapRead.data;
+  const loading = hotspotRead.loading || mapRead.loading;
+  const errors = { 'fuel hotspots': hotspotRead.error, 'drain map': mapRead.error };
+  const loadData = () => {
+    hotspotRead.refetch();
+    mapRead.refetch();
+  };
+  const filteredCells = drainCellsOf(drainMap);
+  const logCell = filteredCells.find((c) => c.id === searchParams.get('fuelCell'));
 
   const totals = useMemo(() => fuelTotals(hotspots, filteredCells), [hotspots, filteredCells]);
 
@@ -145,7 +106,9 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
           </p>
           <small>
             Hotspot records describe current marked or learned locations. Drain totals describe the
-            selected period. These findings require evidence review before attributing fuel loss.
+            selected period and selected truck/driver. Hotspots are wider fleet/network context and
+            are not filtered by truck or driver. These findings require evidence review before
+            attributing fuel loss.
           </small>
         </div>
         <div className="intel-fuel-brief-kpis">
@@ -203,7 +166,12 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
           Unexplained fuel drops log
         </button>
       </div>
-      {subView === 'instances' ? (
+      {subView === 'instances' && logCell ? (
+        <DrainCellEvents
+          cell={logCell}
+          onClear={() => setSubView('instances', { fuelCell: null })}
+        />
+      ) : subView === 'instances' ? (
         <div className="intel-fuel-log">
           <InstancesTab
             kind="fuel_unexplained"
@@ -379,7 +347,10 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                     </div>
                   ))}
                 </div>
-                <button className="intel-fuel-review-log" onClick={() => setSubView('instances')}>
+                <button
+                  className="intel-fuel-review-log"
+                  onClick={() => setSubView('instances', { fuelCell: selectedItem.id })}
+                >
                   Review fuel-drop records →
                 </button>
               </section>

@@ -148,9 +148,11 @@ export function fallbackNow(vehicle, driver = null) {
         tankL: null,
         tankSource: null,
       },
-      odometerKm: vehicle.readings?.odometerKm ?? readingFrom(vehicle.odo ?? null, { at, ageMin, freshness }),
-      ignition: vehicle.readings?.ignition ?? (
-        ignitionValue === null
+      odometerKm:
+        vehicle.readings?.odometerKm ?? readingFrom(vehicle.odo ?? null, { at, ageMin, freshness }),
+      ignition:
+        vehicle.readings?.ignition ??
+        (ignitionValue === null
           ? null
           : { value: ignitionValue, at, ageMin, freshness, source: 'FLEETEDGE' }),
       gps: { at, ageMin, freshness, satellites: null },
@@ -270,4 +272,11 @@ export function reportedActivity(vehicle) {
     };
   }
   return null;
+}
+
+/** The inbox, already searched for this truck and on its open items. */
+export function truckInboxLink(plate) {
+  const search = String(plate || '').trim();
+  if (!search) return '/alert-inbox';
+  return `/alert-inbox?${new URLSearchParams({ inboxStatus: 'OPEN', inboxSearch: search })}`;
 }

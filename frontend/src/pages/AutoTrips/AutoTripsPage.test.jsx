@@ -501,11 +501,7 @@ it('draws one dense row per trip and leaves out a column nobody has yet', async 
   expect(screen.queryByText(/View trip/)).not.toBeInTheDocument();
   expect(screen.queryByRole('columnheader', { name: 'Loaded km' })).not.toBeInTheDocument();
   expect(screen.queryByRole('columnheader', { name: 'Driver' })).not.toBeInTheDocument();
-  expect(
-    screen.getByText(
-      'Loaded km is measured when a truck reaches its drop; no driver is linked to these trips.',
-    ),
-  ).toBeInTheDocument();
+  expect(screen.getByText('No driver is linked to these trips.')).toBeInTheDocument();
   fireEvent.click(route);
   expect(screen.getByLabelText('Current location')).toHaveTextContent('/auto-trips/t9');
 });

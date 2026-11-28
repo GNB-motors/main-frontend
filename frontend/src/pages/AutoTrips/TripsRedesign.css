@@ -245,27 +245,27 @@
 /* The facts strip: the trip's numbers in one row under the header. */
 .atx-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  overflow: hidden;
+  gap: 1px;
   margin: 0;
   border: 1px solid var(--rd-line);
   border-radius: 10px;
-  background: var(--rd-card);
+  background: var(--rd-line);
 }
 .atx-fact {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  padding: 14px 18px;
-  border-left: 1px solid var(--rd-line);
-}
-.atx-fact:first-child {
-  border-left: 0;
+  padding: 12px 14px;
+  background: var(--rd-card);
 }
 .atx-fact dt {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-height: 18px;
   font-size: 12px;
   color: var(--rd-ink-2);
 }
@@ -292,13 +292,7 @@
 }
 .atx-fact .atx-cost-note {
   white-space: normal;
-  line-height: 1.5;
-}
-.atx-fact .atx-cost-heading {
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px;
+  line-height: 1.4;
 }
 .atx-cost-title {
   display: inline-flex;
@@ -306,8 +300,14 @@
   gap: 4px;
 }
 .atx-cost-badge {
-  margin-left: auto;
+  align-self: flex-start;
   white-space: nowrap;
+}
+.atx-fact dd[title] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 24px;
 }
 
 /* Map and timeline side by side; the map sets the row height, the timeline scrolls. */
@@ -468,7 +468,7 @@
   --atx-tl-leg-bottom: 8px;
 }
 
-/* Below the map: both columns share the row height as their content changes. */
+/* Below the map, each column follows its content without stretching the cards. */
 .atx-detail-more {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
@@ -483,14 +483,15 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
+  padding: 16px;
 }
 .atx-page--detail .atx-summary {
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 16px;
 }
 .atx-page--detail .atx-fields {
-  gap: 12px 20px;
+  gap: 10px 16px;
 }
 .atx-page--detail .atx-field-label {
   font-size: 12px;
@@ -544,6 +545,9 @@
 }
 
 @media (max-width: 1180px) {
+  .atx-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
   .atx-detail-main {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -559,9 +563,15 @@
   .atx-page--detail {
     padding: 16px;
   }
-  .atx-fact {
-    border-left: 0;
-    border-top: 1px solid var(--rd-line);
+  .atx-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .atx-fact dd {
+    font-size: 16px;
+    white-space: normal;
+  }
+  .atx-fact small {
+    white-space: normal;
   }
 }
 .atx-detail-side {
@@ -569,6 +579,9 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+}
+.atx-page--detail .atx-detail-side .atx-dev-card {
+  padding: 16px;
 }
 /* No contract card and no deviations: the details card takes the row, four columns wide. */
 .atx-detail-side:empty {
@@ -587,6 +600,22 @@
   gap: 8px;
   color: var(--rd-ink-2);
   font-size: 12px;
+}
+.atx-replay-scope > button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--rd-line);
+  border-radius: 7px;
+  background: var(--rd-card);
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.atx-replay-scope > button.is-active {
+  border-color: var(--rd-brand);
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
 }
 .atx-measure-note {
   display: block;
@@ -681,8 +710,8 @@
    into the short distance and time measures. */
 .atx-detail-group {
   display: grid;
-  gap: 12px;
-  padding-top: 16px;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--rd-line);
 }
 .atx-detail-group:first-of-type {
@@ -704,7 +733,7 @@
 }
 .atx-page--detail .atx-details-route > .atx-field,
 .atx-page--detail .atx-details-measures > .atx-field {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: var(--rd-card-2);
 }

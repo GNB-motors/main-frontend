@@ -10,7 +10,16 @@ vi.mock('../../../services/RouteHubService', () => ({
     reviewDeviationEvent: vi.fn(),
   },
 }));
-vi.mock('./deviation/DeviationDetail.jsx', () => ({ default: () => null }));
+vi.mock('./deviation/DeviationDetail.jsx', () => ({
+  default: ({ row, onReview, reviewBusy }) => (
+    <div data-testid="selected-deviation">
+      {row?._id}
+      <button disabled={reviewBusy} onClick={() => onReview({ status: 'REVIEWED' })}>
+        Review selected
+      </button>
+    </div>
+  ),
+}));
 
 const row = (id, corridorLabel = 'Other corridor') => ({
   _id: id,
@@ -96,4 +105,47 @@ it('distinguishes a known zero estimate from a missing estimate using the full s
   );
   fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
   await waitFor(() => expect(kpi('Est. detour cost')).toHaveTextContent('—'));
+});
+
+it('fetches an off-page deep link directly and reviews only that event', async () => {
+  const requested = row('older-event');
+  RouteHubService.getDeviationEvent.mockResolvedValue({ event: requested });
+  render(
+    <DeviationView
+      params={new URLSearchParams('d=older-event')}
+      toast={vi.fn()}
+      setBadge={setBadge}
+      go={vi.fn()}
+    />,
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Review selected' })).not.toBeDisabled(),
+  );
+  expect(RouteHubService.getDeviationEvent).toHaveBeenCalledWith(
+    'older-event',
+    expect.any(AbortSignal),
+  );
+  expect(RouteHubService.getDeviationEvent).not.toHaveBeenCalledWith('all-1', expect.anything());
+  fireEvent.click(screen.getByRole('button', { name: 'Review selected' }));
+  await waitFor(() =>
+    expect(RouteHubService.reviewDeviationEvent).toHaveBeenCalledWith(
+      { id: 'older-event', status: 'REVIEWED' },
+      expect.anything(),
+    ),
+  );
+});
+
+it('keeps review disabled when the requested event cannot be read', async () => {
+  RouteHubService.getDeviationEvent.mockRejectedValue({ status: 404 });
+  render(
+    <DeviationView
+      params={new URLSearchParams('d=missing-event')}
+      toast={vi.fn()}
+      setBadge={setBadge}
+      go={vi.fn()}
+    />,
+  );
+  await screen.findByText('Other corridor');
+  expect(screen.getByRole('button', { name: 'Review selected' })).toBeDisabled();
+  expect(RouteHubService.reviewDeviationEvent).not.toHaveBeenCalled();
 });

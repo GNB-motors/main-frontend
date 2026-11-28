@@ -134,7 +134,7 @@ it('puts the trip numbers in one strip, unknown as a dash with its reason', asyn
   await screen.findByRole('heading', { name: 'WB11F4262' });
   const strip = within(document.querySelector('.atx-facts'));
   expect(strip.getByText('117 km')).toBeInTheDocument();
-  expect(strip.getByText('from the GPS path')).toBeInTheDocument();
+  expect(strip.getByText('distance source not recorded')).toBeInTheDocument();
   expect(strip.getByText('3 h 1 min')).toBeInTheDocument();
   expect(strip.getByText('₹3,837')).toBeInTheDocument();
   expect(strip.getByText('fuel ₹3,425 · estimated maintenance cost ₹412')).toBeInTheDocument();
@@ -251,7 +251,10 @@ it('shows known fuel and wear as a partial estimate when the full trip total is 
   await screen.findByRole('heading', { name: 'WB11F4262' });
   const strip = within(document.querySelector('.atx-facts'));
   expect(strip.getByText('₹13,641')).toBeInTheDocument();
-  expect(strip.getByText('Partly measured').closest('dt')).toHaveClass('atx-cost-heading');
+  const amount = strip.getByText('₹13,641');
+  const badge = strip.getByText('Partly measured');
+  expect(badge.closest('dt')).toBeNull();
+  expect(amount.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(strip.getByText(/fuel ₹12,438/)).toHaveTextContent('estimated maintenance cost ₹1,203');
 });
 
@@ -563,7 +566,9 @@ it('spec 4: the cost card never adds another trip’s tolls to this trip', async
   );
   fireEvent.click(screen.getByRole('button', { name: 'other trip' }));
   // The new trip's card never shows the old trip's tolls.
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Trip cost' })).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByRole('heading', { name: 'Trip cost' })).toBeInTheDocument(),
+  );
   const second = screen.getByRole('heading', { name: 'Trip cost' }).closest('.atx-card');
   expect(within(second).queryByText('₹500')).not.toBeInTheDocument();
   expect(within(second).getByText('₹1,000')).toBeInTheDocument();

@@ -13,12 +13,21 @@ export default function PasswordField({
   error = null,
   name,
   maxLength = 72,
+  id: inputId,
+  className = '',
+  inputClassName = '',
+  labelClassName = '',
+  required = false,
+  disabled = false,
+  placeholder,
+  'aria-label': ariaLabel,
 }) {
-  const id = useId();
+  const generatedId = useId();
+  const id = inputId || generatedId;
   const [shown, setShown] = useState(false);
   return (
-    <div className="pwf">
-      <label id={`${id}-label`} htmlFor={id} className="pwf-label">
+    <div className={`pwf ${className}`}>
+      <label id={`${id}-label`} htmlFor={id} className={`pwf-label ${labelClassName}`}>
         {label}
       </label>
       <div className="pwf-row">
@@ -29,17 +38,23 @@ export default function PasswordField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete}
-          aria-labelledby={`${id}-label`}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabel ? undefined : `${id}-label`}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-err` : undefined}
-          className="pwf-input"
+          className={`pwf-input ${inputClassName}`}
           maxLength={maxLength}
+          required={required}
+          disabled={disabled}
+          placeholder={placeholder}
         />
         <button
           type="button"
           className="pwf-eye"
           onClick={() => setShown((v) => !v)}
           aria-label={shown ? 'Hide password' : 'Show password'}
+          aria-pressed={shown}
+          disabled={disabled}
         >
           {shown ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>

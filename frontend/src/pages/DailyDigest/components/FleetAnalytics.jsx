@@ -100,7 +100,7 @@ export default function FleetAnalytics({
         info={runningWhy}
         to={
           model.loadedTrips != null && day
-            ? `/auto-trips?range=custom&from=${day}&to=${day}`
+            ? `/intelligence?tab=runs&sort=emptyKm&from=${day}&to=${day}`
             : model.cards.loaded?.link?.to || '/auto-trips'
         }
         className="db-running"

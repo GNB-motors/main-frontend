@@ -29,7 +29,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     // A link can open the view on a day (the digest's "Off-route trips").
     from: /^\d{4}-\d{2}-\d{2}$/.test(params.get('from') || '') ? params.get('from') : '',
     to: /^\d{4}-\d{2}-\d{2}$/.test(params.get('to') || '') ? params.get('to') : '',
-    status: 'all',
+    status: ['OPEN', 'REVIEWED'].includes(params.get('status')) ? params.get('status') : 'all',
     leg: 'all',
     page: 1,
   });
@@ -72,11 +72,8 @@ export default function DeviationView({ params, toast, setBadge, go }) {
   const hasOpenCost =
     summary?.openCostCount != null ? summary.openCostCount > 0 : summary?.openCostInr > 0;
   const groups = groupByTrip(rows);
-  const selected = rows.find((d) => d._id === selId) || rows[0] || null;
-  const selectedId = selected?._id || null;
-  const siblings = selected?.trip?.autoTripId
-    ? rows.filter((d) => String(d.trip?.autoTripId) === String(selected.trip.autoTripId))
-    : [];
+  // An explicit event must never fall back to another row on this page.
+  const selectedId = selId || rows[0]?._id || null;
 
   const detail = useApi(
     (signal) => RouteHubService.getDeviationEvent(selectedId, signal),
@@ -87,13 +84,29 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     },
   );
 
+  const selected =
+    detail.data?.event?._id === selectedId
+      ? detail.data.event
+      : rows.find((d) => d._id === selectedId) || null;
+  const tripId = selected?.trip?.autoTripId;
+  const tripEvents = useApi(
+    (signal) => RouteHubService.getDeviationEvents({ autoTripId: tripId, limit: 100 }, signal),
+    [tripId],
+    { enabled: Boolean(tripId), scopeKey: tripId },
+  );
+  const siblings = tripId ? tripEvents.data?.records || [] : [];
+  const reviewReady = Boolean(
+    selectedId && detail.data?.event?._id === selectedId && !detail.error && !detail.loading,
+  );
+
   const review = useMutation((payload, { signal }) =>
     RouteHubService.reviewDeviationEvent(payload, { signal }),
   );
 
   const onReview = async (body) => {
+    if (!reviewReady) return;
     try {
-      await review.mutate({ id: selectedId, ...body });
+      await review.mutate({ ...body, id: selectedId });
       toast(
         body.status === 'OPEN'
           ? `${selected.registrationNumber} reopened`
@@ -264,14 +277,24 @@ export default function DeviationView({ params, toast, setBadge, go }) {
           pager={pager}
         />
         <DeviationDetail
-          row={selected}
+          row={
+            selected ||
+            (selectedId
+              ? {
+                  _id: selectedId,
+                  registrationNumber: detail.error
+                    ? 'Requested deviation unavailable'
+                    : 'Loading requested deviation…',
+                }
+              : null)
+          }
           detail={detail.data}
           loading={detail.loading}
           error={detail.error}
           siblings={siblings}
           onSelect={setSelId}
           onReview={onReview}
-          reviewBusy={review.loading}
+          reviewBusy={review.loading || !reviewReady}
           go={go}
         />
       </div>

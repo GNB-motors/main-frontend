@@ -277,6 +277,7 @@ export default function MileagePage() {
   return (
     <>
       <PageShell
+        className="mileage-hub-page"
         title="Diesel & Mileage"
         subtitle="Every diesel fill, whether its bill is right, and how far each truck goes on a litre."
         actions={
@@ -331,7 +332,7 @@ export default function MileagePage() {
           </div>
         }
         filters={
-          <div className="manufacturer-scope-row">
+          <div className="manufacturer-scope-row mhub-filters">
             <HubDateBar
               preset={preset}
               range={range}

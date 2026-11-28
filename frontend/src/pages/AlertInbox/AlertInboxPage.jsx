@@ -20,7 +20,11 @@ import PageShell from '../../components/ui/PageShell.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
 import { useSupportPortal } from '../../contexts/supportPortalContext';
-import { getInbox, acknowledgeItem, acknowledgeAll } from '../../services/AlertInboxService.js';
+import {
+  getInbox,
+  acknowledgeItem,
+  acknowledgeSelected,
+} from '../../services/AlertInboxService.js';
 import { fleetViewService } from '../../services/fleetViewService';
 import useApi from '../../hooks/useApi';
 import {
@@ -34,7 +38,7 @@ import AccountLinkBanner from './AccountLinkBanner.jsx';
 import IncidentsTab from './IncidentsTab.jsx';
 import AlertInboxTable from './AlertInboxTable';
 import { billCheckView } from '../../utils/billCheck';
-import { ackAllConfirmText } from './incidentsModel.js';
+
 import './AlertInbox.css';
 import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
@@ -123,10 +127,12 @@ export default function AlertInboxPage() {
     setAckAllPending(true);
     setActionError(null);
     try {
-      await acknowledgeAll();
+      const result = await acknowledgeSelected(ackAllOpen);
       setAckAllOpen(false);
       await load();
-      setAnnouncement('Every open alert is marked as seen.');
+      setAnnouncement(
+        `${result.acknowledged} of ${result.requested} matching alerts marked as seen.`,
+      );
     } catch (err) {
       if (mounted.current) {
         setActionError(err?.message || 'Could not mark the alerts as seen. Try again.');
@@ -287,9 +293,9 @@ export default function AlertInboxPage() {
                     role="group"
                     aria-label="Confirm marking every alert as seen"
                   >
-                    <span>{ackAllConfirmText(open.length)}</span>
+                    <span>{`Mark these ${ackAllOpen.length} matching alerts reviewed? Their source outcomes remain separate.`}</span>
                     <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
-                      {ackAllPending ? 'Saving…' : 'Yes, mark all'}
+                      {ackAllPending ? 'Saving…' : 'Mark matching reviewed'}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
                       Cancel
@@ -300,11 +306,22 @@ export default function AlertInboxPage() {
                     size="sm"
                     variant="ghost"
                     className="ai-bulk-review"
-                    onClick={() => setAckAllOpen(true)}
-                    disabled={loading || open.length === 0}
+                    onClick={() =>
+                      setAckAllOpen(
+                        items
+                          .filter((item) => item.status === 'OPEN')
+                          .slice(0, 1000)
+                          .map((item) => item.id),
+                      )
+                    }
+                    disabled={loading || !items.some((item) => item.status === 'OPEN')}
                   >
                     <CheckCheck size={14} aria-hidden="true" />
-                    Mark all reviewed
+                    Mark {Math.min(
+                      1000,
+                      items.filter((item) => item.status === 'OPEN').length,
+                    )}{' '}
+                    matching reviewed
                   </Button>
                 )}
               </div>

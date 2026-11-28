@@ -23,13 +23,19 @@ export async function listHotspots({ signal } = {}) {
  * `from`/`to` are ISO strings; `bbox` is "minLng,minLat,maxLng,maxLat". All are
  * optional (the backend defaults the window and returns the whole fleet).
  */
-export async function getDrainMap({ from, to, bbox, signal } = {}) {
+export async function getDrainMap({ from, to, bbox, vehicle, driver, signal } = {}) {
   const params = {};
   if (from) params.from = from;
   if (to) params.to = to;
   if (bbox) params.bbox = bbox;
+  if (vehicle) params.vehicle = vehicle;
+  if (driver) params.driver = driver;
   const response = await apiClient.get('/api/hotspots/map', { params, signal });
-  return response.data?.data ?? null;
+  return parseSafe(
+    'drainMapSchema',
+    () => import('../schemas/drainMap.schema.js'),
+    response.data?.data ?? null,
+  );
 }
 
 /**

@@ -77,7 +77,10 @@ export default function ApprovalsPage() {
   const [pending, setPending] = useState({});
   const [officeUnavailable, setOfficeUnavailable] = useState(false);
   const visibleTypes = types.filter((t) => t.key !== 'office' || !officeUnavailable);
-  const active = visibleTypes.find((t) => t.key === params.get('type')) || visibleTypes[0];
+  const active =
+    visibleTypes.find((t) => t.key === params.get('type')) ||
+    visibleTypes.find((t) => pending[t.key] > 0) ||
+    visibleTypes[0];
 
   useEffect(() => {
     let alive = true;

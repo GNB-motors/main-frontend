@@ -8,19 +8,14 @@ vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: { getTripsHistory: vi.fn() },
 }));
 
-it('finds a long visit beyond the first page and sends the full selected IST day', async () => {
+it('asks the server to filter before paging across the full selected IST day', async () => {
   const visit = {
     kind: 'VISIT',
     registrationNumber: 'LONG-VISIT',
     arrivedAt: '2026-11-04T10:00:00Z',
     dwellMin: 200,
   };
-  fleetViewService.getTripsHistory
-    .mockResolvedValueOnce({
-      items: [{ ...visit, registrationNumber: 'SHORT-VISIT', dwellMin: 20 }],
-      total: 2,
-    })
-    .mockResolvedValueOnce({ items: [visit], total: 2 });
+  fleetViewService.getTripsHistory.mockResolvedValueOnce({ items: [visit], total: 1 });
   render(
     <MemoryRouter>
       <TripHistoryTab from="2026-11-04" to="2026-11-04" minDwellMin="180" />
@@ -33,7 +28,10 @@ it('finds a long visit beyond the first page and sends the full selected IST day
       expect.objectContaining({
         from: '2026-11-03T18:30:00.000Z',
         to: '2026-11-04T18:29:59.999Z',
-        page: 2,
+        page: 1,
+        minDwellMin: 180,
+        sort: 'longest',
+        limit: 50,
       }),
     ),
   );

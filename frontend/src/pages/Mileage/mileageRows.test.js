@@ -429,7 +429,7 @@ describe('pump honesty', () => {
     expect(pumpHonestyStatus(6, 5)).toBe('SUSPICIOUS');
     expect(pumpHonestyStatus(7.9, 11)).toBe('UNRELIABLE');
     expect(pumpHonestyStatus(10.1, 5)).toBe('CHRONIC_SHORTAGE');
-    expect(pumpHonestyStatus(null, 5)).toBe('HONEST');
+    expect(pumpHonestyStatus(null, 5)).toBe('INSUFFICIENT_DATA');
   });
 
   it('has a plain-word label for every verdict', () => {

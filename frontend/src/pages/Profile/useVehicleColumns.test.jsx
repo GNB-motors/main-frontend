@@ -6,7 +6,9 @@ import { normalizeVehicle, buildAccountMap } from './vehicleList.js';
 import { indexLinkHealth } from '../../lib/fleetLink';
 
 function ColumnCell({ columnKey, vehicle, accountMap = {}, linkIndex = null }) {
-  const column = useVehicleColumns({ accountMap, linkIndex }).find((item) => item.key === columnKey);
+  const column = useVehicleColumns({ accountMap, linkIndex }).find(
+    (item) => item.key === columnKey,
+  );
   return column.render(normalizeVehicle(vehicle));
 }
 
@@ -23,7 +25,7 @@ describe('vehicle average mileage cell', () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('link', { name: '4.26 km/L' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /4.26 km\/L/ })).toHaveAttribute(
       'href',
       '/mileage?tab=performance&search=WB01',
     );
@@ -79,7 +81,10 @@ describe('vehicle account cell', () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.getByText('FleetEdge')).toHaveAttribute('title', 'FleetEdge account EXT-1 · Hub A');
+    expect(screen.getByText('FleetEdge')).toHaveAttribute(
+      'title',
+      'FleetEdge account EXT-1 · Hub A',
+    );
     expect(screen.getByTitle('Connected')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });

@@ -37,13 +37,14 @@ export function normalizeVehicle(v) {
     branchStatus: v.branchStatus,
     isImported: v.isImported,
     averageMileage,
+    mileageExpected: efficiency?.expectedKmPerL ?? efficiency?.expected ?? null,
+    mileageCycles: efficiency?.cycles ?? null,
+    mileageDutyGroup: efficiency?.dutyGroupLabel ?? efficiency?.dutyGroup ?? null,
     mileageWithheld:
       averageMileage == null &&
       (efficiency?.published === false || Boolean(efficiency?.withheldReason)),
     mileageUnavailableReason:
-      averageMileage != null
-        ? null
-        : efficiency?.withheldReason || 'No full-tank rounds yet.',
+      averageMileage != null ? null : efficiency?.withheldReason || 'No full-tank rounds yet.',
   };
 }
 

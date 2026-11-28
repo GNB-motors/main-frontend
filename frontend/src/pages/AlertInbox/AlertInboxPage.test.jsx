@@ -5,7 +5,7 @@ import AlertInboxPage from './AlertInboxPage';
 import {
   getInbox,
   acknowledgeItem,
-  acknowledgeAll,
+  acknowledgeSelected,
   getIncidents,
   getIncidentSummary,
   acknowledgeIncident,
@@ -16,7 +16,7 @@ import SupportPortalContext from '../../contexts/supportPortalContext';
 vi.mock('../../services/AlertInboxService', () => ({
   getInbox: vi.fn(),
   acknowledgeItem: vi.fn(),
-  acknowledgeAll: vi.fn(),
+  acknowledgeSelected: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentSummary: vi.fn(),
   acknowledgeIncident: vi.fn(),
@@ -89,7 +89,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getInbox.mockResolvedValue({ items: [fuel, ticket] });
   acknowledgeItem.mockResolvedValue({ ...fuel, status: 'ACKNOWLEDGED' });
-  acknowledgeAll.mockResolvedValue({ acknowledged: 2 });
+  acknowledgeSelected.mockResolvedValue({ requested: 2, acknowledged: 2 });
   getIncidents.mockResolvedValue({ items: [], pagination: { total: 0, page: 1, limit: 50 } });
   getIncidentSummary.mockResolvedValue({
     OPEN: 0,
@@ -218,14 +218,18 @@ describe('Alert Inbox integration', () => {
     const link = screen.getByRole('link', { name: 'Reconnect' });
     expect(link.getAttribute('href')).toBe('/settings/fleetedge-accounts');
   });
-  it('asks before it marks every open alert as seen', async () => {
+  it('confirms the matching IDs before acknowledging them', async () => {
     mount();
     await screen.findByText('Fuel loss');
-    fireEvent.click(screen.getByRole('button', { name: 'Mark all reviewed' }));
-    expect(screen.getByText('Mark all 2 open alerts as seen?')).toBeInTheDocument();
-    expect(acknowledgeAll).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, mark all' }));
-    await waitFor(() => expect(acknowledgeAll).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark 2 matching reviewed' }));
+    expect(
+      screen.getByText(
+        'Mark these 2 matching alerts reviewed? Their source outcomes remain separate.',
+      ),
+    ).toBeInTheDocument();
+    expect(acknowledgeSelected).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark matching reviewed' }));
+    await waitFor(() => expect(acknowledgeSelected).toHaveBeenCalledWith(['fuel', 'ticket']));
   });
   it('shows the incident board on the incidents view', async () => {
     getIncidents.mockResolvedValue({

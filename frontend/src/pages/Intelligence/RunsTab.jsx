@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
+import { useSearchParams } from 'react-router-dom';
 import { useApi } from '@/hooks/useApi';
 import { formatKm, formatNumber, formatPct } from '@/utils/redesign/format';
 import IntelligenceDataState from './IntelligenceDataState';
@@ -21,7 +23,9 @@ const emptyShareOf = (row) =>
   row?.totalKm > 0 && row?.emptyKm != null && !isPartialRow(row) ? row.emptyKm / row.totalKm : null;
 
 export default function RunsTab({ from, to, summary: summary$ }) {
+  const [params] = useSearchParams();
   const [filter, setFilter] = useState('all');
+  const [sort, setSort] = useState(params.get('sort') || 'emptyKm');
   // The page already read the summary for its own tiles. The tab uses that
   // answer instead of asking the server for the same read a second time.
   const shared = summary$ !== undefined;
@@ -56,7 +60,13 @@ export default function RunsTab({ from, to, summary: summary$ }) {
   // The empty share of a partly measured truck would be a share of the km that
   // are known, not of the km the truck drove, so it is not shown.
   const highEmpty = measured.filter((row) => (emptyShareOf(row) ?? 0) > 0.25);
-  const shown = (filter === 'empty' ? highEmpty : measured).slice(0, 20);
+  const shown = [...(filter === 'empty' ? highEmpty : measured)].sort((a, b) => {
+    const value = (row) => (sort === 'emptyShare' ? emptyShareOf(row) : row[sort]);
+    return (
+      (value(b) ?? -Infinity) - (value(a) ?? -Infinity) ||
+      a.registrationNumber.localeCompare(b.registrationNumber)
+    );
+  });
   const maxKm = measured.reduce((max, row) => Math.max(max, row.totalKm ?? 0), 0);
   const carriedShare = loadedShare(runs);
   const serverBars = Array.isArray(runs?.byTruck);
@@ -160,6 +170,15 @@ export default function RunsTab({ from, to, summary: summary$ }) {
         <header>
           <div>
             <h3>Kilometres by truck</h3>
+            <SearchableSelect
+              aria-label="Sort trucks by distance"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="emptyKm">Most empty km</option>
+              <option value="emptyShare">Highest empty share</option>
+              <option value="totalKm">Most total km</option>
+            </SearchableSelect>
             <div className="intel-run-filter" role="group" aria-label="Filter run distance">
               <button aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
                 All {measured.length}

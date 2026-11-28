@@ -46,6 +46,24 @@ export const autoTripSchema = z
       .object({ approachMin: num, plantMin: num, transitMin: num, dropMin: num })
       .passthrough()
       .nullish(),
+    measurement: z
+      .object({
+        version: num,
+        basis: str,
+        from: str,
+        to: str,
+        totalKm: num,
+        loadedKm: num,
+        emptyKm: num,
+        burnedL: num,
+        kmPerL: num,
+        efficiencyBasis: str,
+        partial: z.boolean(),
+        fuelPartial: z.boolean(),
+        soFar: z.boolean(),
+      })
+      .passthrough()
+      .nullish(),
     fuelLadenL: num,
     stopsSummary: z
       .object({ fuel: num, rest: num, overnight: num, unexplained: num })

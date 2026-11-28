@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Route, Truck, Pencil, ArrowUpRight, History } from 'lucide-react';
+import { Route, Info, ChevronDown, Pencil, ArrowUpRight, History } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '../../components/ui/button';
 import useApi from '../../hooks/useApi';
@@ -12,6 +12,7 @@ import SapComparison from './SapComparison';
 import SapRequestState from './SapRequestState';
 import SetSapDialog from './SetSapDialog';
 import { BASIS_LABEL, SOURCE_LABEL, SAP_REASONS, canEditSap, kmText } from './sapModel';
+import './Sap.css';
 
 /**
  * The trip's route and that route's SAP. SAP belongs to the route (pickup place → drop place),
@@ -175,23 +176,24 @@ export default function RouteSapCard({ trip }) {
             onSaved={saved}
           />
         )}
+        <details className="sap-route-help">
+          <summary>
+            <Info size={15} aria-hidden="true" />
+            What does SAP mean here?
+            <ChevronDown size={15} className="sap-route-help-chevron" aria-hidden="true" />
+          </summary>
+          <div>
+            <p>
+              SAP is the route distance agreed with the plant for payment. We compare it with the
+              truck’s actual GPS distance to show extra or fewer kilometres.
+            </p>
+            <p>One way counts the loaded run. Round trip counts the loaded run and the return.</p>
+            <span className="sap-route-help-example">
+              Example: 200 km agreed, 220 km driven = 20 km extra.
+            </span>
+          </div>
+        </details>
       </section>
-      <aside className="atx-card sap-route-help" aria-label="About SAP distance">
-        <span className="sap-route-help-icon">
-          <Truck size={28} strokeWidth={1.5} aria-hidden="true" />
-        </span>
-        <div>
-          <h3>What does SAP mean here?</h3>
-          <p>
-            SAP is the route distance agreed with the plant for payment. We compare it with the
-            truck’s actual GPS distance to show extra or fewer kilometres.
-          </p>
-          <p>One way counts the loaded run. Round trip counts the loaded run and the return.</p>
-          <span className="sap-route-help-example">
-            Example: 200 km agreed, 220 km driven = 20 km extra.
-          </span>
-        </div>
-      </aside>
     </>
   );
 }

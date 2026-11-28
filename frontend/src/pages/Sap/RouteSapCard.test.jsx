@@ -60,6 +60,15 @@ beforeEach(() => {
   SapService.hint.mockResolvedValue({ shortestOneWayKm: 98, suggestion: { basis: 'ONE_WAY' } });
 });
 
+it('keeps SAP help collapsed inside the distance card', async () => {
+  mount();
+  const card = await screen.findByRole('region', { name: 'Route SAP' });
+  const help = within(card).getByText('What does SAP mean here?').closest('details');
+  expect(help).not.toHaveAttribute('open');
+  expect(help).toHaveTextContent('200 km agreed, 220 km driven = 20 km extra.');
+  expect(screen.queryByRole('complementary', { name: 'About SAP distance' })).toBeNull();
+});
+
 it("shows the route's SAP compared on its basis, its source, and its history", async () => {
   mount();
   const card = await screen.findByRole('region', { name: 'Route SAP' });

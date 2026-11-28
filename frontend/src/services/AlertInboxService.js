@@ -74,3 +74,8 @@ export async function resolveIncident(id, body) {
   const response = await apiClient.put(`/api/incidents/${id}/resolution`, body);
   return response.data?.data ?? null;
 }
+
+export async function acknowledgeSelected(ids, { signal } = {}) {
+  const response = await apiClient.put('/api/alert-inbox/ack', { ids }, { signal });
+  return response.data?.data;
+}

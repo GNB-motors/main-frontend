@@ -94,7 +94,7 @@ const AddDriverPage = () => {
           email: editing.email || '',
           mobileNumber: editing.mobileNumber || editing.mobile_number || '',
           location: editing.location || '',
-          role: editing.role || 'DRIVER',
+          role: editing.role || null,
           enterpriseRoleId: matchedRoleId,
           branchRoleId: matchedRoleId,
           status: editing.status || 'PENDING',

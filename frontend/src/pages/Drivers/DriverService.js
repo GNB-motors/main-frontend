@@ -183,9 +183,11 @@ export const DriverService = {
 
   // --- Reset an employee's password (owner / manager action) ---
   // body = { mode: 'set', password, signOut } | { mode: 'email' }
-  resetPassword: async (driverId, body) => {
+  resetPassword: async (driverId, body, { signal } = {}) => {
     try {
-      const response = await apiClient.post(`/api/employees/${driverId}/password`, body);
+      const response = await apiClient.post(`/api/employees/${driverId}/password`, body, {
+        signal,
+      });
       return response.data?.data ?? response.data;
     } catch (error) {
       throw ApiError.from(error);

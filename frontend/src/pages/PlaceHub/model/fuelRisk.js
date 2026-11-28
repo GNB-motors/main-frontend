@@ -33,11 +33,12 @@ export function drainCellsOf(map) {
     .filter((b) => isNum(toNum(b.centerLat)) && isNum(toNum(b.centerLng)))
     .map((b) => ({
       id: `drain:${b.cell}`,
+      records: b.events || [],
       lat: Number(b.centerLat),
       lng: Number(b.centerLng),
       events: Number(b.count) || 0,
       litres: Number(b.totalLitres) || 0,
-      rupees: Number(b.estimatedInr) || 0,
+      rupees: b.estimatedInr == null ? null : Number(b.estimatedInr),
       vehicles: b.vehicles || [],
     }));
 }
@@ -46,7 +47,9 @@ export function fuelTotals(hotspots = [], cells = []) {
   return {
     active: hotspots.filter((h) => h.active && h.provenance !== 'network').length,
     network: hotspots.filter((h) => h.active && h.provenance === 'network').length,
-    drainRupees: cells.reduce((s, c) => s + c.rupees, 0),
+    drainRupees: cells.some((c) => c.rupees == null)
+      ? null
+      : cells.reduce((s, c) => s + c.rupees, 0),
     drainEvents: cells.reduce((s, c) => s + c.events, 0),
   };
 }

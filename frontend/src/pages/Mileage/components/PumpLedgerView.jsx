@@ -22,7 +22,9 @@ const explainPump = (p, price) => ({
   title: p.station.displayName,
   text:
     p.status === 'INSUFFICIENT_DATA'
-      ? `Only ${p.fills} fill${p.fills === 1 ? '' : 's'} here so far. One fill can be off for many reasons, so a pump is judged after ${PUMP_MIN_FILLS}.`
+      ? p.shortfallPct == null
+        ? 'Insufficient measurement: short-delivery could not be calculated from the matched fills.'
+        : `Only ${p.fills} fill${p.fills === 1 ? '' : 's'} here so far. One fill can be off for many reasons, so a pump is judged after ${PUMP_MIN_FILLS}.`
       : 'Over all matched fills here: the diesel billed against what reached the tanks.',
   lines: [
     ['Billed', formatLitres(p.claimedLitres)],
@@ -32,7 +34,7 @@ const explainPump = (p, price) => ({
       `${formatLitres(p.shortfallLitres)} (${p.shortfallPct != null ? p.shortfallPct.toFixed(1) : '—'}%)`,
     ],
     [
-      'Money lost',
+      'Estimated ₹ exposure',
       `${formatINR(p.lossInr)}${price != null ? ` at ${formatINR(price, { decimals: 2 })}/L` : ''}`,
     ],
     ['Honest', '1% or less short'],
@@ -65,7 +67,10 @@ const columns = (price) => [
     label: 'Verdict',
     render: (p) => (
       <span className="mhub-cell">
-        <StatusChip group="pumpHonesty" value={p.status} />
+        <StatusChip
+          group="pumpHonesty"
+          value={p.status === 'INSUFFICIENT_DATA' ? 'INSUFFICIENT_MEASUREMENT' : p.status}
+        />
         <InfoTip explanation={explainPump(p, price)} />
       </span>
     ),
@@ -90,7 +95,7 @@ const columns = (price) => [
   },
   {
     key: 'lost',
-    label: 'Money lost',
+    label: 'Estimated ₹ exposure',
     align: 'right',
     render: (p) => (
       <span
@@ -104,9 +109,7 @@ const columns = (price) => [
   {
     key: 'last',
     label: 'Last fill',
-    render: (p) => (
-      <span className="num">{p.lastFillAt ? humanDate(p.lastFillAt) : '—'}</span>
-    ),
+    render: (p) => <span className="num">{p.lastFillAt ? humanDate(p.lastFillAt) : '—'}</span>,
   },
 ];
 
@@ -176,7 +179,7 @@ export default function PumpLedgerView({ range, searchQuery = '' }) {
           sub="Billed but never reached the tank"
         />
         <Tile
-          label="Money lost (approx.)"
+          label="Estimated ₹ exposure"
           valueClass="mhub-kpi-value--critical"
           value={ready ? formatInrCompact(summary.lossInr) : dash}
           sub={

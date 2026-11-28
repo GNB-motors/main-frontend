@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
@@ -6,6 +6,7 @@ import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { tripsHistoryLink } from '../../utils/redesign/links';
 import ToneBadge from '../../components/redesign/ToneBadge';
 import NotYetAvailable from '../../components/redesign/NotYetAvailable';
+import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import { rangeToParams } from '../Mileage/mileageDates';
 
 /**
@@ -28,42 +29,25 @@ export default function TripHistoryTab({
     /^\d{4}-\d{2}-\d{2}$/.test(from || '') && /^\d{4}-\d{2}-\d{2}$/.test(to || '')
       ? rangeToParams({ from, to })
       : { from, to };
+  const [paging, setPaging] = useState({ scope: '', page: 1 });
+  const scope = JSON.stringify([vehicle, site, from, to, minDwell]);
+  const page = paging.scope === scope ? paging.page : 1;
+  const limit = 50;
   const { data, loading, error } = useApi(
-    async (signal) => {
-      const first = await fleetViewService.getTripsHistory({
+    (signal) =>
+      fleetViewService.getTripsHistory({
         site,
         vehicle,
         ...bounds,
-        limit: 200,
+        limit,
+        page,
+        ...(minDwell ? { minDwellMin: minDwell, sort: 'longest' } : {}),
         signal,
-      });
-      if (!minDwell || first.held) return first;
-      const items = [...(first.items || [])];
-      for (let page = 2; items.length < first.total && page <= 50; page++) {
-        const next = await fleetViewService.getTripsHistory({
-          site,
-          vehicle,
-          ...bounds,
-          limit: 200,
-          page,
-          signal,
-        });
-        if (!next.items?.length) break;
-        items.push(...next.items);
-      }
-      return { ...first, items, truncated: items.length < first.total };
-    },
-    [vehicle, site, from, to, minDwell],
-    { scopeKey: `${vehicle}:${site}:${from}:${to}:${minDwell}` },
+      }),
+    [scope, page],
+    { scopeKey: `${scope}:${page}` },
   );
-
-  const items = useMemo(
-    () =>
-      (Array.isArray(data?.items) ? data.items : []).filter(
-        (item) => !minDwell || (item.kind === 'VISIT' && item.dwellMin >= minDwell),
-      ),
-    [data, minDwell],
-  );
+  const items = Array.isArray(data?.items) ? data.items : [];
   const countsByPlace = useMemo(
     () => (Array.isArray(data?.countsByPlace) ? data.countsByPlace : []),
     [data],
@@ -184,6 +168,15 @@ export default function TripHistoryTab({
         </ul>
       )}
 
+      {data?.total > limit ? (
+        <EnterprisePagination
+          page={page}
+          totalPages={Math.ceil(data.total / limit)}
+          totalItems={data.total}
+          pageSize={limit}
+          onPageChange={(next) => setPaging({ scope, page: next })}
+        />
+      ) : null}
       {site ? (
         <Link
           to={tripsHistoryLink({ site, vehicle })}

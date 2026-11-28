@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import FleetListView from './FleetListView.jsx';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../services/PlaceService', () => ({ resolvePlace: vi.fn().mockResolvedValue(null) }));
 
@@ -10,17 +11,19 @@ vi.mock('../../services/PlaceService', () => ({ resolvePlace: vi.fn().mockResolv
  */
 function renderRail(props = {}) {
   return render(
-    <FleetListView
-      isLiveLoading={false}
-      vehicles={[]}
-      filteredVehicles={[]}
-      counts={{ gps: 0 }}
-      setIsRailOpen={() => {}}
-      triggerMapResize={() => {}}
-      selectedId={null}
-      setSelectedId={() => {}}
-      {...props}
-    />,
+    <MemoryRouter>
+      <FleetListView
+        isLiveLoading={false}
+        vehicles={[]}
+        filteredVehicles={[]}
+        counts={{ gps: 0 }}
+        setIsRailOpen={() => {}}
+        triggerMapResize={() => {}}
+        selectedId={null}
+        setSelectedId={() => {}}
+        {...props}
+      />
+    </MemoryRouter>,
   );
 }
 
@@ -90,4 +93,70 @@ it('shows the original vehicle details alongside speed', async () => {
   expect(screen.getByText('32 km/h')).toBeInTheDocument();
   expect(screen.getByText('Tata')).toBeInTheDocument();
   expect(screen.getByText('VIN: TEST-VIN')).toBeInTheDocument();
+});
+
+it('puts trucks with red alert badges first in All without an extra sort control', () => {
+  const vehicles = [
+    { id: 'moving', plate: 'MOVE1', status: 'moving', ago: 1 },
+    { id: 'offline', plate: 'DARK1', status: 'offline', ago: 600 },
+  ];
+  const { container } = renderRail({
+    vehicles,
+    filteredVehicles: vehicles,
+    alertCounts: new Map([['DARK1', 1]]),
+  });
+  expect(
+    [...container.querySelectorAll('.vc-plate')].map((el) => el.firstChild.textContent),
+  ).toEqual(['DARK1', 'MOVE1']);
+  expect(
+    screen.getByRole('button', { name: 'View 1 unacknowledged alert for DARK1' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Sort trucks' })).not.toBeInTheDocument();
+});
+
+it('keeps the usual status order when viewing a filtered fleet', () => {
+  const vehicles = [
+    { id: 'fresh', plate: 'FRESH1', status: 'moving', ago: 1 },
+    { id: 'older', plate: 'OLDER1', status: 'moving', ago: 5 },
+  ];
+  const { container } = renderRail({
+    vehicles,
+    filteredVehicles: vehicles,
+    filter: 'moving',
+    alertCounts: new Map([['OLDER1', 1]]),
+  });
+  expect(
+    [...container.querySelectorAll('.vc-plate')].map((el) => el.firstChild.textContent),
+  ).toEqual(['FRESH1', 'OLDER1']);
+});
+
+it('opens the badge reason directly without selecting the truck', async () => {
+  const vehicle = { id: 'truck', plate: 'WB11F8162', status: 'offline', ago: 180 };
+  const setSelectedId = vi.fn();
+  renderRail({
+    vehicles: [vehicle],
+    filteredVehicles: [vehicle],
+    setSelectedId,
+    alertCounts: new Map([['WB11F8162', 1]]),
+    alerts: [
+      {
+        id: 'alert1',
+        vehicleNumber: 'WB11F8162',
+        type: 'FLEETEDGE_ALERT_FUEL_DRAIN',
+        message: 'Fuel level fell by 35 L while the truck was parked.',
+        at: new Date().toISOString(),
+        severity: 'WARNING',
+      },
+    ],
+  });
+  fireEvent.click(screen.getByRole('button', { name: /View 1 unacknowledged alert/ }));
+  expect(await screen.findByRole('dialog', { name: 'Alerts for WB11F8162' })).toBeInTheDocument();
+  expect(
+    screen.getByText('Fuel level fell by 35 L while the truck was parked.'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: "Review this truck's alerts" })).toHaveAttribute(
+    'href',
+    expect.stringContaining('/owner-alerts?'),
+  );
+  expect(setSelectedId).not.toHaveBeenCalled();
 });
