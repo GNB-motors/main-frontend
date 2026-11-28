@@ -266,6 +266,49 @@ describe('BD oil & DEF report (spec 2)', () => {
     click.mockRestore();
   });
 
+  it('rebuilds the day on Download and saves the fresh file', async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    BdReportService.build.mockResolvedValue({ id: 'oil-fresh' });
+    render(<BdReport />);
+    await waitFor(() => expect(screen.getByText('bd-oil-2026-03-01.xlsx')).toBeInTheDocument());
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Download' })[0]);
+    await waitFor(() =>
+      expect(BdReportService.download).toHaveBeenCalledWith('oil-fresh', {
+        fallbackName: 'bd-oil-2026-03-01.xlsx',
+      }),
+    );
+    expect(BdReportService.build).toHaveBeenCalledWith({ day: '2026-03-01', kind: 'OIL' });
+    expect(BdReportService.build.mock.invocationCallOrder[0]).toBeLessThan(
+      BdReportService.download.mock.invocationCallOrder[0],
+    );
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
+  });
+
+  it('never hands out the old file when the rebuild fails', async () => {
+    BdReportService.build.mockRejectedValue(new Error('base not imported'));
+    render(<BdReport />);
+    await waitFor(() => expect(screen.getByText('bd-oil-2026-03-01.xlsx')).toBeInTheDocument());
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Download' })[0]);
+    await waitFor(() => expect(screen.getByText(/base not imported/)).toBeInTheDocument());
+    expect(BdReportService.download).not.toHaveBeenCalled();
+  });
+
+  it('downloads the stored file for a user who may not build', async () => {
+    getUserRole.mockReturnValue('DRIVER');
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    render(<BdReport />);
+    await waitFor(() => expect(screen.getByText('bd-oil-2026-03-01.xlsx')).toBeInTheDocument());
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Download' })[0]);
+    await waitFor(() => expect(BdReportService.download).toHaveBeenCalled());
+    expect(BdReportService.build).not.toHaveBeenCalled();
+    expect(BdReportService.download.mock.calls[0][0]).toBe('oil-1');
+    click.mockRestore();
+  });
+
   it('offers Build now to a manager and defaults to yesterday in IST', async () => {
     render(<BdReport />);
     const day = await screen.findByLabelText('Day (IST)');
